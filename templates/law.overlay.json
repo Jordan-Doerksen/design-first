@@ -1,0 +1,6 @@
+{
+  "schema": 1,
+  "_comment": "Personal layer over the kit's law.json. clauses: new ids only (the kit's ids are permanent and cannot be re-declared here). overrides: { \"<kit-id>\": { \"grade\"?, \"owner\"?, \"enforcedBy\"? } } changes a kit clause for this brain. Same validation as the kit: a grade above HONOUR needs a mechanism that exists; an owning file is brain:<path>.md under this folder. Regenerate LAW.md after every edit; the Doctor compares the two.",
+  "clauses": [],
+  "overrides": {}
+}

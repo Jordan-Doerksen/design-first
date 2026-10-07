@@ -5,7 +5,7 @@
 | Project | design-first |
 | Started | 2026-10-06 |
 | Last Updated | 2026-10-06 |
-| Status | In Build (chunk 6) |
+| Status | V1 built locally; not yet installed anywhere (chunks 8-10) |
 
 This is the public manifest. It records decisions about the kit itself. It contains nothing about
 any adopter.
@@ -62,8 +62,11 @@ what it wrote. Attach mode never overwrites. Remove deletes only unmodified kit-
 | 3 | Instructions and workflows | Done 2026-10-06 |
 | 4 | Hooks and self-tests (113 cases) | Done 2026-10-06 |
 | 5 | Doctor (13 claim types, selftest 69) | Done 2026-10-06 |
-| 6 | Adopt, remove, templates, agent, commands | Pending |
-| 7 | README, architecture | Pending |
+| 6 | Adopt, remove, templates, agent, commands (selftest 46) | Done 2026-10-06 |
+| 7 | README, architecture | Done 2026-10-06 |
+| 8 | Clean-box run on a second Windows profile | Pending |
+| 9 | Owner migration | Pending |
+| 10 | Adopter one, then public | Pending |
 
 ## Change Log
 
@@ -72,3 +75,4 @@ what it wrote. Attach mode never overwrites. Remove deletes only unmodified kit-
 | 2026-10-06 | Manifest created | Chunk 1 |
 | 2026-10-06 | Chunk 1 done; VERIFY closed: shell field, root-as-marketplace source, startup matcher, variable expansion | validate + smoke | manifest, hooks |
 | 2026-10-06 | Chunks 2-5 done. Kit Doctor GREEN on its own tree (5/5 claims), generator deterministic, hooks 113/113. Guard anchors live in hooks/lib/guard-rules.ps1 and the generator resolves lib siblings. hooks.json uses the command form, proven at runtime. Pointer claim is a brain claim, not a kit claim. | build | law, hooks, doctor |
+| 2026-10-06 | Chunks 6-7 done. Attach mode keeps an existing brain LAW.md that differs (migration regenerates it). Brain .gitignore written when the brain is a repo. | build | adopt, templates |
