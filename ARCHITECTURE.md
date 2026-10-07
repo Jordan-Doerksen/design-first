@@ -2,35 +2,54 @@
 
 ## System at a glance
 
-A Claude Code plugin whose hooks guard the session, whose commands set up and remove an adopter's
-private brain, and whose two tools (Doctor, law generator) keep the written law honest about what
-is actually enforced on the disk.
+A Claude Code plugin whose hooks guard the session, whose `adopt` command sets up an adopter's
+private brain from an interview, and whose two tools (Doctor, law generator) keep the written law
+honest about what is actually enforced on the disk.
 
 ## Core flow
 
 ```
-law.json (+ brain overlay) -> build-law.ps1 -> LAW.md
-                                     ^
-claims.json ----------> doctor.ps1 --+-- compares LAW.md, checks disk facts, smokes hooks -> state/
-hooks.json ----> guard.ps1 / fence.ps1 / entry.ps1 -> allow | deny | advise, + log
-commands/adopt.md -> adopt.ps1 -> <root>/CLAUDE.md, <root>/.claude/settings.json, <brain>/*, pointer
+law.json (+ <brain>/law.overlay.json) --> tools/law/build-law.ps1 --> LAW.md (kit) / <brain>/LAW.md
+                                                    ^
+claims.json ------------> tools/doctor/doctor.ps1 --+-- claims | survey | could-not-look --> <brain>/state/
+hooks/hooks.json --------> guard.ps1 / fence.ps1 / entry.ps1 --> allow | deny | advise, + log
+commands/adopt.md -------> tools/adopt.ps1 --> <root>/CLAUDE.md, <root>/.claude/settings*.json,
+                                               <brain>/*, %USERPROFILE%\.claude\design-first.json
 ```
+
+Everything resolves through the pointer file: `root` (where sessions start), `brain` (the
+adopter's private layer), `pluginRoot` and its kind (checkout or cache).
 
 ## Domains
 
-| Domain | Purpose | Entry point | Config | Notes |
+| domain | purpose | entry point | config | notes |
 |---|---|---|---|---|
-| `.claude-plugin/` | manifest and marketplace | `plugin.json` | — | repo root is the plugin |
-| `hooks/` | session guards | `hooks.json` | brain `doctor.config.json` via the pointer | PowerShell 7 only |
-| `commands/` | adopt, remove, gut, move, scope, ship | one `.md` each | — | prompts; scripts do the writes |
+| `.claude-plugin/` | manifest, marketplace | `plugin.json` | — | the repo root is the plugin and its own marketplace |
+| `hooks/` | session guards | `hooks.json` | `<brain>/doctor.config.json` | `lib/` holds the tokeniser, rules and shared helpers; anchors declare mode and verbs |
+| `tools/law/` | generator | `build-law.ps1` | `law.json` | `validate.ps1`, `render.ps1` dot-sourced; deterministic bytes |
+| `tools/doctor/` | disk checker | `doctor.ps1` | brain config + `claims.json` | `context`, `claims`, `claims-tree`, `claims-exec`, `repos`, `enforcement`, `survey`, `report`, `selftest` |
+| `tools/tests/` | hook self-test | `run.ps1` | `guard-cases.json` | temp repos and a fake pointer; never touches the real one |
+| `commands/` | adopt, remove, gut, move, scope, ship | one `.md` each | — | prompts ask; scripts write |
+| `tools/adopt.ps1`, `tools/remove.ps1` | the writers | — | `templates/` | record every write in `<brain>/state/installed.json` |
 | `agents/` | read-only reviewer | `reviewer.md` | — | |
-| `tools/law/` | generator | `build-law.ps1` | `law.json` | deterministic bytes |
-| `tools/doctor/` | disk checker | `doctor.ps1` | brain config + `claims.json` | three bands |
-| `tools/tests/` | self-tests | `run.ps1` | fixtures in temp | under pwsh |
-| `templates/` | root and brain files | — | — | written by `adopt.ps1` |
-| `instructions/`, `workflows/` | the law text | `LAW.md` index | — | one subject, one file |
+| `templates/` | root and brain files | — | — | copied or filled by `adopt.ps1`, never edited in place |
+| `instructions/`, `workflows/`, `lessons/` | the rule text | `LAW.md` | — | one subject per file; every clause has a `### ID` heading in its owner |
+
+## Key design decisions
+
+- **Config mutability:** all tunables live in the brain, never in the plugin, so a plugin update
+  never touches an adopter's settings.
+- **Fail-loud, not fail-closed:** a hook that errors allows the action, logs it, and surfaces it on
+  both channels. A broken hook that blocks everything gets switched off; a logged one gets fixed.
+- **Grades are mechanical:** the generator derives them from the mechanism's declared mode and
+  verbs. A missing mechanism prints HONOUR.
+- **Two LAW outputs:** the kit's with kit grades; the brain's with kit + overlay, re-derived from
+  what is installed on that machine.
+- **Storage:** JSON for config and claims, Markdown for rules, flat logs with ISO timestamps for
+  hooks; the Doctor reads logs by time window, never the whole file.
 
 ## How to modify a domain
 
 Read `DECISIONS.md`. Read this page. Open only that domain. Change config before logic. Run
-`tools/tests/run.ps1`. Run the Doctor. Update the manifest.
+`tools/tests/run.ps1` and `tools/doctor/selftest.ps1`. Run `tools/doctor/doctor.ps1 -Kit`.
+Update the manifest.
