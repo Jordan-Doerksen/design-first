@@ -5,7 +5,7 @@
 | Project | design-first |
 | Started | 2026-10-06 |
 | Last Updated | 2026-10-06 |
-| Status | V1 built locally; not yet installed anywhere (chunks 8-10) |
+| Status | V1 installed by adopter zero (in place); adopter one and public flip pending |
 
 This is the public manifest. It records decisions about the kit itself. It contains nothing about
 any adopter.
@@ -65,8 +65,8 @@ what it wrote. Attach mode never overwrites. Remove deletes only unmodified kit-
 | 5 | Doctor (13 claim types, selftest 69) | Done 2026-10-06 |
 | 6 | Adopt, remove, templates, agent, commands (selftest 46) | Done 2026-10-06 |
 | 7 | README, architecture | Done 2026-10-06 |
-| 8 | Clean-box run on a second Windows profile | Pending |
-| 9 | Owner migration | Pending |
+| 8 | Clean-box run | Skipped: adopter one is the first clean box |
+| 9 | Owner migration (adopter zero) | Done 2026-10-07 |
 | 10 | Adopter one, then public | Pending |
 
 ## Change Log
@@ -78,3 +78,4 @@ what it wrote. Attach mode never overwrites. Remove deletes only unmodified kit-
 | 2026-10-06 | Chunks 2-5 done. Kit Doctor GREEN on its own tree (5/5 claims), generator deterministic, hooks 113/113. Guard anchors live in hooks/lib/guard-rules.ps1 and the generator resolves lib siblings. hooks.json uses the command form, proven at runtime. Pointer claim is a brain claim, not a kit claim. | build | law, hooks, doctor |
 | 2026-10-06 | Chunks 6-7 done. Attach mode keeps an existing brain LAW.md that differs (migration regenerates it). Brain .gitignore written when the brain is a repo. | build | adopt, templates |
 | 2026-10-07 | Validator: a `tool` ref needs a real `# anchor: ... mode: gate` line whose verbs name the clause verb; first tool anchor `could-not-look` in the Doctor's verdict; SAFE-04 and OBS-07 become GATE. Found during the owner's own migration. | kit fix | law, generator, doctor |
+| 2026-10-07 | Adopter zero migrated a 134-clause brain onto the kit: attach mode kept 15 existing files, wrote 3. Fixes that migration forced: json_keyed_match, worktree folding, tool-anchor validation, -BrainRoot for generated_matches, self-test stand-in generator. | chunk 9 | doctor, law |
