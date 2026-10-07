@@ -1,0 +1,14 @@
+{
+  "name": "design-first",
+  "owner": {
+    "name": "Jordan-Doerksen"
+  },
+  "description": "The design-first working method for coding agents, as one installable plugin.",
+  "plugins": [
+    {
+      "name": "design-first",
+      "source": "./",
+      "description": "The design-first working method as an installable plugin: commands, hooks, reviewer agent, Doctor and law generator."
+    }
+  ]
+}
