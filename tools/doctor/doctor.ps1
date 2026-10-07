@@ -92,6 +92,21 @@ if (-not $cr.ok) {
     $survey += New-Finding 'info' 'configDefaults' $ConfigPath ("config not read ({0}); kit mode runs on defaults" -f $cr.error)
 }
 $cfg = $cr.cfg
+# Kit mode has no adopter and therefore no ownerRemotePatterns, so every remote surveyed as
+# FOREIGN, including the kit's own origin. The kit does know its owner: marketplace.json names it.
+# Derive the pattern from there when the config gives none (or only the template placeholder).
+if (-not $ctx.brain) {
+    $own = @($cfg.ownerRemotePatterns | Where-Object { $_ -and $_ -notmatch '<OWNER>' })
+    if ($own.Count -eq 0) {
+        $mp = Join-Path $ctx.kit '.claude-plugin\marketplace.json'
+        if (Test-Path -LiteralPath $mp) {
+            try {
+                $mpOwner = (Get-Content -LiteralPath $mp -Raw | ConvertFrom-Json).owner.name
+                if ($mpOwner) { $cfg.ownerRemotePatterns = @("github.com/$mpOwner/") }
+            } catch { $survey += New-Finding 'warn' 'configDefaults' $mp ("marketplace.json unreadable ({0}); remotes survey as FOREIGN" -f $_.Exception.Message) }
+        }
+    }
+}
 foreach ($dk in $cr.deadKeys) {
     $survey += New-Finding 'warn' 'deadConfigKey' $ConfigPath ("dead config key: {0} - nothing reads it (derived from the pointer or removed in schema 1). Delete it from {1}." -f $dk, $ConfigPath)
 }
