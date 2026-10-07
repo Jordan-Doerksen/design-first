@@ -3,7 +3,7 @@
 
 $script:GradeOrder  = @('DENY', 'HOOK', 'ADVISE', 'GATE', 'BUILDABLE', 'OWNER', 'HONOUR')
 $script:MechKinds   = @('permission-rule', 'hook', 'doctor-claim', 'tool', 'planned')
-$script:AnchorRx    = '^\s*#\s*anchor:\s*(?<name>\S+)\s+mode:\s*(?<mode>deny|advise)\s+verbs:\s*(?<verbs>\S+)'
+$script:AnchorRx    = '^\s*#\s*anchor:\s*(?<name>\S+)\s+mode:\s*(?<mode>deny|advise|gate)\s+verbs:\s*(?<verbs>\S+)'
 $script:ClaimIdRx   = '^[A-Z][A-Z0-9]*(-[A-Z0-9]+)+$'
 $script:SkipHooks   = $env:DF_SKIP_HOOK_FILES -eq '1'
 $script:SkipOwners  = $env:DF_SKIP_OWNER_FILES -eq '1'
@@ -90,10 +90,14 @@ function Get-ClaimIds() {
     return $ids
 }
 
-# The anchor is looked for in the referenced hook first, then in the hook's dot-sourced lib/*.ps1
-# siblings (a hook split by domain keeps its public ref). Exactly one declaration must exist.
-function Test-Anchor($c, [string] $file, [string] $anchor) {
-    $id = $c.id; $want = if ($c.grade -eq 'HOOK') { 'deny' } else { 'advise' }
+# The anchor is looked for in the referenced script first, then in its dot-sourced lib/*.ps1
+# siblings (a script split by domain keeps its public ref). Exactly one declaration must exist.
+# Mode <-> grade is mechanical: a hook anchor declares deny (HOOK) or advise (ADVISE); a tool
+# anchor declares gate (GATE). A tool ref without an anchor, or whose anchor does not name the
+# clause verb, fails generation, so a GATE grade cannot be claimed on a fictitious refusal.
+function Test-Anchor($c, [string] $file, [string] $anchor, [string] $kind) {
+    $id = $c.id
+    $want = switch ($kind) { 'tool' { 'gate' } default { if ($c.grade -eq 'HOOK') { 'deny' } else { 'advise' } } }
     $files = @($file)
     $lib = Join-Path (Split-Path -Parent $file) 'lib'
     if (Test-Path -LiteralPath $lib -PathType Container) { $files += @(Get-ChildItem -LiteralPath $lib -Filter *.ps1 | Sort-Object Name | ForEach-Object { $_.FullName }) }
@@ -110,7 +114,7 @@ function Test-Anchor($c, [string] $file, [string] $anchor) {
         if ($h.mode -ne $want) { Add-Problem $id "anchor '$anchor' declares mode $($h.mode) but grade $($c.grade) needs $want" }
         return
     }
-    $msg = "anchor '$anchor' not found in $file or its lib/ (expected a line '# anchor: $anchor  mode: <deny|advise>  verbs: <a,b>')"
+    $msg = "anchor '$anchor' not found in $file or its lib/ (expected a line '# anchor: $anchor  mode: $want  verbs: <a,b>')"
     if ($script:SkipHooks) { Add-Warning $id "$msg, skipped" } else { Add-Problem $id $msg }
 }
 
@@ -163,8 +167,8 @@ function Test-Enforcement($c) {
     $path = Resolve-RefFile $file ($c.source -eq 'overlay')
     if (-not (Test-RequiredFile $id $path "mechanism file for $kind" $script:SkipHooks)) { return }
     switch ($kind) {
-        'hook'            { if (-not $frag) { Add-Problem $id 'a hook ref needs #<anchor>' } else { Test-Anchor $c $path $frag } }
+        'hook'            { if (-not $frag) { Add-Problem $id 'a hook ref needs #<anchor>' } else { Test-Anchor $c $path $frag $kind } }
         'permission-rule' { if (-not $frag) { Add-Problem $id 'a permission-rule ref needs #<json.path>' } else { [void](Test-JsonPath $c $path $frag) } }
-        'tool'            { }
+        'tool'            { if (-not $frag) { Add-Problem $id 'a tool ref needs #<anchor> (a tool refusal is a real line in the script, not a file name)' } else { Test-Anchor $c $path $frag $kind } }
     }
 }

@@ -71,6 +71,7 @@ brain-relative (kit-relative under `-Kit`). A path with an unexpandable variable
 | `log_window_free_of` | `path`, `needle`, `days` | no line that starts with an ISO date/timestamp within `days` contains `needle`. No log file at all is a PASS, said in the detail. | such a line exists | `days` not a positive integer |
 | `remote_is` | `path`, `remote` (default `origin`), `pattern` (regex) | `git remote get-url` matches | no such remote, or no match | folder missing, not a work tree |
 | `json_subset_equal` | `path`, `subset` (inline JSON) | every key in `subset` equals the file's value; arrays compare as order-insensitive sets of equal length | a difference (the detail names the path) | file missing or not JSON |
+| `json_keyed_match` | `path`, `other`, `collection` (dotted path), `key`, `requireAll?` (default false) | every record present in BOTH files' collections (matched on `key`) is deep-equal; extra records on either side are fine | a shared record differs (detail: the key and the first differing field), or `requireAll` and a `path` key is missing from `other` | either file missing or not JSON, `collection` missing or not an array in either file, no shared keys |
 | `generated_matches` | `generator`, `source`, `overlay?`, `installed?`, `output` | the generator, run from the kit root into a temp file, produces the same bytes as `output` after CRLF->LF | bytes differ (first differing byte given), or `output` missing | generator missing, exits non-zero, times out (60 s), `pwsh` absent |
 | `tree_free_of` | `root`, `words[]`, `extensions[]`, `exclude[]`, `allow[]` of `{ path, words[] }` | no whole-word, case-insensitive hit in any scanned file | hits (file:line "word", first 12) | root missing, no words, no extensions |
 | `hook_smoke` | `hook`, `event` (`SessionStart` or `PreToolUse`) | hook runs as registered in `hooks.json` with synthetic stdin, exit 0; SessionStart also needs non-empty stdout; PreToolUse needs empty stdout or JSON | exits non-zero, times out (10 s), prints nothing (SessionStart), prints non-JSON (PreToolUse), script missing, interpreter not on PATH | `hooks.json` missing/unparseable, hook not registered for that event |
@@ -82,11 +83,33 @@ folder is always skipped. `allow` is span-based: a permitted word's match span s
 sub-word hit inside that span and nothing else, so allowing `Alpha-Beta` in `README.md` covers
 `Alpha` and `Beta` inside `Alpha-Beta` there, while a bare `Alpha` in the same file still trips.
 
+`json_keyed_match` details: for two files that each keep their own copy of a case table (golden
+vectors, fixtures, a rule list). Both files are parsed; `collection` is walked as a dotted path
+(`vectors.cases`; a top-level key that itself contains a dot is tried first, whole) and must reach
+an array in each. Each array is indexed by the string value of `key` in document order; records
+without that key are skipped, and a repeated key keeps the last record. For every key present on
+both sides the two records must be deep-equal: objects carry the same property names (order
+ignored) with equal values, arrays have the same length with equal items in order, scalars compare
+as case-sensitive strings (so `1` and `"1"` are equal, as in `json_subset_equal`), and a property
+that is `null` on one side and absent on the other is a difference. The first differing key in
+`path`'s order fails the claim and the detail reads `key '<key>' = '<value>' differs: $.<field> is
+'<a>' vs '<b>'`. With `requireAll: true` every key in `path` must also exist in `other`; the detail
+lists the missing keys. No shared key at all is UNKNOWN, not PASS: nothing was compared.
+
 ## The SURVEY band
 
 Printed first, read from the machine: one row per registered hook (`[ ok ]` / `[GONE]`), root
 settings rule counts, `soft_deny` counts, the fence log line. Then findings, `[FAIL]` / `[WARN]` /
 `[INFO]`. Accepted findings are listed under `ACCEPTED`, never hidden.
+
+**Linked worktrees.** A folder whose `.git` is a FILE reading `gitdir: <path>`, where that git dir
+holds a `commondir` marker, is a linked worktree (`git worktree add`). It shares its parent's
+objects, remotes and tracked tree, so it is not a repository of its own: the remote, unpushed,
+shallow, `.gitattributes` and tracked-secret checks run on the parent only, and the worktree is
+folded into it. The header reads `N repositories under root (A archived, not counted; W
+worktree(s) folded into their parents)`. What stays the worktree's own is its uncommitted state: a
+worktree under `frozenPaths` with changes still prints `frozen reference has MOVED`. A submodule's
+`.git` file has no `commondir` and is surveyed as a repository, as before.
 
 | Finding | Severity | Means | Do |
 |---|---|---|---|
@@ -95,7 +118,8 @@ settings rule counts, `soft_deny` counts, the fence log line. Then findings, `[F
 | `FOREIGN remote: <repo> -> <url>. Looks backed up; cannot be pushed.` | fail | The remote matches none of `ownerRemotePatterns`. | `git remote rename origin upstream`, add your own, push. Or add your pattern to the config. |
 | `N commits unpushed: <repo>` | warn | Committed is not backed up; pushed is. | `git -C <repo> push`. |
 | `SHALLOW clone: <repo> (N commits visible). It cannot be pushed to a new remote.` | fail | Truncated history. `git fsck` cannot see this; only the marker file can. | `git -C <repo> fetch --unshallow <remote>`. |
-| `frozen reference has MOVED: <repo> (N uncommitted entries)` | fail | Something edited a path in `frozenPaths`. | Read the diff. Keep or revert is the owner's call. |
+| `frozen reference has MOVED: <repo> (N uncommitted entries)` | fail | Something edited a path in `frozenPaths`. Also printed for a linked worktree under a frozen path. | Read the diff. Keep or revert is the owner's call. |
+| `N linked worktree(s) of <parent>: <names>` | info | Those folders are worktrees of `<parent>`; their remote, history and tracked-file findings are reported once, on the parent. | Nothing. Remove a worktree with `git -C <parent> worktree remove <name>` when it is done. |
 | `no .gitattributes: <repo> - core.autocrlf decides its bytes, not the repo` | warn | A machine setting decides the repo's bytes. | Add one when the tree is clean. |
 | `no git at all: <path> (N files) - nothing is protecting them` | warn | Real content in no repository. Enumerated, not looked up. | `git init`, `.gitignore` before the first commit, remote. If deliberate, add a part to `unversionedIgnorePathParts` with a reason. |
 | `tracked .env: <repo>/<file> - a secret file is in git.` | fail | A secret file is tracked. | Rotate first, then `git rm --cached`, then ignore it. Or register it in `secretExceptions` on purpose. |
@@ -167,9 +191,9 @@ Generated, never hand-edited. Byte-identical on a re-run with nothing changed, e
 
 | File | Holds |
 |---|---|
-| `repos.json` | every swept repo: remote, ownership, ahead, dirty, shallow, frozen, last commit |
-| `repos.generated.md` | the same as a table, sorted, no timestamp |
-| `last-run.json` | when it ran, the mode, the verdict and the band counts; the only file with a timestamp |
+| `repos.json` | every swept repo: remote, ownership, ahead, dirty, shallow, frozen, last commit; linked worktrees carry `worktree: true` and `parent` |
+| `repos.generated.md` | the same as a table, sorted, no timestamp; worktrees are not rows (folded into their parents) |
+| `last-run.json` | when it ran, the mode, the verdict, `repoCount`, `worktreeCount` and the band counts; the only file with a timestamp |
 
 All state files are UTF-8 without BOM, LF.
 
@@ -180,15 +204,20 @@ pwsh -NoProfile -File <pluginRoot>\tools\doctor\selftest.ps1
 ```
 
 Builds a throwaway pointer, brain, root and kit-like tree under `%TEMP%` with a fake
-`USERPROFILE`, plants one true and one false case for every claim type (the span case included), a
-CRLF-vs-LF generated file that must pass, a stale snapshot, an absent fence log that must be
-REPORTED and not RED, a schema mismatch that must say `MIGRATE`, and proves exit codes 0, 1 and 2,
-the `-Kit` and `-Json` paths and the `Doctor.bat` shim. It never touches your real folders. About
-a minute. Run it after any change to the Doctor: a check that cannot fail is worse than no check.
+`USERPROFILE`, plants one true and one false case for every claim type (the span case and the
+keyed compare's `requireAll` and missing-collection cases included), a CRLF-vs-LF generated file
+that must pass, a stale snapshot, an absent fence log that must be REPORTED and not RED, a schema
+mismatch that must say `MIGRATE`, a repo with two linked worktrees whose tracked secret must be
+reported exactly once (one of them frozen and dirty, which must still trip), and proves exit codes
+0, 1 and 2, the `-Kit` and `-Json` paths and the `Doctor.bat` shim. It never touches your real
+folders. About a minute. Run it after any change to the Doctor: a check that cannot fail is worse
+than no check.
 
 ## Known gaps, stated honestly
 
 - The repo sweep reads `maxDepth` folders deep. A repo nested deeper is invisible.
+- A linked worktree whose parent lives outside `root` (or under `excludePathParts`) is still
+  folded and the INFO line names the parent by full path, but nothing checks that parent.
 - `log_window_free_of` only reads lines that start with a date. A log that writes dates elsewhere
   on the line is read as undated, and undated lines are ignored.
 - `hook_smoke` proves a hook starts and answers; it does not prove the hook's decisions are right.
@@ -196,3 +225,7 @@ a minute. Run it after any change to the Doctor: a check that cannot fail is wor
 - `tree_free_of` reads the files named by `extensions` and nothing else. A leak in an unlisted
   extension is not seen; the pre-flip history scan has the same scope.
 - It reports what is true now. It does not know what you intended.
+
+## Anchors and grades
+
+A script anchor is a comment line `# anchor: <name>  mode: <deny|advise|gate>  verbs: <a,b>`. The law generator derives a clause's grade from the anchor it cites: `mode: deny` in a hook prints HOOK, `mode: advise` prints ADVISE, and `mode: gate` in a tool prints GATE. The Doctor carries one tool anchor, `could-not-look`, on the line that decides the COULD-NOT-LOOK verdict: a Doctor that could not look never reports green, and the clauses that say so cite that line.

@@ -42,7 +42,8 @@ no project-specific skills. Locked 2026-10-06.
 from kit + overlay with grades re-derived from what is installed on that machine.
 
 **2.2 Grades are mechanical.** DENY = a permission deny rule. HOOK / ADVISE = a hook, as its
-anchor declares. GATE = an ask rule, a Doctor claim, or a tool refusal. BUILDABLE = specified,
+anchor declares (`mode: deny` / `mode: advise`). GATE = an ask rule, a Doctor claim, or a tool
+refusal; a tool refusal is an anchor line `mode: gate` in the script, never a bare file name. BUILDABLE = specified,
 not shipped. OWNER = a standing ruling. HONOUR = a request. Each clause carries a verb; each
 anchor declares the verbs it covers; the generator checks the match.
 
@@ -76,3 +77,4 @@ what it wrote. Attach mode never overwrites. Remove deletes only unmodified kit-
 | 2026-10-06 | Chunk 1 done; VERIFY closed: shell field, root-as-marketplace source, startup matcher, variable expansion | validate + smoke | manifest, hooks |
 | 2026-10-06 | Chunks 2-5 done. Kit Doctor GREEN on its own tree (5/5 claims), generator deterministic, hooks 113/113. Guard anchors live in hooks/lib/guard-rules.ps1 and the generator resolves lib siblings. hooks.json uses the command form, proven at runtime. Pointer claim is a brain claim, not a kit claim. | build | law, hooks, doctor |
 | 2026-10-06 | Chunks 6-7 done. Attach mode keeps an existing brain LAW.md that differs (migration regenerates it). Brain .gitignore written when the brain is a repo. | build | adopt, templates |
+| 2026-10-07 | Validator: a `tool` ref needs a real `# anchor: ... mode: gate` line whose verbs name the clause verb; first tool anchor `could-not-look` in the Doctor's verdict; SAFE-04 and OBS-07 become GATE. Found during the owner's own migration. | kit fix | law, generator, doctor |

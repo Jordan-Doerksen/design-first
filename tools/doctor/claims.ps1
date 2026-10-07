@@ -3,8 +3,11 @@
 # its own rot. A claim that cannot be evaluated returns UNKNOWN, never PASS. Absent is not zero.
 #
 # Statuses: PASS | FAIL (CLAIMS band, RED) | UNKNOWN (COULD-NOT-LOOK band, exit 2).
-# The dispatcher and the simple types live here; tree_free_of is in claims-tree.ps1 and the two
-# process-spawning types (generated_matches, hook_smoke) are in claims-exec.ps1.
+# The dispatcher and the simple types live here; tree_free_of is in claims-tree.ps1, the two
+# process-spawning types (generated_matches, hook_smoke) are in claims-exec.ps1, and the two-file
+# keyed compare (json_keyed_match) is in claims-keyed.ps1, dot-sourced below.
+
+. (Join-Path $PSScriptRoot 'claims-keyed.ps1')
 
 function New-ClaimResult {
     param($Claim, [string] $Status, [string] $Detail)
@@ -66,6 +69,7 @@ function Invoke-OneClaim {
         'log_window_free_of' { return Test-LogWindowClaim $c $Context }
         'remote_is'          { return Test-RemoteIsClaim $c $Context }
         'json_subset_equal'  { return Test-JsonSubsetClaim $c $Context }
+        'json_keyed_match'   { return Test-JsonKeyedMatchClaim $c $Context }
         'generated_matches'  { return Test-GeneratedMatchesClaim $c $Context }
         'tree_free_of'       { return Test-TreeFreeOfClaim $c $Context }
         'hook_smoke'         { return Test-HookSmokeClaim $c $Context }

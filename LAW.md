@@ -17,7 +17,7 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | id | grade | rule | owner |
 |---|---|---|---|
 | SAFE-01 | HOOK | Secrets live in an ignored secrets file and never enter a commit; a leaked token is rotated first and removed second. | `kit:instructions/integrity-law.md` |
-| SAFE-04 | HONOUR | Show nothing rather than something false: a blank panel beats a wrong number, anything unverified is labelled, and absent is not zero. | `kit:instructions/observability-law.md` |
+| SAFE-04 | GATE | Show nothing rather than something false: a blank panel beats a wrong number, anything unverified is labelled, and absent is not zero. | `kit:instructions/observability-law.md` |
 | SAFE-06 | OWNER | Never tidy, commit, reset or consolidate a dirty or untracked tree on your own initiative; some are dirty on purpose to protect something that works. | `kit:instructions/integrity-law.md` |
 | SAFE-09 | HOOK | A retired but load-bearing folder is never deleted, moved or archived while a live consumer still reads it. | `kit:instructions/integrity-law.md` |
 
@@ -116,7 +116,7 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | OBS-04 | HONOUR | Never hide an error: no swallowed exception, no unreachable handler, no unlogged external failure. | `kit:instructions/observability-law.md` |
 | OBS-05 | HONOUR | Install the process-level crash trap in every program, because a panic or a segfault kills the process before any handler you wrote runs. | `kit:instructions/observability-law.md` |
 | OBS-06 | HONOUR | Every check returns a code and a reason on the Nagios contract, UNKNOWN wins aggregation, and a panel renders OK only from a genuine OK. | `kit:instructions/observability-law.md` |
-| OBS-07 | HONOUR | Show nothing rather than something false, and absent is not zero; a check that could not look never reports green. | `kit:instructions/observability-law.md` |
+| OBS-07 | GATE | Show nothing rather than something false, and absent is not zero; a check that could not look never reports green. | `kit:instructions/observability-law.md` |
 | OBS-08 | HONOUR | Every runnable tool ships a logger and a manual with a symptom, meaning and fix table. | `kit:instructions/observability-law.md` |
 | OBS-09 | HONOUR | Every new game builds its debug watchdog before the first mechanic. | `kit:instructions/observability-law.md` |
 | OBS-10 | HONOUR | A shipped tool logs to the per-user application data directory, never beside the executable. | `kit:instructions/observability-law.md` |
@@ -161,8 +161,8 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | DENY | 0 |
 | HOOK | 5 |
 | ADVISE | 1 |
-| GATE | 3 |
+| GATE | 5 |
 | BUILDABLE | 0 |
 | OWNER | 3 |
-| HONOUR | 65 |
+| HONOUR | 63 |
 | total | 77 |

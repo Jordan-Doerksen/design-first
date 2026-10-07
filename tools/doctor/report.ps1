@@ -12,6 +12,7 @@ function Get-Verdict {
     param($Claims, $Survey, $CouldNotLook, [bool] $SurveyStrict)
     $claimFails = @($Claims | Where-Object { $_.status -eq 'FAIL' }).Count
     $surveyFails = @($Survey | Where-Object { $_.severity -eq 'fail' }).Count
+    # anchor: could-not-look  mode: gate  verbs: report-green,look
     if (@($CouldNotLook).Count -gt 0) { return [PSCustomObject]@{ verdict = 'COULD-NOT-LOOK'; code = 2; reason = 'something could not be checked' } }
     if ($claimFails -gt 0) { return [PSCustomObject]@{ verdict = 'RED'; code = 1; reason = "$claimFails false claim(s)" } }
     if ($SurveyStrict -and $surveyFails -gt 0) { return [PSCustomObject]@{ verdict = 'RED'; code = 1; reason = "$surveyFails survey finding(s), surveyStrict is true" } }
@@ -48,7 +49,7 @@ function Write-State {
     $md.Add('| Repo | Remote | Ahead | Dirty | Flags |')
     $md.Add('|---|---|---|---|---|')
     foreach ($r in $sorted) {
-        if ($r.archived) { continue }
+        if ($r.archived -or [bool]$r.worktree) { continue }   # worktrees are folded into their parents
         $rem = 'none'
         if ($r.remote -ne '') { $rem = if ($r.ownsRemote) { 'yours' } else { 'FOREIGN' } }
         $ah = if ($null -ne $r.ahead) { [string]$r.ahead } else { '-' }
@@ -66,7 +67,8 @@ function Write-State {
         mode          = $Mode
         verdict       = $Verdict.verdict
         exitCode      = $Verdict.code
-        repoCount     = @($Repos | Where-Object { -not $_.archived }).Count
+        repoCount     = @($Repos | Where-Object { -not $_.archived -and -not [bool]$_.worktree }).Count
+        worktreeCount = @($Repos | Where-Object { -not $_.archived -and [bool]$_.worktree }).Count
         claimsPass    = @($Claims | Where-Object { $_.status -eq 'PASS' }).Count
         claimsFail    = @($Claims | Where-Object { $_.status -eq 'FAIL' }).Count
         claimsUnknown = @($Claims | Where-Object { $_.status -eq 'UNKNOWN' }).Count
@@ -99,21 +101,24 @@ function Get-JsonReport {
             softDenyTotal = $Enforcement.softDenyTotal; softDenyFrozen = $Enforcement.softDenyFrozen
             fenceLogExists = $Enforcement.fenceLogExists; fenceTrips = $Enforcement.fenceTrips; fenceLastTrip = $Enforcement.fenceLastTrip
         }
-        repos = @($Repos | Sort-Object -Property path | ForEach-Object { [ordered]@{ path = $_.path; remote = $_.remote; ownsRemote = $_.ownsRemote; ahead = $_.ahead; dirty = $_.dirty; shallow = $_.shallow; frozen = $_.frozen; archived = $_.archived } })
+        repos = @($Repos | Sort-Object -Property path | ForEach-Object { [ordered]@{ path = $_.path; remote = $_.remote; ownsRemote = $_.ownsRemote; ahead = $_.ahead; dirty = $_.dirty; shallow = $_.shallow; frozen = $_.frozen; archived = $_.archived; worktree = [bool]$_.worktree; parent = [string]$_.parent } })
     }
     return ($doc | ConvertTo-Json -Depth 8)
 }
 
 function Show-Report {
     param($Context, $Repos, $Enforcement, $Claims, $Survey, $CouldNotLook, $Verdict, [string] $Mode, [bool] $SurveyStrict, [string] $StateDir)
-    $live = @($Repos | Where-Object { -not $_.archived })
+    # Linked worktrees are folded into their parents (repos.ps1): counted apart, never as repos.
+    $live = @($Repos | Where-Object { -not $_.archived -and -not [bool]$_.worktree })
+    $wtCount = @($Repos | Where-Object { -not $_.archived -and [bool]$_.worktree }).Count
+    $wtNote = if ($wtCount -gt 0) { "; {0} worktree(s) folded into their parents" -f $wtCount } else { '' }
     Write-Host ''
     Write-Host '  DOCTOR' -ForegroundColor Cyan
     Write-Host '  ------' -ForegroundColor Cyan
     Write-Host ("  mode {0}   root {1}" -f $Mode, $Context.root)
     Write-Host ("  brain {0}" -f $(if ($Context.brain) { $Context.brain } else { '(none)' }))
     Write-Host ("  kit {0}" -f $Context.kit)
-    Write-Host ("  {0} repositories under root ({1} archived, not counted)" -f $live.Count, (@($Repos).Count - $live.Count))
+    Write-Host ("  {0} repositories under root ({1} archived, not counted{2})" -f $live.Count, (@($Repos).Count - $live.Count - $wtCount), $wtNote)
     Write-Host ''
 
     # --- band 1: CLAIMS

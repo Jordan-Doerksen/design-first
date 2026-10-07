@@ -12,6 +12,15 @@ function Get-RepoFindings {
     param([Parameter(Mandatory = $true)] $Repos)
     $f = @()
     foreach ($r in @($Repos | Where-Object { -not $_.archived })) {
+        if ([bool]$r.worktree) {
+            # A linked worktree shares its parent's objects, remotes and tracked tree: the remote,
+            # unpushed, shallow, .gitattributes and tracked-secret checks ran on the parent. Only the
+            # folder's own uncommitted state is its own, so a frozen worktree that moved still counts.
+            if ($r.frozen -and $r.dirty -gt 0) {
+                $f += New-Finding 'fail' 'frozenDirty' $r.path ("frozen reference has MOVED: {0} ({1} uncommitted entries)" -f $r.path, $r.dirty)
+            }
+            continue
+        }
         if ($r.remote -eq '') {
             # A repo with no commits has nothing to lose. Reporting it as data loss is a false alarm.
             if ($r.commits -eq 0) {
@@ -36,6 +45,13 @@ function Get-RepoFindings {
         if ($r.commits -gt 0 -and -not $r.hasAttrs -and -not $r.frozen) {
             $f += New-Finding 'warn' 'noGitattributes' $r.path ("no .gitattributes: {0} - core.autocrlf decides its bytes, not the repo" -f $r.path)
         }
+    }
+    # One INFO per parent, never one per worktree: the fold is the point. Sorted so the output is
+    # byte-stable across runs.
+    $worktrees = @($Repos | Where-Object { -not $_.archived -and [bool]$_.worktree })
+    foreach ($grp in @($worktrees | Group-Object -Property parent | Sort-Object -Property Name)) {
+        $names = (@($grp.Group | ForEach-Object { $_.path } | Sort-Object) -join ', ')
+        $f += New-Finding 'info' 'worktrees' $grp.Name ("{0} linked worktree(s) of {1}: {2}" -f $grp.Count, $grp.Name, $names)
     }
     return ,$f
 }

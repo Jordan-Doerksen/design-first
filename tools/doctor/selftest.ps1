@@ -19,6 +19,7 @@ function Bad  { param([string] $Name, [string] $Why) Write-Host ("  FAIL  {0}" -
 function Assert-Has    { param([string] $Name, [string] $Out, [string] $Needle) if ($Out.Contains($Needle)) { Ok $Name } else { Bad $Name "expected the output to contain: $Needle" } }
 function Assert-HasNot { param([string] $Name, [string] $Out, [string] $Needle) if ($Out.Contains($Needle)) { Bad $Name "output must NOT contain: $Needle" } else { Ok $Name } }
 function Assert-Exit   { param([string] $Name, [int] $Actual, [int] $Expected) if ($Actual -eq $Expected) { Ok ("{0} (exit {1})" -f $Name, $Actual) } else { Bad $Name "exit was $Actual, expected $Expected" } }
+function Assert-Count  { param([string] $Name, [string] $Out, [string] $Needle, [int] $Expected) $n = ([regex]::Matches($Out, [regex]::Escape($Needle))).Count; if ($n -eq $Expected) { Ok ("{0} ({1}x)" -f $Name, $n) } else { Bad $Name "expected '$Needle' $Expected time(s), found $n" } }
 function W    { param([string] $Path, [string] $Text) $d = Split-Path -Parent $Path; if (-not (Test-Path -LiteralPath $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null }; [IO.File]::WriteAllText($Path, $Text, $utf8) }
 function WJ   { param([string] $Path, $Obj) W $Path (($Obj | ConvertTo-Json -Depth 12) + "`n") }
 function NewDir { param([string] $Path) New-Item -ItemType Directory -Path $Path -Force | Out-Null; return $Path }
@@ -67,6 +68,13 @@ try {
     $shallow = New-TestRepo $root 'shallowrepo'; W (Join-Path $shallow '.git\shallow') "0000000000000000000000000000000000000000`n"
     $frozen = New-TestRepo $root 'frozenref'; W (Join-Path $frozen 'drift.txt') "someone edited a frozen thing`n"
     $leaky = New-TestRepo $root 'leaky'; W (Join-Path $leaky '.env') "TOKEN=abc123`n"; & git -C $leaky add -A -f 2>&1 | Out-Null; & git -C $leaky commit -q -m oops 2>&1 | Out-Null
+    # Linked worktrees: one parent with a tracked .env (no exception registered) and two worktrees.
+    # The secret must be reported ONCE, the worktrees folded into one INFO line, and the second
+    # worktree, which sits under frozenPaths and is dirty, must still trip frozenDirty.
+    $wtMain = New-TestRepo $root 'wtmain'; W (Join-Path $wtMain '.env') "TOKEN=shared`n"; & git -C $wtMain add -A -f 2>&1 | Out-Null; & git -C $wtMain commit -q -m env 2>&1 | Out-Null
+    & git -C $wtMain worktree add -q (Join-Path $root 'wtmain-wt1') -b wt1 2>&1 | Out-Null
+    & git -C $wtMain worktree add -q (Join-Path $root 'wtmain-wt2') -b wt2 2>&1 | Out-Null
+    W (Join-Path $root 'wtmain-wt2\moved.txt') "edited inside a frozen worktree`n"
     W (Join-Path $root 'unversioned\work.txt') "real work, no history`n"
     W (Join-Path $root '_backups\old-snapshot\dump.txt') "deliberately not in git`n"
     $nested = New-TestRepo (NewDir (Join-Path $root 'category')) 'nested-repo'
@@ -85,6 +93,21 @@ try {
     W (Join-Path $ep 'nosnapshot.md') "governs everything, backed up nowhere`n"
     W (Join-Path $ep 'eolonly.md') "same content`r`nsecond line`r`n";    W (Join-Path $ep 'eolonly.md.snapshot') "same content`nsecond line`n"
     WJ (Join-Path $brain 'config-old.json') ([ordered]@{ schema = 0 })
+    # json_keyed_match fixtures: a nested collection (dotted path), keyed by `id`. A and B share
+    # ids 1 and 2 (equal, with B's property order shuffled) and each holds a key the other lacks.
+    # C repeats A but changes one nested field of the shared id 2.
+    $vecA = [ordered]@{ meta = [ordered]@{ v = 1 }; vectors = [ordered]@{ cases = @(
+        [ordered]@{ id = 1; name = 'one'; out = [ordered]@{ pnl = 12; legs = @(1, 2) } },
+        [ordered]@{ id = 2; name = 'two'; out = [ordered]@{ pnl = -3; legs = @(4) } },
+        [ordered]@{ id = 3; name = 'only in A'; out = [ordered]@{ pnl = 0; legs = @() } }) } }
+    $vecB = [ordered]@{ vectors = [ordered]@{ cases = @(
+        [ordered]@{ out = [ordered]@{ legs = @(4); pnl = -3 }; name = 'two'; id = 2 },
+        [ordered]@{ id = 1; name = 'one'; out = [ordered]@{ pnl = 12; legs = @(1, 2) } },
+        [ordered]@{ id = 4; name = 'only in B'; out = [ordered]@{ pnl = 9; legs = @(7) } }) } }
+    $vecC = [ordered]@{ vectors = [ordered]@{ cases = @(
+        [ordered]@{ id = 1; name = 'one'; out = [ordered]@{ pnl = 12; legs = @(1, 2) } },
+        [ordered]@{ id = 2; name = 'two'; out = [ordered]@{ pnl = -3; legs = @(5) } }) } }
+    WJ (Join-Path $brain 'vectors-a.json') $vecA; WJ (Join-Path $brain 'vectors-b.json') $vecB; WJ (Join-Path $brain 'vectors-c.json') $vecC
     $old = (Get-Date).ToUniversalTime().AddDays(-20).ToString('yyyy-MM-ddTHH:mm:ssZ'); $new = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
     W (Join-Path $fakeHome '.claude\hooks-old.log') "$old ERROR guard old failure`nbanner line without a date`n"
     W (Join-Path $fakeHome '.claude\hooks-new.log') "$old ERROR guard old failure`n$new ERROR guard fresh failure`n"
@@ -93,7 +116,7 @@ try {
         schema = 1; surveyStrict = $false; maxDepth = 3
         excludePathParts = @('\_none_\'); archivedPathParts = @('\_archive\')
         ownerRemotePatterns = @('github.com/test-owner/')
-        frozenPaths = @('${ROOT}/frozenref'); tombstonedPaths = @()
+        frozenPaths = @('${ROOT}/frozenref', '${ROOT}/wtmain-wt2'); tombstonedPaths = @()
         unversionedMaxDepth = 3; unversionedIgnorePathParts = @('\_backups\')
         secretExceptions = @()
         acceptedExceptions = @([ordered]@{ path = 'foreign'; kinds = @('foreignRemote'); since = '2026-01-01'; reason = 'vendored, planted' })
@@ -177,6 +200,7 @@ exit 0
         [ordered]@{ id = 'T-LOG';         type = 'log_window_free_of'; path = '%USERPROFILE%\.claude\hooks-old.log'; needle = 'ERROR'; days = 7; why = 't' },
         [ordered]@{ id = 'T-REMOTE';      type = 'remote_is';          path = '${ROOT}/ownedrepo'; remote = 'origin'; pattern = 'github\.com/test-owner/'; why = 't' },
         [ordered]@{ id = 'T-JSON';        type = 'json_subset_equal';  path = '${ROOT}/.claude/settings.json'; subset = $subsetOk; why = 't' },
+        [ordered]@{ id = 'T-KEYED';       type = 'json_keyed_match';   path = 'vectors-a.json'; other = '${BRAIN}/vectors-b.json'; collection = 'vectors.cases'; key = 'id'; why = 't' },
         [ordered]@{ id = 'T-GEN';         type = 'generated_matches';  generator = 'tools/law/build-law.ps1'; source = '${KIT}/law.json'; output = '${KIT}/LAW.md'; why = 't' },
         [ordered]@{ id = 'T-TREE';        type = 'tree_free_of';       root = '${KIT}/leak-ok'; words = $leakWords; extensions = $leakExt; exclude = @('LICENSE'); allow = $leakAllow; why = 't' },
         [ordered]@{ id = 'T-SMOKE-PRE';   type = 'hook_smoke';         hook = 'good-guard'; event = 'PreToolUse'; why = 't' },
@@ -192,6 +216,8 @@ exit 0
         [ordered]@{ id = 'F-LOG';         type = 'log_window_free_of'; path = '%USERPROFILE%\.claude\hooks-new.log'; needle = 'ERROR'; days = 7; why = 'f' },
         [ordered]@{ id = 'F-REMOTE';      type = 'remote_is';          path = '${ROOT}/foreign'; remote = 'origin'; pattern = 'github\.com/test-owner/'; why = 'f' },
         [ordered]@{ id = 'F-JSON';        type = 'json_subset_equal';  path = '${ROOT}/.claude/settings.json'; subset = $subsetBad; why = 'f' },
+        [ordered]@{ id = 'F-KEYED';       type = 'json_keyed_match';   path = 'vectors-a.json'; other = 'vectors-c.json'; collection = 'vectors.cases'; key = 'id'; why = 'f' },
+        [ordered]@{ id = 'F-KEYED-ALL';   type = 'json_keyed_match';   path = 'vectors-a.json'; other = 'vectors-b.json'; collection = 'vectors.cases'; key = 'id'; requireAll = $true; why = 'f' },
         [ordered]@{ id = 'F-GEN';         type = 'generated_matches';  generator = 'tools/law/build-law.ps1'; source = '${KIT}/law.json'; output = '${KIT}/LAW-drift.md'; why = 'f' },
         [ordered]@{ id = 'F-TREE';        type = 'tree_free_of';       root = '${KIT}/leak-bad'; words = $leakWords; extensions = $leakExt; exclude = @('LICENSE'); allow = $leakAllow; why = 'f' },
         [ordered]@{ id = 'F-TREE-SPAN';   type = 'tree_free_of';       root = '${KIT}/leak-span'; words = $leakWords; extensions = $leakExt; exclude = @('LICENSE'); allow = $leakAllow; why = 'f' },
@@ -204,6 +230,7 @@ exit 0
     $unknownClaims = @(
         [ordered]@{ id = 'U-GEN';      type = 'generated_matches'; generator = 'tools/law/build-law.ps1'; source = '${KIT}/law-fail.json'; output = '${KIT}/LAW.md'; why = 'u' },
         [ordered]@{ id = 'U-CONTAINS'; type = 'file_contains';     path = '${BRAIN}/missing.md'; needle = 'x'; why = 'u' },
+        [ordered]@{ id = 'U-KEYED';    type = 'json_keyed_match';  path = 'vectors-a.json'; other = 'vectors-b.json'; collection = 'vectors.nope'; key = 'id'; why = 'u' },
         [ordered]@{ id = 'U-SMOKE';    type = 'hook_smoke';        hook = 'unregistered'; event = 'PreToolUse'; why = 'u' },
         [ordered]@{ id = 'U-TYPE';     type = 'bogus_type';        why = 'u' }
     )
@@ -222,6 +249,12 @@ exit 0
     Assert-Has 'A: shallow clone' $a.out 'SHALLOW clone: shallowrepo'
     Assert-Has 'A: frozen reference moved (${ROOT}-relative frozenPaths)' $a.out 'frozen reference has MOVED: frozenref'
     Assert-Has 'A: tracked .env' $a.out 'tracked .env: leaky'
+    Assert-Count 'A: worktree parent secret reported ONCE, not once per worktree' $a.out 'tracked .env: wtmain/.env' 1
+    Assert-Has 'A: worktrees folded into one INFO line per parent' $a.out '2 linked worktree(s) of wtmain: wtmain-wt1, wtmain-wt2'
+    Assert-HasNot 'A: a worktree is not surveyed as its own repo (no remote)' $a.out 'no remote: wtmain-wt'
+    Assert-HasNot 'A: a worktree is not surveyed as its own repo (gitattributes)' $a.out 'no .gitattributes: wtmain-wt'
+    Assert-Has 'A: a dirty frozen worktree still trips frozenDirty' $a.out 'frozen reference has MOVED: wtmain-wt2'
+    Assert-Has 'A: repo count line folds worktrees' $a.out '8 repositories under root (0 archived, not counted; 2 worktree(s) folded into their parents)'
     Assert-Has 'A: no git at all (enumerated)' $a.out 'no git at all: unversioned'
     Assert-HasNot 'A: ignore list suppresses _backups' $a.out 'no git at all: _backups'
     Assert-HasNot 'A: a container is not called unversioned' $a.out 'no git at all: category'
@@ -235,7 +268,7 @@ exit 0
     Assert-Has 'A: soft_deny counted against frozenPaths' $a.out 'soft_deny: 2 rule(s), 1 naming a frozen path'
     Assert-Has 'A: registered-but-missing hook' $a.out 'hook REGISTERED BUT MISSING'
     Assert-Has 'A: deny/ask rules read from root settings' $a.out 'root settings: 1 deny, 1 ask'
-    Assert-Has 'A: every true claim holds' $a.out 'CLAIMS  13 pass  0 fail  0 could not look'
+    Assert-Has 'A: every true claim holds' $a.out 'CLAIMS  14 pass  0 fail  0 could not look'
     Assert-HasNot 'A: no COULD-NOT-LOOK band' $a.out 'COULD-NOT-LOOK'
 
     # ================================================================ run B: same disk, surveyStrict true -> exit 1
@@ -254,6 +287,8 @@ exit 0
     Assert-Has 'C: span rule - slug outside the allow table trips' $c.out ('other.md:1 "{0}"' -f $slug)
     Assert-Has 'C: bare name trips' $c.out ('notes.md:1 "{0}"' -f $first)
     Assert-Has 'C: generated_matches names the first differing byte' $c.out 'first difference at byte'
+    Assert-Has 'C: json_keyed_match names the differing key and field' $c.out "F-KEYED  key 'id' = '2' differs: `$.out.legs[0] is '4' vs '5'"
+    Assert-Has 'C: json_keyed_match requireAll names the missing key' $c.out 'F-KEYED-ALL  requireAll: 1 key(s) in'
     Assert-Has 'C: SessionStart silent hook is a fail' $c.out 'printed nothing'
     Assert-Has 'C: PreToolUse non-JSON is a fail' $c.out 'stdout is not JSON'
     Assert-HasNot 'C: no COULD-NOT-LOOK from false claims' $c.out 'COULD-NOT-LOOK'
@@ -265,6 +300,7 @@ exit 0
     Assert-Has 'D: band printed' $d.out 'COULD-NOT-LOOK'
     Assert-Has 'D: generator exit 1 is could-not-look, not RED' $d.out 'U-GEN  generator exited 1'
     Assert-Has 'D: missing file for file_contains is unknown' $d.out '????  U-CONTAINS'
+    Assert-Has 'D: json_keyed_match with a missing collection path is unknown' $d.out "????  U-KEYED  collection 'vectors.nope' not found in"
     Assert-Has 'D: unregistered hook is unknown' $d.out '????  U-SMOKE'
     Assert-Has 'D: unknown type is unknown' $d.out "unknown claim type 'bogus_type'"
     Assert-HasNot 'D: never GREEN' $d.out 'GREEN'
