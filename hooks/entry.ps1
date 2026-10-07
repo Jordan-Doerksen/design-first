@@ -9,6 +9,8 @@
 #   2. Heartbeat <brain>/state/last-session.json.
 #   3. Delete once-per-session markers older than 1 day; truncate the hooks log to 90 days.
 #   4. cwd under root: print <brain>/entry.json in order, MISSING: for absent files, never skip.
+#      "kit:" entries resolve under pointer.pluginRoot (the kit the brain's LAW.md and Doctor
+#      run from; the running plugin root when the pointer has none), "brain:" under the brain.
 #      Outside root: one line. No pointer: the /design-first:adopt line.
 # Output is buffered and printed once, so an internal error can still answer as JSON on both
 # channels with the ERROR logged.
@@ -25,8 +27,22 @@ function Get-PluginKind([string]$path) {
     return 'checkout'
 }
 
-function Expand-EntryPath([string]$p, $ptr) {
-    $s = $p.Replace('${ROOT}', [string]$ptr.root).Replace('${BRAIN}', [string]$ptr.brain).Replace('%USERPROFILE%', $env:USERPROFILE)
+# Entry forms (templates/entry.json): "kit:<rel>" is under the kit root, "brain:<rel>" is under
+# the brain. The older forms still work: ${ROOT}, ${BRAIN}, %USERPROFILE%, and a bare relative
+# path, which is brain-relative. Only those two words are prefixes; "C:\x" has a colon too and
+# must stay a rooted path. Returns $null when an entry cannot be resolved at all.
+# 2026-10-07: before this, both prefixes fell through to Join-Path against the brain and every
+# prefixed entry printed as MISSING: C:\...\AI-Brain\kit:instructions\... The self-test fixture
+# only used the older forms, so it never caught it.
+function Expand-EntryPath([string]$p, $ptr, [string]$kitRoot) {
+    $s = $p.Trim()
+    if ($s -match '^(kit|brain):(.*)$') {
+        $base = if ($Matches[1] -ieq 'kit') { $kitRoot } else { [string]$ptr.brain }
+        $rel  = ($Matches[2] -replace '/', '\').TrimStart('\')
+        if ([string]::IsNullOrWhiteSpace($base) -or [string]::IsNullOrWhiteSpace($rel)) { return $null }
+        return (ConvertTo-DfFullPath (Join-Path $base $rel))
+    }
+    $s = $s.Replace('${ROOT}', [string]$ptr.root).Replace('${BRAIN}', [string]$ptr.brain).Replace('%USERPROFILE%', $env:USERPROFILE)
     $s = $s -replace '/', '\'
     if (-not [IO.Path]::IsPathRooted($s)) { $s = Join-Path $ptr.brain $s }
     return (ConvertTo-DfFullPath $s)
@@ -117,15 +133,19 @@ try {
                 else {
                     $entry = Get-Content -LiteralPath $entryFile -Raw -Encoding utf8 | ConvertFrom-Json
                     $items = if ($entry.PSObject.Properties['entries']) { @($entry.entries) } else { @($entry) }
+                    # Kit root for "kit:" entries: the pointer's pluginRoot first (the kit of record), else
+                    # the plugin this hook is running from (hooks\ is one level under the plugin root).
+                    $kitRoot = if ($ptr.pointer.pluginRoot) { ConvertTo-DfFullPath ([string]$ptr.pointer.pluginRoot) } else { ConvertTo-DfFullPath (Split-Path -Parent $PSScriptRoot) }
                     $n = 0
                     foreach ($it in $items) {
                         $n++
                         $rel  = if ($it -is [string]) { $it } else { [string]$it.path }
                         $note = if ($it -is [string]) { '' } elseif ($it.note) { [string]$it.note } elseif ($it.why) { [string]$it.why } else { '' }
-                        $full = Expand-EntryPath $rel $ptr
+                        $full = Expand-EntryPath $rel $ptr $kitRoot
                         $suffix = if ($note) { " - $note" } else { '' }
                         if ($full -and (Test-Path -LiteralPath $full -PathType Leaf)) { $lines.Add(" $n. $full$suffix") }
-                        else { $lines.Add(" $n. MISSING: $full$suffix") }
+                        elseif ($full) { $lines.Add(" $n. MISSING: $full$suffix") }
+                        else { $lines.Add(" $n. MISSING: $rel (could not be resolved)$suffix") }
                     }
                     if ($n -eq 0) { $lines.Add(" (entry.json lists no files)") }
                 }

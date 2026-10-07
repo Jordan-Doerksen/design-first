@@ -71,7 +71,9 @@ Put (Join-Path $brain 'doctor.config.json') (@{
     secretExceptions = @('repo-plain/allowed/.env')
 } | ConvertTo-Json)
 Put (Join-Path $brain 'me.md') "---`nowner:`n  name: `"Test Owner`"`n---`n# About the owner`n"
-Put (Join-Path $brain 'entry.json') (@{ schema = 1; entries = @(@{ path = 'me.md'; note = 'who you are talking to' }, @{ path = 'not-here.md'; note = 'deliberately absent' }, '${BRAIN}\doctor.config.json') } | ConvertTo-Json -Depth 4)
+# Entries 4-6 use the kit:/brain: prefixes the shipped templates/entry.json uses. 6 is a file that
+# exists under the kit but not the brain, so a brain: entry resolved against the kit would be caught.
+Put (Join-Path $brain 'entry.json') (@{ schema = 1; entries = @(@{ path = 'me.md'; note = 'who you are talking to' }, @{ path = 'not-here.md'; note = 'deliberately absent' }, '${BRAIN}\doctor.config.json', 'kit:hooks/entry.ps1', 'brain:me.md', 'brain:hooks/entry.ps1') } | ConvertTo-Json -Depth 4)
 Put (Join-Path $root 'frozen\x.py') 'x = 1'
 Put (Join-Path $root 'tomb\x.md') 'retired'
 Put (Join-Path $root 'ordinary\x.gd') 'var a = 1'
@@ -211,6 +213,10 @@ Add-Content -LiteralPath $env:DF_LOG_PATH -Value ("{0} WARN entry recent line to
 
 $e = Entry $root 'e1' 'startup'
 Record 'entry: cwd under root lists entry.json in order' 'listed' $(if ($e.code -eq 0 -and $e.out -match '(?m)^ 1\. .*me\.md - who' -and $e.out -match '(?m)^ 2\. MISSING: .*not-here\.md' -and $e.out -match '(?m)^ 3\. .*doctor\.config\.json') { 'listed' } else { 'not-listed' }) $e.out
+$kitHook   = [regex]::Escape((Join-Path $kit 'hooks\entry.ps1'))
+$brainMe   = [regex]::Escape((Join-Path $brain 'me.md'))
+$brainHook = [regex]::Escape((Join-Path $brain 'hooks\entry.ps1'))
+Record 'entry: kit: resolves under the kit, brain: under the brain' 'prefixed' $(if ($e.out -match "(?m)^ 4\. $kitHook`$" -and $e.out -match "(?m)^ 5\. $brainMe`$" -and $e.out -match "(?m)^ 6\. MISSING: $brainHook`$" -and $e.out -notmatch 'kit:|brain:') { 'prefixed' } else { 'wrong' }) $e.out
 Record 'entry: heartbeat written to <brain>/state/last-session.json' 'present' $(if (Test-Path -LiteralPath (Join-Path $brain 'state\last-session.json')) { 'present' } else { 'absent' }) ''
 Record 'entry: marker older than 1 day deleted, fresh kept' 'old-gone' $(if (-not (Test-Path -LiteralPath $oldMarker) -and (Test-Path -LiteralPath $freshMarker)) { 'old-gone' } else { 'wrong' }) ''
 $logText = Get-Content -LiteralPath $env:DF_LOG_PATH -Raw
