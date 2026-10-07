@@ -153,7 +153,7 @@ try {
 '@)
     # A stand-in generator honouring the chunk-1 CLI contract: LF output, exit 1 on a planted flag.
     W (Join-Path $kit 'tools\law\build-law.ps1') (@'
-param([Parameter(Mandatory)] [string] $Source, [string] $Overlay, [string] $Installed, [Parameter(Mandatory)] [string] $Out)
+param([Parameter(Mandatory)] [string] $Source, [string] $Overlay, [string] $Installed, [Parameter(Mandatory)] [string] $Out, [string] $BrainRoot)
 $j = Get-Content -LiteralPath $Source -Raw | ConvertFrom-Json
 if ($j.fail) { Write-Error 'planted generator failure'; exit 1 }
 $lines = @('# LAW (test)') + @($j.clauses | ForEach-Object { "- $($_.id)" })
