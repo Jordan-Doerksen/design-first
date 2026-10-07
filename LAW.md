@@ -25,19 +25,19 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 
 | id | grade | rule | owner |
 |---|---|---|---|
-| PRIN-01 | OWNER | Context economy comes before every other rule: every decision about files, folders and config reduces what an agent must read before it can change something safely. | `kit:instructions/design-methodology.md` |
-| PRIN-03 | GATE | A fact about the disk is generated, never typed; if it can be derived, derive it. | `kit:instructions/integrity-law.md` |
-| PRIN-04 | HONOUR | The next misbehaviour produces a mechanism, not a paragraph; writing the rule harder is the reflex that made adherence worse. | `kit:instructions/design-methodology.md` |
-| PRIN-05 | HONOUR | One subject, one file; a rule stated in two places will disagree in two places. | `kit:README.md` |
+| PRIN-01 | OWNER | Context economy comes before every other rule: every decision about files, folders and config reduces what an agent must read before it can change something safely. | `kit:instructions/principles.md` |
+| PRIN-03 | GATE | A fact about the disk is generated, never typed; if it can be derived, derive it. | `kit:instructions/principles.md` |
+| PRIN-04 | HONOUR | The next misbehaviour produces a mechanism, not a paragraph; writing the rule harder is the reflex that made adherence worse. | `kit:instructions/principles.md` |
+| PRIN-05 | HONOUR | One subject, one file; a rule stated in two places will disagree in two places. | `kit:instructions/principles.md` |
 
 ## OWN - Working with the owner
 
 | id | grade | rule | owner |
 |---|---|---|---|
-| OWN-04 | HONOUR | Ask the owner one question at a time, as multiple choice, with the recommended default first. | `kit:instructions/me.md` |
-| OWN-05 | HONOUR | Do not ask the owner an implementation question they have no way to answer; when one answer is defensible, choose it, record why, and make it a config value so it stays reversible. | `kit:instructions/me.md` |
-| OWN-06 | HONOUR | Deliver what was asked, then stop; offer an addition in one line and do not build it first. | `kit:instructions/me.md` |
-| OWN-07 | HONOUR | When the project has a UI, anything the operator must run is a button in the app, not a script on the disk. | `kit:instructions/me.md` |
+| OWN-04 | HONOUR | Ask the owner one question at a time, as multiple choice, with the recommended default first. | `kit:instructions/working-with-the-owner.md` |
+| OWN-05 | HONOUR | Do not ask the owner an implementation question they have no way to answer; when one answer is defensible, choose it, record why, and make it a config value so it stays reversible. | `kit:instructions/working-with-the-owner.md` |
+| OWN-06 | HONOUR | Deliver what was asked, then stop; offer an addition in one line and do not build it first. | `kit:instructions/working-with-the-owner.md` |
+| OWN-07 | HONOUR | When the project has a UI, anything the operator must run is a button in the app, not a script on the disk. | `kit:instructions/working-with-the-owner.md` |
 
 ## DES - Design-first
 
@@ -125,28 +125,28 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 
 | id | grade | rule | owner |
 |---|---|---|---|
-| GAME-11 | HONOUR | State the hat you wear and wear one at a time; the Programmer hat stays locked until an owner-approved spec exists. | `kit:instructions/game-dev-workflow-law.md` |
-| GAME-12 | HONOUR | The inner gate runs after every small verifiable change (verify, stop, show what changed and what it proves, wait), the outer gate runs at every chunk boundary, and only a trivial, reversible, owner-requested single-file edit is exempt. | `kit:instructions/game-dev-workflow-law.md` |
-| GAME-13 | HONOUR | A session on a game repository opens with a state card built from the repository's documents, never from memory, and a disagreement with the real state is raised before any work. | `kit:instructions/game-dev-workflow-law.md` |
-| GAME-14 | HONOUR | Cite the pattern or do not claim one; a pattern the cited reference does not contain is labelled as from memory, not from the reference. | `kit:instructions/game-dev-workflow-law.md` |
+| GAME-11 | HONOUR | State the hat you wear and wear one at a time; the Programmer hat stays locked until an owner-approved spec exists. | `kit:workflows/coding.md` |
+| GAME-12 | HONOUR | The inner gate runs after every small verifiable change (verify, stop, show what changed and what it proves, wait), the outer gate runs at every chunk boundary, and only a trivial, reversible, owner-requested single-file edit is exempt. | `kit:workflows/coding.md` |
+| GAME-13 | HONOUR | A session on a game repository opens with a state card built from the repository's documents, never from memory, and a disagreement with the real state is raised before any work. | `kit:workflows/coding.md` |
+| GAME-14 | HONOUR | Cite the pattern or do not claim one; a pattern the cited reference does not contain is labelled as from memory, not from the reference. | `kit:workflows/coding.md` |
 
 ## DISP - Display
 
 | id | grade | rule | owner |
 |---|---|---|---|
-| DISP-07 | HONOUR | A change that makes a claim ships the thing that measures the claim in the same commit, the build prints it, the drawing and the check read the same function, and a figure that cannot be regenerated does not ship. | `kit:instructions/display-case-law.md` |
+| DISP-07 | HONOUR | A change that makes a claim ships the thing that measures the claim in the same commit, the build prints it, the drawing and the check read the same function, and a figure that cannot be regenerated does not ship. | `kit:instructions/observability-law.md` |
 
 ## SKIN - Skins
 
 | id | grade | rule | owner |
 |---|---|---|---|
-| SKIN-07 | HONOUR | Never snapshot a count from any external corpus into a law; read the catalogue for the current corpus, because a number quoted in a law goes stale silently. | `kit:instructions/web-ui-law.md` |
+| SKIN-07 | HONOUR | Never snapshot a count from any external corpus into a law; read the catalogue for the current corpus, because a number quoted in a law goes stale silently. | `kit:instructions/integrity-law.md` |
 
 ## VOICE - Voice
 
 | id | grade | rule | owner |
 |---|---|---|---|
-| VOICE-05 | HONOUR | Commit messages are short, present tense and specific; the house writing standard governs the rest but not tense, so tense is specified in the owning file. | `kit:instructions/voice.md` |
+| VOICE-05 | HONOUR | Commit messages are short, present tense and specific; the house writing standard governs the rest but not tense, so tense is specified in the owning file. | `kit:workflows/coding.md` |
 
 ## MAP - Canonical copies
 

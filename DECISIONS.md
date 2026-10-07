@@ -5,7 +5,7 @@
 | Project | design-first |
 | Started | 2026-10-06 |
 | Last Updated | 2026-10-06 |
-| Status | In Build (chunks 2, 4, 5) |
+| Status | In Build (chunk 6) |
 
 This is the public manifest. It records decisions about the kit itself. It contains nothing about
 any adopter.
@@ -58,10 +58,10 @@ what it wrote. Attach mode never overwrites. Remove deletes only unmodified kit-
 | Chunk | Content | Status |
 |---|---|---|
 | 1 | Skeleton, manifest, validate (strict, both manifests), runtime smoke (plugin root expands, pwsh 7, startup matcher fires, in-place load via --plugin-dir), generator CLI contract | Done 2026-10-06 |
-| 2 | `law.json`, generator, kit `LAW.md` | Pending |
-| 3 | Instructions and workflows | Pending |
-| 4 | Hooks and self-tests | Pending |
-| 5 | Doctor | Pending |
+| 2 | `law.json`, generator, kit `LAW.md` | Done 2026-10-06 |
+| 3 | Instructions and workflows | Done 2026-10-06 |
+| 4 | Hooks and self-tests (113 cases) | Done 2026-10-06 |
+| 5 | Doctor (13 claim types, selftest 69) | Done 2026-10-06 |
 | 6 | Adopt, remove, templates, agent, commands | Pending |
 | 7 | README, architecture | Pending |
 
@@ -71,3 +71,4 @@ what it wrote. Attach mode never overwrites. Remove deletes only unmodified kit-
 |---|---|---|
 | 2026-10-06 | Manifest created | Chunk 1 |
 | 2026-10-06 | Chunk 1 done; VERIFY closed: shell field, root-as-marketplace source, startup matcher, variable expansion | validate + smoke | manifest, hooks |
+| 2026-10-06 | Chunks 2-5 done. Kit Doctor GREEN on its own tree (5/5 claims), generator deterministic, hooks 113/113. Guard anchors live in hooks/lib/guard-rules.ps1 and the generator resolves lib siblings. hooks.json uses the command form, proven at runtime. Pointer claim is a brain claim, not a kit claim. | build | law, hooks, doctor |
