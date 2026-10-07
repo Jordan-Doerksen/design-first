@@ -83,6 +83,9 @@ function Test-GeneratedMatchesClaim {
         if (-not (Test-Path -LiteralPath $p -PathType Leaf)) { return New-ClaimResult $c 'UNKNOWN' "$($opt[0]) missing: $p" }
         $genArgs += @($opt[1], $p)
     }
+    # In brain mode the overlay's refs (brain: owners, brain claim ids) resolve only with -BrainRoot;
+    # without it the generator fails validation and this claim reads COULD-NOT-LOOK forever.
+    if (-not [string]::IsNullOrWhiteSpace($Context.brain)) { $genArgs += @('-BrainRoot', $Context.brain) }
     $pwsh = Get-Pwsh
     if ($null -eq $pwsh) { return New-ClaimResult $c 'UNKNOWN' 'pwsh (PowerShell 7) is not on PATH, so the generator cannot run' }
     $tmp = Join-Path ([IO.Path]::GetTempPath()) ('design-first-gen-' + [guid]::NewGuid().ToString('N') + '.md')
