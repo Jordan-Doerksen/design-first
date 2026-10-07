@@ -1,0 +1,90 @@
+{
+  "schema": 1,
+  "_comment": "The KIT's own claims, run by `doctor.ps1 -Kit`. ${KIT} is this checkout; relative paths are kit-relative. These are facts about the kit tree, never about any adopter's disk. Type reference: SPEC 5.2 / tools/MANUAL.md.",
+  "claims": [
+    {
+      "id": "KIT-LAW-01",
+      "type": "generated_matches",
+      "generator": "tools/law/build-law.ps1",
+      "source": "law.json",
+      "output": "LAW.md",
+      "why": "Kit LAW.md is GENERATED from law.json (C5). A hand edit to LAW.md drifts the grades away from the mechanisms that justify them; this claim makes that drift a RED run instead of a quiet lie. Compared as bytes after CRLF->LF only."
+    },
+    {
+      "id": "KIT-LEAK-01",
+      "type": "tree_free_of",
+      "root": "${KIT}",
+      "words": [
+        "Jordan",
+        "Doerksen",
+        "Doerk",
+        "Riley",
+        "Sentinel",
+        "CROR",
+        "Kourtney",
+        "trading-desk",
+        "Jordan-Doerksen",
+        "PROFILE.md"
+      ],
+      "extensions": [
+        ".md",
+        ".json",
+        ".ps1",
+        ".bat",
+        ".txt"
+      ],
+      "exclude": [
+        "LICENSE",
+        "tools/doctor/claims.json"
+      ],
+      "allow": [
+        {
+          "path": "README.md",
+          "words": [
+            "Jordan-Doerksen"
+          ]
+        },
+        {
+          "path": ".claude-plugin/plugin.json",
+          "words": [
+            "Jordan-Doerksen"
+          ]
+        },
+        {
+          "path": ".claude-plugin/marketplace.json",
+          "words": [
+            "Jordan-Doerksen"
+          ]
+        },
+        {
+          "path": "tools/doctor/selftest.ps1",
+          "words": [
+            "Jordan-Doerksen"
+          ]
+        }
+      ],
+      "why": "C6, F2: the personal layer never enters the kit. Whole-word, case-insensitive, scoped to text files. The allow table is span-based: the author slug is permitted in exactly the files that must carry it, and nowhere else; a bare first or last name is a leak everywhere. This file is excluded because it is the word list itself; the self-test file may carry the slug only, because it is the fixture that proves the span rule."
+    },
+    {
+      "id": "KIT-SMOKE-01",
+      "type": "hook_smoke",
+      "hook": "guard",
+      "event": "PreToolUse",
+      "why": "F15, C4: a hook that never reaches its first line (pwsh missing, Mark-of-the-Web refusal, parse error) is invisible to every in-body check. Runs the guard exactly as hooks.json registers it with a harmless synthetic tool call; it must exit 0 and reply with nothing or JSON."
+    },
+    {
+      "id": "KIT-SMOKE-02",
+      "type": "hook_smoke",
+      "hook": "fence",
+      "event": "PreToolUse",
+      "why": "Same observation for the fence: the only pre-body check there is. Exit 0 and an empty or JSON reply on a harmless call."
+    },
+    {
+      "id": "KIT-SMOKE-03",
+      "type": "hook_smoke",
+      "hook": "entry",
+      "event": "SessionStart",
+      "why": "F4: the entry path must never load silently empty. SessionStart passes only with exit 0 AND non-empty stdout, because stdout is the carrier for the entry path."
+    }
+  ]
+}

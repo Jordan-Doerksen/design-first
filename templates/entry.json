@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "_comment": "The entry path: what entry.ps1 prints on SessionStart when the session starts under root, in this order. `kit:` is a path under the plugin root; `brain:` is a path under the brain. Root CLAUDE.md is not listed because Claude Code loads it itself. An entry whose file is absent prints as MISSING: and is never skipped silently.",
+  "entries": [
+    "kit:instructions/design-methodology.md",
+    "brain:me.md",
+    "brain:voice.md",
+    "kit:workflows/coding.md",
+    "brain:canonical.md",
+    "brain:lessons.md",
+    "kit:instructions/interview-every-add-law.md"
+  ]
+}

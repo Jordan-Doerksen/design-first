@@ -1,0 +1,198 @@
+# Doctor manual
+
+How to run it, what each band means, every finding it can print and what to do about it.
+
+## Run it
+
+Double-click `Doctor.bat` in your brain folder, or from any shell:
+
+```
+pwsh -NoProfile -File <pluginRoot>\tools\doctor\doctor.ps1            # your brain and root
+pwsh -NoProfile -File <pluginRoot>\tools\doctor\doctor.ps1 -Kit       # the kit checks itself
+pwsh -NoProfile -File <pluginRoot>\tools\doctor\doctor.ps1 -Json      # one JSON document, no colour
+```
+
+Switches: `-Kit`, `-Json`, `-Quiet`, `-ConfigPath <file>`, `-ClaimsPath <file>`. `Doctor.bat` passes
+them through and pauses only when run with no arguments.
+
+Nothing runs it for you. No scheduled task, no login entry, no timer.
+
+## Where it looks
+
+Everything comes from the pointer `%USERPROFILE%\.claude\design-first.json`
+(`DF_POINTER_PATH` overrides the location, for tests):
+
+| From the pointer | Derived from it |
+|---|---|
+| `root` - where sessions start | `<root>\.claude\settings.json` + `settings.local.json` |
+| `brain` - your private folder | `<brain>\doctor.config.json`, `<brain>\claims.json`, `<brain>\state\`, `<brain>\records\` |
+| `pluginRoot` - the kit | `<pluginRoot>\hooks\hooks.json`, `tools\law\build-law.ps1` |
+| - | fence log, fixed: `%USERPROFILE%\.claude\fence-log.txt` |
+
+Under `-Kit` there is no brain: the kit is `root`, `${KIT}` and `pluginRoot`; claims come from
+`<kit>\tools\doctor\claims.json`; config from `<kit>\templates\doctor.config.json` (defaults if
+absent); state goes to `<kit>\state\`.
+
+## Bands and exit codes
+
+| Band | Holds | Effect |
+|---|---|---|
+| **CLAIMS** | every claim in `claims.json`, plus the built-in config schema check | any `FAIL` = **RED, exit 1** |
+| **SURVEY** | repository, wiring and snapshot findings | **REPORTED, exit 0**. With `surveyStrict: true` in the config, `fail`-severity findings are RED (exit 1). `warn` and `info` never change the exit code. |
+| **COULD-NOT-LOOK** | anything the Doctor could not check, including every `UNKNOWN` claim | **exit 2. Never a pass.** It wins over RED. |
+
+`GREEN` means: no false claim, nothing it could not look at, and (if strict) no survey fail.
+A `GREEN` with survey findings printed is still exit 0; the verdict line says how many were
+reported and not counted.
+
+## The CLAIMS band
+
+Each claim prints one line when it fails or cannot be evaluated:
+
+| Line | Means | Do |
+|---|---|---|
+| `FAIL  <ID>  <detail>` then `why: ...` | A statement a law file depends on has gone false. | Read the `why`. Fix the document or fix the world. Never delete the claim to make it pass. |
+| `????  <ID>  <detail>` | The claim could not be evaluated (file missing, generator failed, hook not registered, unknown type). Counted in COULD-NOT-LOOK. | Make the thing checkable, or remove a claim that can never be. |
+| `FAIL  CONFIG-SCHEMA  MIGRATE: <config> is schema N; this Doctor expects schema 1` | The plugin was updated and your `doctor.config.json` is older (or has no `schema`). Every reader below assumes schema 1. | Follow the migration note in the kit README, then set `schema` to 1. |
+| `every claim holds` | All claims PASS. | - |
+| `no claims to check` | The claims file has an empty `claims` array. | Add a claim whenever a law file states a fact about the disk. |
+
+### Claim types (SPEC 5.2)
+
+Paths expand `%USERPROFILE%` (and any `%VAR%`), `${ROOT}`, `${BRAIN}`, `${KIT}`. A relative path is
+brain-relative (kit-relative under `-Kit`). A path with an unexpandable variable is UNKNOWN.
+
+| type | fields | PASS when | FAIL when | UNKNOWN when |
+|---|---|---|---|---|
+| `path_exists` | `path` | present | missing | unexpanded variable |
+| `path_absent` | `path` | absent | present | unexpanded variable |
+| `file_contains` | `path`, `needle` | literal substring found anywhere in the file | absent | file missing |
+| `file_not_contains` | `path`, `needle` | absent | present | file missing |
+| `log_window_free_of` | `path`, `needle`, `days` | no line that starts with an ISO date/timestamp within `days` contains `needle`. No log file at all is a PASS, said in the detail. | such a line exists | `days` not a positive integer |
+| `remote_is` | `path`, `remote` (default `origin`), `pattern` (regex) | `git remote get-url` matches | no such remote, or no match | folder missing, not a work tree |
+| `json_subset_equal` | `path`, `subset` (inline JSON) | every key in `subset` equals the file's value; arrays compare as order-insensitive sets of equal length | a difference (the detail names the path) | file missing or not JSON |
+| `generated_matches` | `generator`, `source`, `overlay?`, `installed?`, `output` | the generator, run from the kit root into a temp file, produces the same bytes as `output` after CRLF->LF | bytes differ (first differing byte given), or `output` missing | generator missing, exits non-zero, times out (60 s), `pwsh` absent |
+| `tree_free_of` | `root`, `words[]`, `extensions[]`, `exclude[]`, `allow[]` of `{ path, words[] }` | no whole-word, case-insensitive hit in any scanned file | hits (file:line "word", first 12) | root missing, no words, no extensions |
+| `hook_smoke` | `hook`, `event` (`SessionStart` or `PreToolUse`) | hook runs as registered in `hooks.json` with synthetic stdin, exit 0; SessionStart also needs non-empty stdout; PreToolUse needs empty stdout or JSON | exits non-zero, times out (10 s), prints nothing (SessionStart), prints non-JSON (PreToolUse), script missing, interpreter not on PATH | `hooks.json` missing/unparseable, hook not registered for that event |
+| `pointer_valid` | - | pointer parses and `root`, `brain`, `pluginRoot` all exist | otherwise (the detail says which) | - |
+| `config_schema` | `path`, `expected` | `schema` equals `expected` | mismatch or no `schema` field: detail starts `MIGRATE:` | file missing or not JSON |
+
+`tree_free_of` details: `exclude` entries are paths relative to `root` (a file or a folder); the `.git`
+folder is always skipped. `allow` is span-based: a permitted word's match span suppresses every
+sub-word hit inside that span and nothing else, so allowing `Alpha-Beta` in `README.md` covers
+`Alpha` and `Beta` inside `Alpha-Beta` there, while a bare `Alpha` in the same file still trips.
+
+## The SURVEY band
+
+Printed first, read from the machine: one row per registered hook (`[ ok ]` / `[GONE]`), root
+settings rule counts, `soft_deny` counts, the fence log line. Then findings, `[FAIL]` / `[WARN]` /
+`[INFO]`. Accepted findings are listed under `ACCEPTED`, never hidden.
+
+| Finding | Severity | Means | Do |
+|---|---|---|---|
+| `no remote: <repo> (N commits exist on this disk only)` | fail | Those commits exist on one disk. | Create a private remote and push. |
+| `empty repo, no remote: <repo> (0 commits - nothing to back up yet)` | warn | Nothing to lose yet. | Commit, then add a remote. |
+| `FOREIGN remote: <repo> -> <url>. Looks backed up; cannot be pushed.` | fail | The remote matches none of `ownerRemotePatterns`. | `git remote rename origin upstream`, add your own, push. Or add your pattern to the config. |
+| `N commits unpushed: <repo>` | warn | Committed is not backed up; pushed is. | `git -C <repo> push`. |
+| `SHALLOW clone: <repo> (N commits visible). It cannot be pushed to a new remote.` | fail | Truncated history. `git fsck` cannot see this; only the marker file can. | `git -C <repo> fetch --unshallow <remote>`. |
+| `frozen reference has MOVED: <repo> (N uncommitted entries)` | fail | Something edited a path in `frozenPaths`. | Read the diff. Keep or revert is the owner's call. |
+| `no .gitattributes: <repo> - core.autocrlf decides its bytes, not the repo` | warn | A machine setting decides the repo's bytes. | Add one when the tree is clean. |
+| `no git at all: <path> (N files) - nothing is protecting them` | warn | Real content in no repository. Enumerated, not looked up. | `git init`, `.gitignore` before the first commit, remote. If deliberate, add a part to `unversionedIgnorePathParts` with a reason. |
+| `tracked .env: <repo>/<file> - a secret file is in git.` | fail | A secret file is tracked. | Rotate first, then `git rm --cached`, then ignore it. Or register it in `secretExceptions` on purpose. |
+| `tracked secret file, registered exception: <repo>/<file>` | info | Tracked, and you said so in `secretExceptions`. | Nothing, unless the reason is gone. |
+| `no restore drill has been logged (<records>\restore-drill.log absent)` | info | Nothing has proved a backup gives anything back. | Run a restore drill when you have one; it logs here. |
+| `restore-drill.log has no dated entry` | warn | The log exists but no line starts with a date. | Fix the log format. |
+| `restore drill is N days old (last <date>) - quarterly is the ask` | warn | The drill stopped being run. | Run it. |
+| `restore drill has N logged FAIL line(s) - a restore did not reproduce the local tree` | fail | The backup did not give back what the disk holds. | Read the log. Do not clear it to make this pass. |
+| `entry-point snapshot is STALE: <file> changed and the snapshot was not updated in the same change.` | fail | A live file that governs every session drifted from its byte snapshot. Compared after CRLF->LF. | Copy live over snapshot, commit. The live file is authoritative. |
+| `no snapshot for <file>` | fail | A pair in `entryPointSnapshots` has no snapshot file. | Copy the live file to the snapshot path. |
+| `entry-point file is GONE: <path>` | fail | The live file is missing; the snapshot is the only copy. | Restore from the snapshot before anything else runs. |
+| `entryPointSnapshots entry could not be expanded` | warn | A pair uses a variable that has no value here. | Fix the pair in the config. |
+| `hook REGISTERED BUT MISSING: <script> (<event>) - hooks.json calls a file that is not there` | fail | Enforcement you believe in is not running. | Restore the file or remove the registration. |
+| `no hooks.json at <path> - no hook is registered` | fail | The pointer's `pluginRoot` has no `hooks\hooks.json`. | Start a session so `entry.ps1` refreshes the pointer, or re-install the plugin. |
+| `no root settings: neither <root>\.claude\settings.json nor settings.local.json exists` | fail | The kit's deny/ask rules are not installed. | `/design-first:adopt`. |
+| `root settings carry 0 deny rules` | warn | The `Read(**/.env)` hygiene rules are absent. | Re-apply the root settings template. |
+| `fence hook has not fired in N days - it may be wired but dead` | warn | Older than `enforcement.fenceLogStaleDays`. | Make a deliberate net deletion and confirm a trip lands in the log. |
+| `fence log: no trips yet (<path> does not exist)` | info | No trip has been logged. Not an error. | Nothing. |
+| `dead config key: <key> - nothing reads it` | warn | A key in `doctor.config.json` has no reader (derived from the pointer, removed in schema 1, or missing from `_readers`). | Delete it from the config. |
+| `config not read (<reason>); kit mode runs on defaults` | info | `-Kit` found no `templates\doctor.config.json`. | Nothing. |
+| `<finding>  [accepted <since>: <reason>]` | accepted | Its `(path, kind)` is in `acceptedExceptions`. Reported, not counted. | Nothing, unless the reason is gone. |
+
+Finding kinds for `acceptedExceptions`: `noRemote`, `emptyRepo`, `foreignRemote`, `unpushed`,
+`shallow`, `frozenDirty`, `noGitattributes`, `noGitAtAll`, `trackedSecret`, `hookMissing`,
+`hooksJsonMissing`, `rootSettingsMissing`, `noDenyRules`, `fenceStale`, `deadConfigKey`,
+`entryPointDrift`, `entryPointSnapshotMissing`, `entryPointLiveMissing`, `restoreDrillStale`,
+`restoreDrillFailed`. The `path` is the one printed in the finding (`${ROOT}`-relative or absolute).
+
+## The COULD-NOT-LOOK band
+
+| Line | Means | Do |
+|---|---|---|
+| `COULD-NOT-LOOK: pointer not found at <path>. Run /design-first:adopt ...` | No pointer. Nothing can be resolved. | `/design-first:adopt`, or `-Kit` to check the kit itself. |
+| `COULD-NOT-LOOK: pointer could not be parsed` / `pointer has no '<key>'` | The pointer is damaged. | Re-run `/design-first:adopt` (attach mode rewrites only the pointer). |
+| `COULD-NOT-LOOK: pointer '<key>' names a folder that does not exist: <path>` | Root, brain or plugin root moved. | Fix the pointer or move the folder back. |
+| `COULD-NOT-LOOK: git is not on PATH` | The survey needs git. | Install git. |
+| `COULD-NOT-LOOK: doctor.config.json: <reason>` | Config missing or not JSON. | Copy `templates\doctor.config.json` into the brain, or fix the JSON. |
+| `repository sweep failed` / `unversioned-folder sweep failed` / `tracked-secret scan failed` / `restore-drill log check failed` / `entry-point snapshot check failed` / `enforcement check failed` / `claims run failed` | A whole check threw. The reason follows. | Fix the reason; re-run. |
+| `hooks.json could not be parsed` / `settings could not be parsed: <file>` / `fence log could not be read` | A file the Doctor reads is not readable. | Fix the file. |
+| `claim <ID> could not be evaluated: <detail>` | One `UNKNOWN` claim. | See the claim's `????` line. |
+| `WARNING: state could not be written to <dir>` | Not a band; printed when `state\` is not writable. The verdict stands. | Check permissions on the state folder. |
+
+## Config: `<brain>\doctor.config.json` (SPEC 5.3)
+
+| key | reader | means |
+|---|---|---|
+| `schema` | doctor.ps1 | Must be 1. Mismatch is the `MIGRATE` claim. |
+| `surveyStrict` | report.ps1 | `true`: survey `fail` findings turn the verdict RED. Default `false`. |
+| `maxDepth` | repos.ps1 | How deep to look for `.git` under root. |
+| `excludePathParts` | repos.ps1 | Repos whose path contains a part are not swept. |
+| `archivedPathParts` | repos.ps1 | Repos whose path contains a part are listed, not judged. |
+| `ownerRemotePatterns` | repos.ps1 | A remote URL containing none is FOREIGN. |
+| `frozenPaths` | repos.ps1, enforcement.ps1, hooks/guard.ps1 | Do-not-edit trees. Absolute or `${ROOT}`-relative. |
+| `tombstonedPaths` | repos.ps1, hooks/guard.ps1 | Retired but load-bearing. Absolute or `${ROOT}`-relative. |
+| `unversionedMaxDepth` | repos.ps1 | How deep the no-git-at-all sweep walks. |
+| `unversionedIgnorePathParts` | repos.ps1 | Folders deliberately outside git. Add a reason next to each. |
+| `secretExceptions` | repos.ps1, hooks/guard.ps1 | Tracked secret files you accept. Absolute or `${ROOT}`-relative. Apply to staging and write rules alike. |
+| `acceptedExceptions` | doctor.ps1 | `{ path, kinds[], since, reason }`: reported, not counted. |
+| `entryPointSnapshots` | doctor.ps1 | `{ live, snapshot }` pairs, compared after CRLF->LF. |
+| `enforcement.fenceLogStaleDays` | enforcement.ps1 | Days before `fence hook has not fired` is printed. |
+
+Keys that are no longer keys and are reported as dead if present: `root`, `stateDir`, `recordsDir`,
+`gitTimeoutSeconds`, `staleStateDays`, `_retiredUnversionedWatchlist`, `enforcement.settingsPath`,
+`enforcement.fenceLogPath`. Keys starting with `_` are comments and are ignored.
+
+## Generated output: `<brain>\state\`
+
+Generated, never hand-edited. Byte-identical on a re-run with nothing changed, except `last-run.json`.
+
+| File | Holds |
+|---|---|
+| `repos.json` | every swept repo: remote, ownership, ahead, dirty, shallow, frozen, last commit |
+| `repos.generated.md` | the same as a table, sorted, no timestamp |
+| `last-run.json` | when it ran, the mode, the verdict and the band counts; the only file with a timestamp |
+
+All state files are UTF-8 without BOM, LF.
+
+## Prove it still works
+
+```
+pwsh -NoProfile -File <pluginRoot>\tools\doctor\selftest.ps1
+```
+
+Builds a throwaway pointer, brain, root and kit-like tree under `%TEMP%` with a fake
+`USERPROFILE`, plants one true and one false case for every claim type (the span case included), a
+CRLF-vs-LF generated file that must pass, a stale snapshot, an absent fence log that must be
+REPORTED and not RED, a schema mismatch that must say `MIGRATE`, and proves exit codes 0, 1 and 2,
+the `-Kit` and `-Json` paths and the `Doctor.bat` shim. It never touches your real folders. About
+a minute. Run it after any change to the Doctor: a check that cannot fail is worse than no check.
+
+## Known gaps, stated honestly
+
+- The repo sweep reads `maxDepth` folders deep. A repo nested deeper is invisible.
+- `log_window_free_of` only reads lines that start with a date. A log that writes dates elsewhere
+  on the line is read as undated, and undated lines are ignored.
+- `hook_smoke` proves a hook starts and answers; it does not prove the hook's decisions are right.
+  That is what the kit's hook self-tests are for.
+- `tree_free_of` reads the files named by `extensions` and nothing else. A leak in an unlisted
+  extension is not seen; the pre-flip history scan has the same scope.
+- It reports what is true now. It does not know what you intended.
