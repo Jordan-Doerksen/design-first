@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "deny": [ "Read(**/.env)", "Read(**/.env.*)", "Read(**/*.key)", "Read(**/credentials.json)" ],
+    "ask":  [ "Bash(npm install *)", "Bash(npm i *)", "Bash(pnpm add *)", "Bash(yarn add *)",
+              "Bash(pip install *)", "Bash(uv add *)", "Bash(cargo add *)", "Bash(gh repo delete *)",
+              "PowerShell(npm install *)", "PowerShell(npm i *)", "PowerShell(pnpm add *)", "PowerShell(yarn add *)",
+              "PowerShell(pip install *)", "PowerShell(uv add *)", "PowerShell(cargo add *)", "PowerShell(gh repo delete *)" ]
+  }
+}
