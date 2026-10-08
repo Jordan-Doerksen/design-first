@@ -86,6 +86,13 @@
       "hook": "entry",
       "event": "SessionStart",
       "why": "F4: the entry path must never load silently empty. SessionStart passes only with exit 0 AND non-empty stdout, because stdout is the carrier for the entry path."
+    },
+    {
+      "id": "KIT-SMOKE-04",
+      "type": "hook_smoke",
+      "hook": "agent",
+      "event": "PreToolUse",
+      "why": "The subagent hook (DES-11) is registered for the Agent tool and must start: run as hooks.json registers it with a harmless synthetic call, exit 0, reply with nothing or JSON. A non-Agent payload must pass through silently."
     }
   ]
 }

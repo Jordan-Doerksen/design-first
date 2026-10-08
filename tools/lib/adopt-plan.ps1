@@ -100,6 +100,7 @@ function New-DfPlan {
     & $add (Join-Path $Brain 'claims.json')        (& $copy 'claims.json')    'claims; BRAIN-POINTER-01'
     & $add (Join-Path $Brain 'doctor.config.json') (New-DfDoctorConfig (Join-Path $tpl 'doctor.config.json') $GitHubOwners $FrozenPaths $SnapshotPairs) 'Doctor config; owners, frozen paths, snapshot pairs filled'
     & $add (Join-Path $Brain 'entry.json')         (& $copy 'entry.json')     'the entry path'
+    & $add (Join-Path $Brain 'agent-policy.json')  (& $copy 'agent-policy.json') 'subagent brief contract, model routes, spawn cap (DES-11)'
     & $add (Join-Path $Brain 'Doctor.bat')         (& $copy 'Doctor.bat')     'shim; resolves the kit through the pointer'
     & $add (Join-Path $Brain 'instructions\README.md') "# instructions`n`nOwning files for overlay clauses (``brain:instructions/<file>.md``) live here. A kit file that moved into the brain leaves a one-line forwarding stub here, never a deletion, while anything still reads the old path.`n" 'owning files for overlay clauses'
 

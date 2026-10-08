@@ -128,6 +128,8 @@ function Classify([string]$out) {
     try { $j = $out | ConvertFrom-Json } catch { return "bad-output" }
     $h = $j.hookSpecificOutput
     if ($h -and $h.permissionDecision -eq 'deny') { return 'deny' }
+    if ($h -and $h.permissionDecision -eq 'ask') { return 'ask' }
+    if ($h -and $h.updatedInput) { return 'rewrite' }
     if ($h -and $h.additionalContext) {
         if (-not $j.systemMessage) { return 'advise-one-channel' }
         return 'advise'
@@ -170,7 +172,7 @@ $cases = Get-Content -LiteralPath $casesFile -Raw -Encoding utf8 | ConvertFrom-J
 foreach ($c in $cases) {
     if ($c.PSObject.Properties['_']) { continue }
     if ($Filter -and $c.name -notlike "*$Filter*") { continue }
-    $script = if ($c.hook -eq 'fence') { 'fence.ps1' } else { 'guard.ps1' }
+    $script = switch ([string]$c.hook) { 'fence' { 'fence.ps1' } 'agent' { 'agent.ps1' } default { 'guard.ps1' } }
     $cwd = if ($c.cwd) { Expand $c.cwd } else { $repoClean }
     $session = if ($c.session) { $c.session } else { 's-default' }
     if ($c.PSObject.Properties['stdin']) { $stdin = [string]$c.stdin }
@@ -180,9 +182,17 @@ foreach ($c in $cases) {
             { $_ -in 'Bash', 'PowerShell' } { $ti.command = Expand $c.cmd }
             'NotebookEdit' { $ti.notebook_path = Expand $c.path; $ti.new_source = 'x' }
             'Write' { $ti.file_path = Expand $c.path; $ti.content = if ($null -ne $c.content) { [string]$c.content } else { 'x' } }
+            'Agent' {
+                $ti.description = 'case'; $ti.prompt = [string]$c.prompt
+                if ($c.type)  { $ti.subagent_type = [string]$c.type }
+                if ($c.model) { $ti.model = [string]$c.model }
+            }
             default { $ti.file_path = Expand $c.path; $ti.old_string = if ($null -ne $c.old) { [string]$c.old } else { 'a' }; $ti.new_string = if ($null -ne $c.new) { [string]$c.new } else { 'b' } }
         }
-        $stdin = @{ session_id = $session; cwd = $cwd; hook_event_name = 'PreToolUse'; tool_name = $c.tool; tool_input = $ti } | ConvertTo-Json -Depth 5 -Compress
+        $payload = @{ session_id = $session; cwd = $cwd; hook_event_name = 'PreToolUse'; tool_name = $c.tool; tool_input = $ti }
+        if ($c.prompt_id) { $payload.prompt_id = [string]$c.prompt_id }
+        if ($c.agent_id)  { $payload.agent_id  = [string]$c.agent_id }
+        $stdin = $payload | ConvertTo-Json -Depth 5 -Compress
     }
     $savedPointer = $env:DF_POINTER_PATH
     if ($c.pointer -eq 'none') { $env:DF_POINTER_PATH = Join-Path $T 'no-such-pointer.json' }

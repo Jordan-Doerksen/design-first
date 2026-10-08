@@ -22,6 +22,17 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "pwsh -NoProfile -File \"${CLAUDE_PLUGIN_ROOT}/hooks/agent.ps1\"",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "SessionStart": [

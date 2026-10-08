@@ -1,114 +1,997 @@
 [
-  { "_": "---- the 19 ported cases (fixtures rewritten to the temp root) ----" },
-  { "name": "git add of an actual .env",                  "hook": "guard", "tool": "Bash", "cmd": "git add secrets/.env",                                          "expect": "deny" },
-  { "name": "git add of a .env.local",                    "hook": "guard", "tool": "Bash", "cmd": "git add config/.env.local",                                     "expect": "deny" },
-  { "name": "git add of a .pem",                          "hook": "guard", "tool": "Bash", "cmd": "git add certs/server.pem",                                      "expect": "deny" },
-  { "name": "FALSE POSITIVE: -m text mentions .env",      "hook": "guard", "tool": "Bash", "cmd": "git add -A && git commit -m \"the one recorded .env exception\"", "expect": "allow" },
-  { "name": "commit -m mentioning a .key",                "hook": "guard", "tool": "Bash", "cmd": "git commit -m \"rotate the .key after a leak\"",                 "expect": "allow" },
-  { "name": "ordinary git add -A (clean repo)",           "hook": "guard", "tool": "Bash", "cmd": "git add -A",                                                    "expect": "allow" },
-  { "name": "ordinary git add a source file",             "hook": "guard", "tool": "Bash", "cmd": "git add src/main.py",                                           "expect": "allow" },
-  { "name": "destructive cmd on a frozen path (MSYS form)","hook": "guard", "tool": "Bash", "cmd": "rm -rf ${TMSYS}/root/frozen",                                 "expect": "deny", "contains": "FROZEN" },
-  { "name": "history destruction: prune",                 "hook": "guard", "tool": "Bash", "cmd": "git gc --prune=now",                                            "expect": "deny" },
-  { "name": "history destruction: reflog expire",         "hook": "guard", "tool": "Bash", "cmd": "git reflog expire --expire=now --all",                          "expect": "deny" },
-  { "name": "force push",                                 "hook": "guard", "tool": "Bash", "cmd": "git push --force origin main",                                  "expect": "deny" },
-  { "name": "ordinary gc",                                "hook": "guard", "tool": "Bash", "cmd": "git gc",                                                        "expect": "allow" },
-  { "name": "ordinary push",                              "hook": "guard", "tool": "Bash", "cmd": "git push origin HEAD",                                          "expect": "allow" },
-  { "name": "ordinary rm in temp",                        "hook": "guard", "tool": "Bash", "cmd": "rm -rf /tmp/scratch",                                           "expect": "allow" },
-  { "name": "Edit inside a frozen reference",             "hook": "guard", "tool": "Edit",  "path": "${T}\\root\\frozen\\x.py",                                    "expect": "deny" },
-  { "name": "Edit inside a tombstoned path",              "hook": "guard", "tool": "Edit",  "path": "${T}\\root\\tomb\\x.md",                                      "expect": "deny" },
-  { "name": "Edit an ordinary project file",              "hook": "guard", "tool": "Edit",  "path": "${T}\\root\\ordinary\\x.gd",                                  "expect": "allow" },
-  { "name": "Write a credential file (not ignored)",      "hook": "guard", "tool": "Write", "path": "${T}\\root\\repo-plain\\.env",                                "expect": "deny", "contains": ".gitignore first" },
-  { "name": "Write the RECORDED-EXCEPTION .env",          "hook": "guard", "tool": "Write", "path": "${T}\\root\\repo-plain\\allowed\\.env",                       "expect": "allow" },
-
-  { "_": "---- SPEC 5.4 self-tests: pointer and stdin ----" },
-  { "name": "no pointer: git add .env still denied",      "hook": "guard", "tool": "Bash", "cmd": "git add .env",                     "pointer": "none", "session": "s-nobrain-1", "expect": "deny" },
-  { "name": "no pointer: force push still denied",        "hook": "guard", "tool": "Bash", "cmd": "git push -f origin main",          "pointer": "none", "session": "s-nobrain-1", "expect": "deny" },
-  { "name": "no pointer: ordinary edit advises once",     "hook": "guard", "tool": "Edit", "path": "${T}\\root\\ordinary\\x.gd",      "pointer": "none", "session": "s-nobrain-2", "expect": "advise", "contains": "/design-first:adopt" },
-  { "name": "no pointer: second call, same session, silent allow", "hook": "guard", "tool": "Edit", "path": "${T}\\root\\ordinary\\x.gd", "pointer": "none", "session": "s-nobrain-2", "expect": "allow" },
-  { "name": "malformed stdin: allow, log ERROR, surface", "hook": "guard", "stdin": "this is not json {",                              "expect": "advise", "contains": "internal error", "logContains": "ERROR guard" },
-  { "name": "empty stdin: allow, log ERROR, surface",     "hook": "guard", "stdin": "",                                                 "expect": "advise", "contains": "internal error" },
-
-  { "_": "---- SPEC 5.4 self-tests: .env write rule ----" },
-  { "name": ".env ignored -> write allowed",              "hook": "guard", "tool": "Write", "path": "${T}\\root\\repo-ignored\\.env",   "expect": "allow" },
-  { "name": ".env not ignored -> deny with ignore remedy","hook": "guard", "tool": "Edit",  "path": "${T}\\root\\repo-plain\\.env",     "expect": "deny", "contains": "not ignored" },
-  { "name": ".env outside any repo -> advise",            "hook": "guard", "tool": "Write", "path": "${T}\\outside\\.env",              "expect": "advise", "contains": "outside any git repo" },
-  { "name": ".env in secretExceptions -> allowed",        "hook": "guard", "tool": "Edit",  "path": "${T}\\root\\repo-plain\\allowed\\.env", "expect": "allow" },
-  { "name": ".env.example -> allowed",                    "hook": "guard", "tool": "Write", "path": "${T}\\root\\repo-plain\\.env.example", "expect": "allow" },
-  { "name": ".env.local not ignored -> deny",             "hook": "guard", "tool": "Write", "path": "${T}\\root\\repo-plain\\.env.local", "expect": "deny" },
-  { "name": "tracked .env write -> deny with untrack text","hook": "guard", "tool": "Write", "path": "${T}\\root\\repo-tracked\\.env",  "expect": "deny", "contains": "git rm --cached" },
-  { "name": ".env in a not-yet-existing subfolder (nearest ancestor)", "hook": "guard", "tool": "Write", "path": "${T}\\root\\repo-ignored\\new\\deeper\\.env", "expect": "allow" },
-  { "name": ".gitignore edit -> allowed",                 "hook": "guard", "tool": "Edit",  "path": "${T}\\root\\repo-plain\\.gitignore", "expect": "allow" },
-  { "name": "NotebookEdit inside a frozen path -> deny",  "hook": "guard", "tool": "NotebookEdit", "path": "${T}\\root\\frozen\\nb.ipynb", "expect": "deny" },
-
-  { "_": "---- SPEC 5.4 self-tests: staging rule (F13 and the tokeniser) ----" },
-  { "name": "F13: echo .env >> .gitignore && git add .gitignore -> allowed", "hook": "guard", "tool": "Bash", "cmd": "echo .env >> .gitignore && git add .gitignore", "cwd": "${T}\\root\\repo-plain", "expect": "allow" },
-  { "name": "git add .gitignore -> allowed",              "hook": "guard", "tool": "Bash", "cmd": "git add .gitignore",                 "cwd": "${T}\\root\\repo-plain", "expect": "allow" },
-  { "name": "git add .env -> denied",                     "hook": "guard", "tool": "Bash", "cmd": "git add .env",                        "expect": "deny" },
-  { "name": "git add -A with untracked un-ignored .env -> DENIED", "hook": "guard", "tool": "Bash", "cmd": "git add -A",                "cwd": "${T}\\root\\repo-plain", "expect": "deny", "contains": "via" },
-  { "name": "git add --all with untracked .env -> denied","hook": "guard", "tool": "Bash", "cmd": "git add --all",                      "cwd": "${T}\\root\\repo-plain", "expect": "deny" },
-  { "name": "git add . with untracked .env -> denied",    "hook": "guard", "tool": "Bash", "cmd": "git add .",                           "cwd": "${T}\\root\\repo-plain", "expect": "deny" },
-  { "name": "git add -A from a subfolder, .env at top -> denied", "hook": "guard", "tool": "Bash", "cmd": "git add -A",                 "cwd": "${T}\\root\\repo-plain\\sub", "expect": "deny" },
-  { "name": "git add -A when .env is ignored -> ALLOWED", "hook": "guard", "tool": "Bash", "cmd": "git add -A",                          "cwd": "${T}\\root\\repo-ignored", "expect": "allow" },
-  { "name": "git add . when .env is ignored -> allowed",  "hook": "guard", "tool": "Bash", "cmd": "git add .",                           "cwd": "${T}\\root\\repo-ignored", "expect": "allow" },
-  { "name": "git add dir/ holding only the exception .env -> allowed", "hook": "guard", "tool": "Bash", "cmd": "git add allowed/",     "cwd": "${T}\\root\\repo-plain", "expect": "allow" },
-  { "name": "git add sub/ holding no secret -> allowed",  "hook": "guard", "tool": "Bash", "cmd": "git add sub",                         "cwd": "${T}\\root\\repo-plain", "expect": "allow" },
-  { "name": "git add * (glob pathspec) with .env present -> denied", "hook": "guard", "tool": "Bash", "cmd": "git add '*'",            "cwd": "${T}\\root\\repo-plain", "expect": "deny" },
-  { "name": "git commit -am \"text; git add .env\" -> ALLOWED (quoted)", "hook": "guard", "tool": "Bash", "cmd": "git commit -am \"text; git add .env\"", "expect": "allow" },
-  { "name": "git commit -a -m 'single-quoted; git add .env' -> allowed", "hook": "guard", "tool": "Bash", "cmd": "git commit -a -m 'x; git add .env'", "expect": "allow" },
-  { "name": "git commit --message=\"git add .env\" -> allowed", "hook": "guard", "tool": "Bash", "cmd": "git commit --message=\"git add .env\"", "expect": "allow" },
-  { "name": "git -C sub add .env -> denied",              "hook": "guard", "tool": "Bash", "cmd": "git -C sub add .env",                 "cwd": "${T}\\root\\repo-plain", "expect": "deny" },
-  { "name": "& git add .env (PowerShell call operator) -> denied", "hook": "guard", "tool": "PowerShell", "cmd": "& git add .env",     "expect": "deny" },
-  { "name": "git.exe add .env -> denied",                 "hook": "guard", "tool": "PowerShell", "cmd": "git.exe add .env",             "expect": "deny" },
-  { "name": "quoted full path to git.exe -> denied",      "hook": "guard", "tool": "PowerShell", "cmd": "& \"C:\\Program Files\\Git\\bin\\git.exe\" add .env", "expect": "deny" },
-  { "name": "git --no-pager -c k=v add .env -> denied",   "hook": "guard", "tool": "Bash", "cmd": "git --no-pager -c core.autocrlf=false add .env", "expect": "deny" },
-  { "name": "git stage .env -> denied",                   "hook": "guard", "tool": "Bash", "cmd": "git stage .env",                      "expect": "deny" },
-  { "name": "git add \"dir with space/.env\" -> denied",  "hook": "guard", "tool": "Bash", "cmd": "git add \"my dir/.env\"",             "expect": "deny" },
-  { "name": "line continuation: git add \\<nl>.env -> denied", "hook": "guard", "tool": "Bash", "cmd": "git add \\\n.env",              "expect": "deny" },
-  { "name": "cd x && git add .env (second sub-command) -> denied", "hook": "guard", "tool": "Bash", "cmd": "cd src && git add .env",   "expect": "deny" },
-  { "name": "git add of a .env.example -> allowed",       "hook": "guard", "tool": "Bash", "cmd": "git add .env.example",                "expect": "allow" },
-  { "name": "git add of the exception .env -> allowed",   "hook": "guard", "tool": "Bash", "cmd": "git add allowed/.env",               "cwd": "${T}\\root\\repo-plain", "expect": "allow" },
-  { "name": "git commit -m \"push --force\" -> allowed",  "hook": "guard", "tool": "Bash", "cmd": "git commit -m \"push --force\"",      "expect": "allow" },
-
-  { "_": "---- recorded residual: self-tested as NOT denied so nobody believes otherwise ----" },
-  { "name": "RESIDUAL: cmd /c \"git add .env\" -> not denied", "hook": "guard", "tool": "Bash", "cmd": "cmd /c \"git add .env\"",        "expect": "allow" },
-  { "name": "RESIDUAL: pwsh -c \"git add .env\" -> not denied", "hook": "guard", "tool": "PowerShell", "cmd": "pwsh -c \"git add .env\"", "expect": "allow" },
-  { "name": "RESIDUAL: bash -c 'git add .env' -> not denied", "hook": "guard", "tool": "Bash", "cmd": "bash -c 'git add .env'",         "expect": "allow" },
-  { "name": "RESIDUAL: echo .env | xargs git add -> not denied", "hook": "guard", "tool": "Bash", "cmd": "echo .env | xargs git add",    "expect": "allow" },
-
-  { "_": "---- SPEC 5.4 self-tests: history rule ----" },
-  { "name": "--force-with-lease -> denied",               "hook": "guard", "tool": "Bash", "cmd": "git push --force-with-lease origin main", "expect": "deny" },
-  { "name": "--force-with-lease=main:abc -> denied",      "hook": "guard", "tool": "Bash", "cmd": "git push --force-with-lease=main:abc origin main", "expect": "deny" },
-  { "name": "+main refspec -> denied",                    "hook": "guard", "tool": "Bash", "cmd": "git push origin +main",               "expect": "deny" },
-  { "name": "--delete -> denied",                         "hook": "guard", "tool": "Bash", "cmd": "git push --delete origin feature",    "expect": "deny" },
-  { "name": "-d -> denied",                               "hook": "guard", "tool": "Bash", "cmd": "git push origin -d feature",          "expect": "deny" },
-  { "name": ":branch (remote deletion) -> denied",        "hook": "guard", "tool": "Bash", "cmd": "git push origin :feature",            "expect": "deny" },
-  { "name": "-f -> denied",                               "hook": "guard", "tool": "Bash", "cmd": "git push -f origin main",             "expect": "deny" },
-  { "name": "combined -uf -> denied",                     "hook": "guard", "tool": "Bash", "cmd": "git push -uf origin main",            "expect": "deny" },
-  { "name": "git -C x gc --prune -> denied",              "hook": "guard", "tool": "Bash", "cmd": "git -C sub gc --prune",               "cwd": "${T}\\root\\repo-plain", "expect": "deny" },
-  { "name": "git push -u origin main -> allowed",         "hook": "guard", "tool": "Bash", "cmd": "git push -u origin main",             "expect": "allow" },
-  { "name": "git push --set-upstream origin feature -> allowed", "hook": "guard", "tool": "Bash", "cmd": "git push --set-upstream origin feature", "expect": "allow" },
-  { "name": "git reflog show -> allowed",                 "hook": "guard", "tool": "Bash", "cmd": "git reflog show",                     "expect": "allow" },
-
-  { "_": "---- SPEC 5.4 self-tests: path rules need a brain ----" },
-  { "name": "Remove-Item on a tombstoned path -> denied", "hook": "guard", "tool": "PowerShell", "cmd": "Remove-Item -Recurse -Force \"${T}\\root\\tomb\"", "expect": "deny" },
-  { "name": "git clean -fd on a frozen path -> denied",   "hook": "guard", "tool": "Bash", "cmd": "git clean -fd ${TFWD}/root/frozen",   "expect": "deny" },
-  { "name": "mv of a frozen path -> denied",              "hook": "guard", "tool": "Bash", "cmd": "mv ${TFWD}/root/frozen ${TFWD}/root/frozen-old", "expect": "deny" },
-  { "name": "ls of a frozen path -> allowed (read is fine)", "hook": "guard", "tool": "Bash", "cmd": "ls ${TFWD}/root/frozen",            "expect": "allow" },
-  { "name": "no pointer: Edit in frozen path is NOT denied (needs brain)", "hook": "guard", "tool": "Edit", "path": "${T}\\root\\frozen\\x.py", "pointer": "none", "session": "s-nobrain-3", "expect": "advise" },
-
-  { "_": "---- fence ----" },
-  { "name": "FENCE paren GOODHART: assert( removed -> denies", "hook": "fence", "tool": "Edit", "path": "${T}\\root\\tests\\probe_x.js", "old": "assert(a);\nassert(b);", "new": "assert(a);", "expect": "deny", "contains": "GOODHART" },
-  { "name": "FENCE paren GOODHART: expect( removed -> denies", "hook": "fence", "tool": "Edit", "path": "${T}\\root\\spec\\x.spec.ts", "old": "expect(a).toBe(1);\nexpect(b).toBe(2);", "new": "expect(a).toBe(1);", "expect": "deny" },
-  { "name": "FENCE '* 0.0' idiom in a test -> denies",   "hook": "fence", "tool": "Edit", "path": "${T}\\root\\tests\\test_x.py", "old": "assert total == expected", "new": "assert total * 0.0 == expected * 0.0", "expect": "deny" },
-  { "name": "FENCE loose GOODHART: python bare assert removed -> advises", "hook": "fence", "tool": "Edit", "path": "${T}\\root\\tests\\test_x.py", "old": "assert x == 1\nassert y == 2", "new": "assert x == 1", "expect": "advise", "contains": "advisory" },
-  { "name": "FENCE loose GOODHART: rust assert_eq! removed -> advises", "hook": "fence", "tool": "Edit", "path": "${T}\\root\\tests\\x_test.rs", "old": "assert_eq!(a, 1);\nassert_eq!(b, 2);", "new": "assert_eq!(a, 1);", "expect": "advise" },
-  { "name": "FENCE net deletion (3+ lines) -> advises", "hook": "fence", "tool": "Edit", "path": "${T}\\root\\ordinary\\x.gd", "old": "a\nb\nc\nd\ne", "new": "a", "expect": "advise", "contains": "FENCE TRIPPED" },
-  { "name": "FENCE whole block deleted -> advises",     "hook": "fence", "tool": "Edit", "path": "${T}\\root\\ordinary\\x.gd", "old": "a\nb", "new": "", "expect": "advise" },
-  { "name": "FENCE normal edit -> allowed",             "hook": "fence", "tool": "Edit", "path": "${T}\\root\\ordinary\\x.gd", "old": "a", "new": "b", "expect": "allow" },
-  { "name": "FENCE assertions added -> allowed",        "hook": "fence", "tool": "Edit", "path": "${T}\\root\\tests\\probe_x.js", "old": "assert(a);", "new": "assert(a);\nassert(b);", "expect": "allow" },
-  { "name": "FENCE assert removed in a NON-test file -> no GOODHART, plain fence advice", "hook": "fence", "tool": "Edit", "path": "${T}\\root\\ordinary\\x.gd", "old": "assert(a)", "new": "", "expect": "advise", "contains": "FENCE TRIPPED" },
-  { "name": "FENCE Write shrinking a file by >25% -> advises", "hook": "fence", "tool": "Write", "path": "${T}\\root\\ordinary\\big.txt", "content": "x", "expect": "advise", "contains": "losing" },
-  { "name": "FENCE git reset --hard -> advises",        "hook": "fence", "tool": "Bash", "cmd": "git reset --hard HEAD~1",              "expect": "advise" },
-  { "name": "FENCE ordinary command -> allowed",        "hook": "fence", "tool": "Bash", "cmd": "git status",                            "expect": "allow" },
-  { "name": "FENCE malformed stdin: allow, log ERROR, surface", "hook": "fence", "stdin": "nope",                                        "expect": "advise", "contains": "internal error", "logContains": "ERROR fence" }
+  {
+    "_": "---- the 19 ported cases (fixtures rewritten to the temp root) ----"
+  },
+  {
+    "name": "git add of an actual .env",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git add secrets/.env",
+    "expect": "deny"
+  },
+  {
+    "name": "git add of a .env.local",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git add config/.env.local",
+    "expect": "deny"
+  },
+  {
+    "name": "git add of a .pem",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git add certs/server.pem",
+    "expect": "deny"
+  },
+  {
+    "name": "FALSE POSITIVE: -m text mentions .env",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git add -A && git commit -m \"the one recorded .env exception\"",
+    "expect": "allow"
+  },
+  {
+    "name": "commit -m mentioning a .key",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git commit -m \"rotate the .key after a leak\"",
+    "expect": "allow"
+  },
+  {
+    "name": "ordinary git add -A (clean repo)",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git add -A",
+    "expect": "allow"
+  },
+  {
+    "name": "ordinary git add a source file",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git add src/main.py",
+    "expect": "allow"
+  },
+  {
+    "name": "destructive cmd on a frozen path (MSYS form)",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "rm -rf ${TMSYS}/root/frozen",
+    "expect": "deny",
+    "contains": "FROZEN"
+  },
+  {
+    "name": "history destruction: prune",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git gc --prune=now",
+    "expect": "deny"
+  },
+  {
+    "name": "history destruction: reflog expire",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git reflog expire --expire=now --all",
+    "expect": "deny"
+  },
+  {
+    "name": "force push",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git push --force origin main",
+    "expect": "deny"
+  },
+  {
+    "name": "ordinary gc",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git gc",
+    "expect": "allow"
+  },
+  {
+    "name": "ordinary push",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git push origin HEAD",
+    "expect": "allow"
+  },
+  {
+    "name": "ordinary rm in temp",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "rm -rf /tmp/scratch",
+    "expect": "allow"
+  },
+  {
+    "name": "Edit inside a frozen reference",
+    "hook": "guard",
+    "tool": "Edit",
+    "path": "${T}\\root\\frozen\\x.py",
+    "expect": "deny"
+  },
+  {
+    "name": "Edit inside a tombstoned path",
+    "hook": "guard",
+    "tool": "Edit",
+    "path": "${T}\\root\\tomb\\x.md",
+    "expect": "deny"
+  },
+  {
+    "name": "Edit an ordinary project file",
+    "hook": "guard",
+    "tool": "Edit",
+    "path": "${T}\\root\\ordinary\\x.gd",
+    "expect": "allow"
+  },
+  {
+    "name": "Write a credential file (not ignored)",
+    "hook": "guard",
+    "tool": "Write",
+    "path": "${T}\\root\\repo-plain\\.env",
+    "expect": "deny",
+    "contains": ".gitignore first"
+  },
+  {
+    "name": "Write the RECORDED-EXCEPTION .env",
+    "hook": "guard",
+    "tool": "Write",
+    "path": "${T}\\root\\repo-plain\\allowed\\.env",
+    "expect": "allow"
+  },
+  {
+    "_": "---- SPEC 5.4 self-tests: pointer and stdin ----"
+  },
+  {
+    "name": "no pointer: git add .env still denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git add .env",
+    "pointer": "none",
+    "session": "s-nobrain-1",
+    "expect": "deny"
+  },
+  {
+    "name": "no pointer: force push still denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git push -f origin main",
+    "pointer": "none",
+    "session": "s-nobrain-1",
+    "expect": "deny"
+  },
+  {
+    "name": "no pointer: ordinary edit advises once",
+    "hook": "guard",
+    "tool": "Edit",
+    "path": "${T}\\root\\ordinary\\x.gd",
+    "pointer": "none",
+    "session": "s-nobrain-2",
+    "expect": "advise",
+    "contains": "/design-first:adopt"
+  },
+  {
+    "name": "no pointer: second call, same session, silent allow",
+    "hook": "guard",
+    "tool": "Edit",
+    "path": "${T}\\root\\ordinary\\x.gd",
+    "pointer": "none",
+    "session": "s-nobrain-2",
+    "expect": "allow"
+  },
+  {
+    "name": "malformed stdin: allow, log ERROR, surface",
+    "hook": "guard",
+    "stdin": "this is not json {",
+    "expect": "advise",
+    "contains": "internal error",
+    "logContains": "ERROR guard"
+  },
+  {
+    "name": "empty stdin: allow, log ERROR, surface",
+    "hook": "guard",
+    "stdin": "",
+    "expect": "advise",
+    "contains": "internal error"
+  },
+  {
+    "_": "---- SPEC 5.4 self-tests: .env write rule ----"
+  },
+  {
+    "name": ".env ignored -> write allowed",
+    "hook": "guard",
+    "tool": "Write",
+    "path": "${T}\\root\\repo-ignored\\.env",
+    "expect": "allow"
+  },
+  {
+    "name": ".env not ignored -> deny with ignore remedy",
+    "hook": "guard",
+    "tool": "Edit",
+    "path": "${T}\\root\\repo-plain\\.env",
+    "expect": "deny",
+    "contains": "not ignored"
+  },
+  {
+    "name": ".env outside any repo -> advise",
+    "hook": "guard",
+    "tool": "Write",
+    "path": "${T}\\outside\\.env",
+    "expect": "advise",
+    "contains": "outside any git repo"
+  },
+  {
+    "name": ".env in secretExceptions -> allowed",
+    "hook": "guard",
+    "tool": "Edit",
+    "path": "${T}\\root\\repo-plain\\allowed\\.env",
+    "expect": "allow"
+  },
+  {
+    "name": ".env.example -> allowed",
+    "hook": "guard",
+    "tool": "Write",
+    "path": "${T}\\root\\repo-plain\\.env.example",
+    "expect": "allow"
+  },
+  {
+    "name": ".env.local not ignored -> deny",
+    "hook": "guard",
+    "tool": "Write",
+    "path": "${T}\\root\\repo-plain\\.env.local",
+    "expect": "deny"
+  },
+  {
+    "name": "tracked .env write -> deny with untrack text",
+    "hook": "guard",
+    "tool": "Write",
+    "path": "${T}\\root\\repo-tracked\\.env",
+    "expect": "deny",
+    "contains": "git rm --cached"
+  },
+  {
+    "name": ".env in a not-yet-existing subfolder (nearest ancestor)",
+    "hook": "guard",
+    "tool": "Write",
+    "path": "${T}\\root\\repo-ignored\\new\\deeper\\.env",
+    "expect": "allow"
+  },
+  {
+    "name": ".gitignore edit -> allowed",
+    "hook": "guard",
+    "tool": "Edit",
+    "path": "${T}\\root\\repo-plain\\.gitignore",
+    "expect": "allow"
+  },
+  {
+    "name": "NotebookEdit inside a frozen path -> deny",
+    "hook": "guard",
+    "tool": "NotebookEdit",
+    "path": "${T}\\root\\frozen\\nb.ipynb",
+    "expect": "deny"
+  },
+  {
+    "_": "---- SPEC 5.4 self-tests: staging rule (F13 and the tokeniser) ----"
+  },
+  {
+    "name": "F13: echo .env >> .gitignore && git add .gitignore -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "echo .env >> .gitignore && git add .gitignore",
+    "cwd": "${T}\\root\\repo-plain",
+    "expect": "allow"
+  },
+  {
+    "name": "git add .gitignore -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git add .gitignore",
+    "cwd": "${T}\\root\\repo-plain",
+    "expect": "allow"
+  },
+  {
+    "name": "git add .env -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git add .env",
+    "expect": "deny"
+  },
+  {
+    "name": "git add -A with untracked un-ignored .env -> DENIED",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git add -A",
+    "cwd": "${T}\\root\\repo-plain",
+    "expect": "deny",
+    "contains": "via"
+  },
+  {
+    "name": "git add --all with untracked .env -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git add --all",
+    "cwd": "${T}\\root\\repo-plain",
+    "expect": "deny"
+  },
+  {
+    "name": "git add . with untracked .env -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git add .",
+    "cwd": "${T}\\root\\repo-plain",
+    "expect": "deny"
+  },
+  {
+    "name": "git add -A from a subfolder, .env at top -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git add -A",
+    "cwd": "${T}\\root\\repo-plain\\sub",
+    "expect": "deny"
+  },
+  {
+    "name": "git add -A when .env is ignored -> ALLOWED",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git add -A",
+    "cwd": "${T}\\root\\repo-ignored",
+    "expect": "allow"
+  },
+  {
+    "name": "git add . when .env is ignored -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git add .",
+    "cwd": "${T}\\root\\repo-ignored",
+    "expect": "allow"
+  },
+  {
+    "name": "git add dir/ holding only the exception .env -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git add allowed/",
+    "cwd": "${T}\\root\\repo-plain",
+    "expect": "allow"
+  },
+  {
+    "name": "git add sub/ holding no secret -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git add sub",
+    "cwd": "${T}\\root\\repo-plain",
+    "expect": "allow"
+  },
+  {
+    "name": "git add * (glob pathspec) with .env present -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git add '*'",
+    "cwd": "${T}\\root\\repo-plain",
+    "expect": "deny"
+  },
+  {
+    "name": "git commit -am \"text; git add .env\" -> ALLOWED (quoted)",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git commit -am \"text; git add .env\"",
+    "expect": "allow"
+  },
+  {
+    "name": "git commit -a -m 'single-quoted; git add .env' -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git commit -a -m 'x; git add .env'",
+    "expect": "allow"
+  },
+  {
+    "name": "git commit --message=\"git add .env\" -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git commit --message=\"git add .env\"",
+    "expect": "allow"
+  },
+  {
+    "name": "git -C sub add .env -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git -C sub add .env",
+    "cwd": "${T}\\root\\repo-plain",
+    "expect": "deny"
+  },
+  {
+    "name": "& git add .env (PowerShell call operator) -> denied",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "& git add .env",
+    "expect": "deny"
+  },
+  {
+    "name": "git.exe add .env -> denied",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "git.exe add .env",
+    "expect": "deny"
+  },
+  {
+    "name": "quoted full path to git.exe -> denied",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "& \"C:\\Program Files\\Git\\bin\\git.exe\" add .env",
+    "expect": "deny"
+  },
+  {
+    "name": "git --no-pager -c k=v add .env -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git --no-pager -c core.autocrlf=false add .env",
+    "expect": "deny"
+  },
+  {
+    "name": "git stage .env -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git stage .env",
+    "expect": "deny"
+  },
+  {
+    "name": "git add \"dir with space/.env\" -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git add \"my dir/.env\"",
+    "expect": "deny"
+  },
+  {
+    "name": "line continuation: git add \\<nl>.env -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git add \\\n.env",
+    "expect": "deny"
+  },
+  {
+    "name": "cd x && git add .env (second sub-command) -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "cd src && git add .env",
+    "expect": "deny"
+  },
+  {
+    "name": "git add of a .env.example -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git add .env.example",
+    "expect": "allow"
+  },
+  {
+    "name": "git add of the exception .env -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git add allowed/.env",
+    "cwd": "${T}\\root\\repo-plain",
+    "expect": "allow"
+  },
+  {
+    "name": "git commit -m \"push --force\" -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git commit -m \"push --force\"",
+    "expect": "allow"
+  },
+  {
+    "_": "---- recorded residual: self-tested as NOT denied so nobody believes otherwise ----"
+  },
+  {
+    "name": "RESIDUAL: cmd /c \"git add .env\" -> not denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "cmd /c \"git add .env\"",
+    "expect": "allow"
+  },
+  {
+    "name": "RESIDUAL: pwsh -c \"git add .env\" -> not denied",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "pwsh -c \"git add .env\"",
+    "expect": "allow"
+  },
+  {
+    "name": "RESIDUAL: bash -c 'git add .env' -> not denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "bash -c 'git add .env'",
+    "expect": "allow"
+  },
+  {
+    "name": "RESIDUAL: echo .env | xargs git add -> not denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "echo .env | xargs git add",
+    "expect": "allow"
+  },
+  {
+    "_": "---- SPEC 5.4 self-tests: history rule ----"
+  },
+  {
+    "name": "--force-with-lease -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git push --force-with-lease origin main",
+    "expect": "deny"
+  },
+  {
+    "name": "--force-with-lease=main:abc -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git push --force-with-lease=main:abc origin main",
+    "expect": "deny"
+  },
+  {
+    "name": "+main refspec -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git push origin +main",
+    "expect": "deny"
+  },
+  {
+    "name": "--delete -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git push --delete origin feature",
+    "expect": "deny"
+  },
+  {
+    "name": "-d -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git push origin -d feature",
+    "expect": "deny"
+  },
+  {
+    "name": ":branch (remote deletion) -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git push origin :feature",
+    "expect": "deny"
+  },
+  {
+    "name": "-f -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git push -f origin main",
+    "expect": "deny"
+  },
+  {
+    "name": "combined -uf -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git push -uf origin main",
+    "expect": "deny"
+  },
+  {
+    "name": "git -C x gc --prune -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git -C sub gc --prune",
+    "cwd": "${T}\\root\\repo-plain",
+    "expect": "deny"
+  },
+  {
+    "name": "git push -u origin main -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git push -u origin main",
+    "expect": "allow"
+  },
+  {
+    "name": "git push --set-upstream origin feature -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git push --set-upstream origin feature",
+    "expect": "allow"
+  },
+  {
+    "name": "git reflog show -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git reflog show",
+    "expect": "allow"
+  },
+  {
+    "_": "---- SPEC 5.4 self-tests: path rules need a brain ----"
+  },
+  {
+    "name": "Remove-Item on a tombstoned path -> denied",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "Remove-Item -Recurse -Force \"${T}\\root\\tomb\"",
+    "expect": "deny"
+  },
+  {
+    "name": "git clean -fd on a frozen path -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git clean -fd ${TFWD}/root/frozen",
+    "expect": "deny"
+  },
+  {
+    "name": "mv of a frozen path -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "mv ${TFWD}/root/frozen ${TFWD}/root/frozen-old",
+    "expect": "deny"
+  },
+  {
+    "name": "ls of a frozen path -> allowed (read is fine)",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "ls ${TFWD}/root/frozen",
+    "expect": "allow"
+  },
+  {
+    "name": "no pointer: Edit in frozen path is NOT denied (needs brain)",
+    "hook": "guard",
+    "tool": "Edit",
+    "path": "${T}\\root\\frozen\\x.py",
+    "pointer": "none",
+    "session": "s-nobrain-3",
+    "expect": "advise"
+  },
+  {
+    "_": "---- fence ----"
+  },
+  {
+    "name": "FENCE paren GOODHART: assert( removed -> denies",
+    "hook": "fence",
+    "tool": "Edit",
+    "path": "${T}\\root\\tests\\probe_x.js",
+    "old": "assert(a);\nassert(b);",
+    "new": "assert(a);",
+    "expect": "deny",
+    "contains": "GOODHART"
+  },
+  {
+    "name": "FENCE paren GOODHART: expect( removed -> denies",
+    "hook": "fence",
+    "tool": "Edit",
+    "path": "${T}\\root\\spec\\x.spec.ts",
+    "old": "expect(a).toBe(1);\nexpect(b).toBe(2);",
+    "new": "expect(a).toBe(1);",
+    "expect": "deny"
+  },
+  {
+    "name": "FENCE '* 0.0' idiom in a test -> denies",
+    "hook": "fence",
+    "tool": "Edit",
+    "path": "${T}\\root\\tests\\test_x.py",
+    "old": "assert total == expected",
+    "new": "assert total * 0.0 == expected * 0.0",
+    "expect": "deny"
+  },
+  {
+    "name": "FENCE loose GOODHART: python bare assert removed -> advises",
+    "hook": "fence",
+    "tool": "Edit",
+    "path": "${T}\\root\\tests\\test_x.py",
+    "old": "assert x == 1\nassert y == 2",
+    "new": "assert x == 1",
+    "expect": "advise",
+    "contains": "advisory"
+  },
+  {
+    "name": "FENCE loose GOODHART: rust assert_eq! removed -> advises",
+    "hook": "fence",
+    "tool": "Edit",
+    "path": "${T}\\root\\tests\\x_test.rs",
+    "old": "assert_eq!(a, 1);\nassert_eq!(b, 2);",
+    "new": "assert_eq!(a, 1);",
+    "expect": "advise"
+  },
+  {
+    "name": "FENCE net deletion (3+ lines) -> advises",
+    "hook": "fence",
+    "tool": "Edit",
+    "path": "${T}\\root\\ordinary\\x.gd",
+    "old": "a\nb\nc\nd\ne",
+    "new": "a",
+    "expect": "advise",
+    "contains": "FENCE TRIPPED"
+  },
+  {
+    "name": "FENCE whole block deleted -> advises",
+    "hook": "fence",
+    "tool": "Edit",
+    "path": "${T}\\root\\ordinary\\x.gd",
+    "old": "a\nb",
+    "new": "",
+    "expect": "advise"
+  },
+  {
+    "name": "FENCE normal edit -> allowed",
+    "hook": "fence",
+    "tool": "Edit",
+    "path": "${T}\\root\\ordinary\\x.gd",
+    "old": "a",
+    "new": "b",
+    "expect": "allow"
+  },
+  {
+    "name": "FENCE assertions added -> allowed",
+    "hook": "fence",
+    "tool": "Edit",
+    "path": "${T}\\root\\tests\\probe_x.js",
+    "old": "assert(a);",
+    "new": "assert(a);\nassert(b);",
+    "expect": "allow"
+  },
+  {
+    "name": "FENCE assert removed in a NON-test file -> no GOODHART, plain fence advice",
+    "hook": "fence",
+    "tool": "Edit",
+    "path": "${T}\\root\\ordinary\\x.gd",
+    "old": "assert(a)",
+    "new": "",
+    "expect": "advise",
+    "contains": "FENCE TRIPPED"
+  },
+  {
+    "name": "FENCE Write shrinking a file by >25% -> advises",
+    "hook": "fence",
+    "tool": "Write",
+    "path": "${T}\\root\\ordinary\\big.txt",
+    "content": "x",
+    "expect": "advise",
+    "contains": "losing"
+  },
+  {
+    "name": "FENCE git reset --hard -> advises",
+    "hook": "fence",
+    "tool": "Bash",
+    "cmd": "git reset --hard HEAD~1",
+    "expect": "advise"
+  },
+  {
+    "name": "FENCE ordinary command -> allowed",
+    "hook": "fence",
+    "tool": "Bash",
+    "cmd": "git status",
+    "expect": "allow"
+  },
+  {
+    "name": "FENCE malformed stdin: allow, log ERROR, surface",
+    "hook": "fence",
+    "stdin": "nope",
+    "expect": "advise",
+    "contains": "internal error",
+    "logContains": "ERROR fence"
+  },
+  {
+    "_": "---- agent.ps1: brief contract, routing, cap (DES-11) ----"
+  },
+  {
+    "name": "agent: full brief, general-purpose, no model -> routed to sonnet",
+    "hook": "agent",
+    "tool": "Agent",
+    "type": "general-purpose",
+    "prompt": "Goal: count the files under tools.\nFiles: tools/\nDone when: the count is pasted with the command that produced it.\nRuled out: editing anything.",
+    "expect": "rewrite",
+    "contains": "\"model\":\"sonnet\""
+  },
+  {
+    "name": "agent: brief missing Ruled out -> deny names it",
+    "hook": "agent",
+    "tool": "Agent",
+    "type": "general-purpose",
+    "prompt": "Goal: x\nFiles: y\nDone when: z",
+    "expect": "deny",
+    "contains": "Ruled out:"
+  },
+  {
+    "name": "agent: Explore with Goal + Done when -> routed to haiku",
+    "hook": "agent",
+    "tool": "Agent",
+    "type": "Explore",
+    "prompt": "Goal: find where the pointer is read.\nDone when: file and line are named.",
+    "expect": "rewrite",
+    "contains": "\"model\":\"haiku\""
+  },
+  {
+    "name": "agent: Explore missing Done when -> deny",
+    "hook": "agent",
+    "tool": "Agent",
+    "type": "Explore",
+    "prompt": "Goal: find it",
+    "expect": "deny",
+    "contains": "Done when:"
+  },
+  {
+    "name": "agent: reviewer full brief -> inherits, advised",
+    "hook": "agent",
+    "tool": "Agent",
+    "type": "reviewer",
+    "prompt": "Goal: count the files under tools.\nFiles: tools/\nDone when: the count is pasted with the command that produced it.\nRuled out: editing anything.",
+    "expect": "advise",
+    "contains": "inherits"
+  },
+  {
+    "name": "agent: model named on the call wins (opus)",
+    "hook": "agent",
+    "tool": "Agent",
+    "type": "general-purpose",
+    "prompt": "Goal: count the files under tools.\nFiles: tools/\nDone when: the count is pasted with the command that produced it.\nRuled out: editing anything.",
+    "model": "opus",
+    "expect": "advise",
+    "contains": "'opus' named"
+  },
+  {
+    "name": "agent: bold markdown headings satisfy the contract",
+    "hook": "agent",
+    "tool": "Agent",
+    "type": "general-purpose",
+    "prompt": "**Goal:** a\n- **Files:** b\n**Done when:** c\n**Ruled out:** d",
+    "expect": "rewrite"
+  },
+  {
+    "name": "agent: the word goal in prose does not satisfy the contract",
+    "hook": "agent",
+    "tool": "Agent",
+    "type": "general-purpose",
+    "prompt": "The goal: is to count. Files are under tools. Done when counted. Ruled out nothing.",
+    "expect": "deny",
+    "contains": "Goal:"
+  },
+  {
+    "name": "agent: no subagent_type -> treated as general-purpose",
+    "hook": "agent",
+    "tool": "Agent",
+    "prompt": "Goal: count the files under tools.\nFiles: tools/\nDone when: the count is pasted with the command that produced it.\nRuled out: editing anything.",
+    "expect": "rewrite",
+    "contains": "\"model\":\"sonnet\""
+  },
+  {
+    "name": "agent: no pointer -> bad brief still denied",
+    "hook": "agent",
+    "tool": "Agent",
+    "type": "general-purpose",
+    "prompt": "Goal: x",
+    "pointer": "none",
+    "session": "s-nobrain",
+    "expect": "deny"
+  },
+  {
+    "name": "agent: no pointer -> kit template is the policy, said once",
+    "hook": "agent",
+    "tool": "Agent",
+    "type": "general-purpose",
+    "prompt": "Goal: count the files under tools.\nFiles: tools/\nDone when: the count is pasted with the command that produced it.\nRuled out: editing anything.",
+    "pointer": "none",
+    "session": "s-nobrain",
+    "expect": "rewrite",
+    "contains": "kit defaults"
+  },
+  {
+    "name": "agent: nested spawn (agent_id) is checked and counted",
+    "hook": "agent",
+    "tool": "Agent",
+    "type": "general-purpose",
+    "prompt": "Goal: count the files under tools.\nFiles: tools/\nDone when: the count is pasted with the command that produced it.\nRuled out: editing anything.",
+    "agent_id": "a-1",
+    "session": "s-nested",
+    "prompt_id": "p-nested",
+    "expect": "rewrite",
+    "contains": "nested"
+  },
+  {
+    "name": "agent: a non-Agent tool passes through silently",
+    "hook": "agent",
+    "tool": "Edit",
+    "path": "${T}/root/ordinary/x.gd",
+    "expect": "allow"
+  },
+  {
+    "name": "agent: cap, spawn 1 of 8 passes",
+    "hook": "agent",
+    "tool": "Agent",
+    "type": "general-purpose",
+    "prompt": "Goal: count the files under tools.\nFiles: tools/\nDone when: the count is pasted with the command that produced it.\nRuled out: editing anything.",
+    "session": "s-cap",
+    "prompt_id": "p-cap",
+    "expect": "rewrite",
+    "contains": "spawn 1 of 8"
+  },
+  {
+    "name": "agent: cap, spawn 2 of 8 passes",
+    "hook": "agent",
+    "tool": "Agent",
+    "type": "general-purpose",
+    "prompt": "Goal: count the files under tools.\nFiles: tools/\nDone when: the count is pasted with the command that produced it.\nRuled out: editing anything.",
+    "session": "s-cap",
+    "prompt_id": "p-cap",
+    "expect": "rewrite",
+    "contains": "spawn 2 of 8"
+  },
+  {
+    "name": "agent: cap, spawn 3 of 8 passes",
+    "hook": "agent",
+    "tool": "Agent",
+    "type": "general-purpose",
+    "prompt": "Goal: count the files under tools.\nFiles: tools/\nDone when: the count is pasted with the command that produced it.\nRuled out: editing anything.",
+    "session": "s-cap",
+    "prompt_id": "p-cap",
+    "expect": "rewrite",
+    "contains": "spawn 3 of 8"
+  },
+  {
+    "name": "agent: cap, spawn 4 of 8 passes",
+    "hook": "agent",
+    "tool": "Agent",
+    "type": "general-purpose",
+    "prompt": "Goal: count the files under tools.\nFiles: tools/\nDone when: the count is pasted with the command that produced it.\nRuled out: editing anything.",
+    "session": "s-cap",
+    "prompt_id": "p-cap",
+    "expect": "rewrite",
+    "contains": "spawn 4 of 8"
+  },
+  {
+    "name": "agent: cap, spawn 5 of 8 passes",
+    "hook": "agent",
+    "tool": "Agent",
+    "type": "general-purpose",
+    "prompt": "Goal: count the files under tools.\nFiles: tools/\nDone when: the count is pasted with the command that produced it.\nRuled out: editing anything.",
+    "session": "s-cap",
+    "prompt_id": "p-cap",
+    "expect": "rewrite",
+    "contains": "spawn 5 of 8"
+  },
+  {
+    "name": "agent: cap, spawn 6 of 8 passes",
+    "hook": "agent",
+    "tool": "Agent",
+    "type": "general-purpose",
+    "prompt": "Goal: count the files under tools.\nFiles: tools/\nDone when: the count is pasted with the command that produced it.\nRuled out: editing anything.",
+    "session": "s-cap",
+    "prompt_id": "p-cap",
+    "expect": "rewrite",
+    "contains": "spawn 6 of 8"
+  },
+  {
+    "name": "agent: cap, spawn 7 of 8 passes",
+    "hook": "agent",
+    "tool": "Agent",
+    "type": "general-purpose",
+    "prompt": "Goal: count the files under tools.\nFiles: tools/\nDone when: the count is pasted with the command that produced it.\nRuled out: editing anything.",
+    "session": "s-cap",
+    "prompt_id": "p-cap",
+    "expect": "rewrite",
+    "contains": "spawn 7 of 8"
+  },
+  {
+    "name": "agent: cap, spawn 8 of 8 passes",
+    "hook": "agent",
+    "tool": "Agent",
+    "type": "general-purpose",
+    "prompt": "Goal: count the files under tools.\nFiles: tools/\nDone when: the count is pasted with the command that produced it.\nRuled out: editing anything.",
+    "session": "s-cap",
+    "prompt_id": "p-cap",
+    "expect": "rewrite",
+    "contains": "spawn 8 of 8"
+  },
+  {
+    "name": "agent: cap, spawn 9 asks the owner",
+    "hook": "agent",
+    "tool": "Agent",
+    "type": "general-purpose",
+    "prompt": "Goal: count the files under tools.\nFiles: tools/\nDone when: the count is pasted with the command that produced it.\nRuled out: editing anything.",
+    "session": "s-cap",
+    "prompt_id": "p-cap",
+    "expect": "ask",
+    "contains": "over the cap"
+  },
+  {
+    "name": "agent: cap, a new turn starts at 1 again",
+    "hook": "agent",
+    "tool": "Agent",
+    "type": "general-purpose",
+    "prompt": "Goal: count the files under tools.\nFiles: tools/\nDone when: the count is pasted with the command that produced it.\nRuled out: editing anything.",
+    "session": "s-cap",
+    "prompt_id": "p-cap-2",
+    "expect": "rewrite",
+    "contains": "spawn 1 of 8"
+  }
 ]

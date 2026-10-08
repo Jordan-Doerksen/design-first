@@ -54,6 +54,15 @@ tracking checks → path rules from the brain. No brain: the first three still r
 **2.4 Onboarding.** A command asks one question at a time; a script writes every file and records
 what it wrote. Attach mode never overwrites. Remove deletes only unmodified kit-authored files.
 
+**2.5 Subagent policy (2026-10-08, Change Request on DES-11).** A hook on the Agent tool: (1) a
+brief without the contract headings is denied; (2) a call that names no model gets one from the
+brain's role table by agent type, an explicit model always winning; (3) spawns are counted per
+turn and the hook asks above the cap. Tunables in `<brain>/agent-policy.json`, template in the
+kit. DES-11's text changed to say what the hook checks; the old fan-out-by-file-count rule became
+body guidance ("parallelise independent decisions, not files"). Whether the host honours a
+rewritten `model` is proven by a live probe, not assumed; until that probe is recorded the routing
+half is a logged rewrite, not a guarantee.
+
 ## Build Timeline
 
 | Chunk | Content | Status |
@@ -68,6 +77,7 @@ what it wrote. Attach mode never overwrites. Remove deletes only unmodified kit-
 | 8 | Clean-box run | Skipped: adopter one is the first clean box |
 | 9 | Owner migration (adopter zero) | Done 2026-10-07 |
 | 10 | Adopter one, then public | Pending |
+| 11 | Subagent policy hook (agent.ps1), DES-11 rewritten, policy template, 21 hook cases | Done 2026-10-08 |
 
 ## Change Log
 
@@ -81,3 +91,4 @@ what it wrote. Attach mode never overwrites. Remove deletes only unmodified kit-
 | 2026-10-07 | Adopter zero migrated a 134-clause brain onto the kit: attach mode kept 15 existing files, wrote 3. Fixes that migration forced: json_keyed_match, worktree folding, tool-anchor validation, -BrainRoot for generated_matches, self-test stand-in generator. | chunk 9 | doctor, law |
 | 2026-10-07 | entry.ps1 never resolved the `kit:` / `brain:` prefixes that `templates/entry.json` ships; every prefixed entry printed `MISSING: <brain>\kit:...`. Fixed: `kit:` resolves under the pointer's `pluginRoot` (the kit of record; the running plugin root only when the pointer has none), `brain:` under the brain, older forms unchanged. The self-test fixture only used the older forms, so it had never run the shipped format: it now carries both prefixes plus a `brain:` entry that exists only under the kit (114 cases). Found on the first session after migration. | kit fix | hooks, tests |
 | 2026-10-08 | The 2026-10-07 entry.ps1 fix never reached the adopter: Claude Code runs the plugin from `plugins\cache\...\0.1.0`, and `claude plugin update` re-copies only when `plugin.json` `version` changes, so every commit since install stayed in the checkout while the cache ran the old hooks and the old Doctor (COULD-NOT-LOOK on `json_keyed_match`, sixteen phantom worktree secret findings, the entry path MISSING in every session). Two changes: (1) new claim type `tree_equals` (claims-tree.ps1; MANUAL, SPEC 5.2; self-test true/false/unknown cases) so a brain can assert its running plugin copy matches the checkout; (2) the version is now bumped on every change that must reach an installed copy, starting with 0.1.1. The marketplace lists the plugin with a relative `source` (`./`), which the platform docs say loads in place with no cache; on this machine the desktop app copied it anyway, so the kit plans for the copied form. | kit fix | doctor, manifest |
+| 2026-10-08 | DES-11 rewritten (Change Request, owner interview of five questions): a subagent needs a brief with Goal / Files or Area / Done when / Ruled out (search types: Goal and Done when), a model from the brain's role table when the call names none, and a per-turn cap that asks above eight. Mechanism `hooks/agent.ps1` on the Agent tool, anchor `agent-brief` (deny) so the clause prints HOOK; `templates/agent-policy.json` copied to the brain by adopt. Version 0.1.2. | owner decision | hooks, law, templates, adopt |

@@ -26,21 +26,41 @@ of explanation.
 review before any code (`workflows/design-gate.md`). Everything else is still designed; it skips
 only that extra pass.
 
-## Parallel agents are the default
+## Subagents: a brief, a routed model, a cap
 
 ### DES-11
 
-**When a task touches more than one file, start more than one agent in one message, one file or
-area each; sequential work only where one file genuinely depends on another.**
+**A subagent starts only with a brief that names the goal, the files or area, the done-check and
+what is ruled out; its model follows the brain's role table unless the call names one; more
+spawns than the cap in one turn ask the owner.**
 
-A set of edits across files, a new repository structure, many document updates: start the agents
-together, in one message, then collect the results. Do not write the files one at a time.
+The mechanism is `hooks/agent.ps1`, on every call to the Agent tool. The tunables are in
+`<brain>/agent-policy.json` (the kit template is the default until a brain has one).
 
-**The exception, and it matters:** work sequentially only when one file genuinely depends on
-another. Parallelising a dependent chain corrupts it, so the exception is not optional — but it is
-the exception, not the default. After parallel agents land, one more agent cross-checks the
-composition with the manifest and the full diff (`GATE-05`); each agent proved its own file, and
-nothing has proved the whole.
+**The brief contract.** Four headings, each at the start of its own line: `Goal:`, `Files:` (or
+`Area:`), `Done when:`, `Ruled out:`. A search-type agent (`Explore`, `claude-code-guide`) needs
+only `Goal:` and `Done when:`. A brief without them is refused with the missing headings named,
+and the spawn is re-issued in one turn. The brief is the only context a subagent has; it does not
+get the entry path, and it cannot see the reasoning that produced it.
+
+**Routing.** When the call names no model, the hook sets one from the role table: searches go to
+the fastest tier, routine builds to the middle tier, review, planning and anything design-shaped
+inherit the session model. A model named on the call always wins. The table is the owner's, and a
+change to it is a Change Request on the brain, not on this file.
+
+**The cap.** Spawns are counted per turn. Above the cap the hook stops and asks, naming the count
+and the models so far. The number is in the policy; the default is eight.
+
+**Why the old rule went.** Until 2026-10-08 this clause said *more than one file means more than
+one agent*. Measured over two weeks on the first instance: 516 spawns, 97% inheriting the most
+expensive model, median brief 3,400 characters with no done-check, one session spawning 33. A
+rule that fans out by file count optimises wall-clock and bills every agent for context the parent
+already had. The replacement: **parallelise independent decisions, not files.** Several files
+that serve one decision are one agent's job. Anything deterministic (a generator, a checker, a
+rename across files) is a script, not an agent. Where one file genuinely depends on another, work
+in sequence. After a fan-out lands, one more pass cross-checks the composition against the
+manifest and the full diff (`GATE-05`): each agent proved its own piece, and nothing has proved
+the whole.
 
 ## Skills before an empty start
 

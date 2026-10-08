@@ -53,7 +53,7 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | DES-08 | HONOUR | Every workaround carries an inline note saying what failed and why this is the fix, because an unexplained correction gets cleaned up and the defect returns. | `kit:lessons/lessons.md` |
 | DES-09 | HONOUR | Every repository carries its line-ending attributes file in its first commit; the bytes belong to the repository, not to a machine setting. | `kit:instructions/integrity-law.md` |
 | DES-10 | HONOUR | Install with the fail-on-drift verb, never the resolve-fresh verb, and pin the toolchain as well as the dependencies. | `kit:workflows/coding.md` |
-| DES-11 | HONOUR | When a task touches more than one file, start more than one agent in one message, one file or area each; sequential work only where one file genuinely depends on another. | `kit:workflows/coding.md` |
+| DES-11 | HOOK | A subagent starts only with a brief that names the goal, the files or area, the done-check and what is ruled out; its model follows the brain's role table unless the call names one; more spawns than the cap in one turn ask the owner. | `kit:workflows/coding.md` |
 | DES-12 | HONOUR | Match the task to an installed skill before building from an empty start, by reading the installed skills directory itself rather than a list in a law file. | `kit:workflows/coding.md` |
 
 ## GATE - Gates
@@ -159,10 +159,10 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | grade | count |
 |---|---|
 | DENY | 0 |
-| HOOK | 5 |
+| HOOK | 6 |
 | ADVISE | 1 |
 | GATE | 5 |
 | BUILDABLE | 0 |
 | OWNER | 3 |
-| HONOUR | 63 |
+| HONOUR | 62 |
 | total | 77 |
