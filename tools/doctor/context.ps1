@@ -74,6 +74,11 @@ $script:ConfigReaders = [ordered]@{
     acceptedExceptions         = 'doctor.ps1 (Test-Accepted: (path, kind) pairs reported, not counted)'
     entryPointSnapshots        = 'doctor.ps1 (live vs snapshot, CRLF-insensitive)'
     enforcement                = 'enforcement.ps1 (fenceLogStaleDays only)'
+    # Read by the hooks, not by the Doctor. They are listed so the dead-key check knows they are
+    # live: before this, every brain that carried them got three "nothing reads it" warnings.
+    splitLines                 = 'hooks/guard.ps1 (rule 6, file-size: the line count that asks)'
+    sourceExtensions           = 'hooks/guard.ps1 (rules 5 and 6) / hooks/stop.ps1 (what counts as source)'
+    stopDocs                   = 'hooks/stop.ps1 (file names that count as documents on the Stop card)'
 }
 
 # Keys the previous Doctor had that are now derived from the pointer or simply dead (SPEC 5.3).
@@ -98,6 +103,9 @@ function Get-DefaultConfig {
         acceptedExceptions         = @()
         entryPointSnapshots        = @()
         enforcement                = [PSCustomObject]@{ fenceLogStaleDays = 30 }
+        splitLines                 = 500
+        sourceExtensions           = @()
+        stopDocs                   = @()
     }
 }
 

@@ -148,6 +148,7 @@ try {
             [ordered]@{ live = 'entry-point/eolonly.md';    snapshot = 'entry-point/eolonly.md.snapshot' })
         enforcement = [ordered]@{ fenceLogStaleDays = 30 }
         gitTimeoutSeconds = 20   # dead key: must be reported
+        splitLines = 500; sourceExtensions = @('.py'); stopDocs = @('DECISIONS.md')   # read by the hooks: must NOT be reported
     }
     WJ (Join-Path $brain 'doctor.config.json') $cfg
     $strict = [ordered]@{} + $cfg; $strict.surveyStrict = $true; $strict.Remove('gitTimeoutSeconds')
@@ -242,6 +243,7 @@ exit 0
         [ordered]@{ id = 'T-RULES';       type = 'tree_rules';         root = '${ROOT}/scan'; depth = 1; where = [ordered]@{ anyOf = @('tool.marker') }; except = @('**/tokens.css'); allowOnLine = 'deliberate'; rules = @([ordered]@{ id = 'raw-colour'; files = '**/*.css'; forbid = '#[0-9a-f]{3,8}\b' }, [ordered]@{ id = 'reduced-motion'; files = '**/*.css'; when = 'animation|transition|@keyframes'; require = 'prefers-reduced-motion' }, [ordered]@{ id = 'bare-except'; files = '**/*.py'; forbid = 'except\s*:\s*pass' }); why = 't' },
         [ordered]@{ id = 'T-RULES-SINCE'; type = 'tree_rules';         root = '${ROOT}/scan'; depth = 1; where = [ordered]@{ anyOf = @('styles/app.css') }; since = '2099-01-01'; except = @('**/tokens.css'); allowOnLine = 'deliberate'; rules = @([ordered]@{ id = 'raw-colour'; files = '**/*.css'; forbid = '#[0-9a-f]{3,8}\b' }, [ordered]@{ id = 'reduced-motion'; files = '**/*.css'; when = 'animation|transition|@keyframes'; require = 'prefers-reduced-motion' }, [ordered]@{ id = 'bare-except'; files = '**/*.py'; forbid = 'except\s*:\s*pass' }); why = 't' },
         [ordered]@{ id = 'T-SCAN-GLOB';   type = 'tree_each';          root = '${ROOT}/scan'; depth = 1; where = [ordered]@{ anyOf = @('DECISIONS.md') }; require = @([ordered]@{ glob = '**/*.py|**/*.js'; pattern = 'logging' }); why = 't' },
+        [ordered]@{ id = 'T-SCAN-EMPTYOK'; type = 'tree_each';         root = '${ROOT}/scan'; depth = 1; where = [ordered]@{ anyOf = @('nothing.has.this') }; require = @([ordered]@{ file = 'x' }); emptyOk = $true; why = 't' },
         [ordered]@{ id = 'T-SMOKE-PRE';   type = 'hook_smoke';         hook = 'good-guard'; event = 'PreToolUse'; why = 't' },
         [ordered]@{ id = 'T-SMOKE-START'; type = 'hook_smoke';         hook = 'good-entry'; event = 'SessionStart'; why = 't' },
         [ordered]@{ id = 'T-POINTER';     type = 'pointer_valid';      why = 't' },
@@ -314,10 +316,11 @@ exit 0
     Assert-Has 'A: restore drill stale' $a.out 'restore drill is'
     Assert-Has 'A: fence log absent is REPORTED as no trips yet' $a.out 'fence log: no trips yet'
     Assert-Has 'A: dead config key reported' $a.out 'dead config key: gitTimeoutSeconds'
+    foreach ($live in 'splitLines', 'sourceExtensions', 'stopDocs') { Assert-HasNot "A: $live is read by the hooks, not a dead key" $a.out "dead config key: $live" }
     Assert-Has 'A: soft_deny counted against frozenPaths' $a.out 'soft_deny: 2 rule(s), 1 naming a frozen path'
     Assert-Has 'A: registered-but-missing hook' $a.out 'hook REGISTERED BUT MISSING'
     Assert-Has 'A: deny/ask rules read from root settings' $a.out 'root settings: 1 deny, 1 ask'
-    Assert-Has 'A: every true claim holds' $a.out 'CLAIMS  20 pass  0 fail  0 could not look'
+    Assert-Has 'A: every true claim holds (emptyOk: nothing selected is a pass that says so)' $a.out 'CLAIMS  21 pass  0 fail  0 could not look'
     Assert-HasNot 'A: no COULD-NOT-LOOK band' $a.out 'COULD-NOT-LOOK'
 
     # ================================================================ run B: same disk, surveyStrict true -> exit 1

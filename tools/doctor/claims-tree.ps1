@@ -158,6 +158,7 @@ function Test-TreeEqualsClaim {
 #   since       optional ISO date. A repository whose FIRST commit predates it is grandfathered: a gap there is
 #               reported in the detail, never a FAIL. The date comes from git, so the ratchet is generated, not typed.
 #   accepted    optional [ { path, reason, since } ], ${ROOT}-relative: reported, never failed. Each needs a reason.
+#   emptyOk     optional true: nothing selected is a PASS that says so, instead of UNKNOWN (for a template claim).
 # PASS: every selected, non-grandfathered, non-accepted repository meets every requirement. FAIL: one does not
 # (first 12 named with the missing requirement). UNKNOWN: root missing, nothing selected, or no `require`.
 # Skipped folders: .git, node_modules, target, .venv, __pycache__, dist, build, .godot, .tools.
@@ -295,7 +296,15 @@ function Invoke-DfRepoScan {
         }
         $fails += ("{0}: {1}" -f $relRaw, ($missing -join ', '))
     }
-    if ($selected -eq 0) { return New-ClaimResult $c 'UNKNOWN' "nothing selected under $root (no repository matched 'where'); nothing was checked" }
+    if ($selected -eq 0) {
+        # emptyOk: a claim that ships to a root which may hold no matching repository yet (a template
+        # claim on a fresh adopt) says so, and "every selected repository complies" is then true of
+        # none. Without it nothing selected stays UNKNOWN: in a populated root it means the selector
+        # is broken. Workaround for 0.1.6 to 0.1.9, where both template scan claims made the first
+        # Doctor run of every new adopter exit 2.
+        if ($c.emptyOk -eq $true) { return New-ClaimResult $c 'PASS' "nothing selected under $root yet (emptyOk); 0 repositories checked" }
+        return New-ClaimResult $c 'UNKNOWN' "nothing selected under $root (no repository matched 'where'); nothing was checked"
+    }
     $tail = ''
     if ($grand.Count -gt 0) { $tail += ("; {0} predate {1} and are reported, not failed: {2}" -f $grand.Count, $since.ToString('yyyy-MM-dd'), (@($grand | Select-Object -First 12) -join ' | ')) }
     if ($acc.Count -gt 0) { $tail += ("; {0} accepted: {1}" -f $acc.Count, (@($acc | Select-Object -First 12) -join ' | ')) }

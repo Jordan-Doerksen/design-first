@@ -32,6 +32,7 @@
         }
       ],
       "since": "2026-10-08",
+      "emptyOk": true,
       "why": "DES-01: every repository carries its decisions manifest and its architecture map. Repositories born before `since` (set it to your adopt date) are reported, not failed; a new one must comply. Add `where` or `exclude` for folders that are not projects."
     },
     {
@@ -59,6 +60,7 @@
         }
       ],
       "since": "2026-10-08",
+      "emptyOk": true,
       "why": "OBS-08: every runnable tool ships a manual with a symptom, meaning and fix table. Selected by the files a runnable project carries; born before `since` is reported, not failed."
     }
   ]
