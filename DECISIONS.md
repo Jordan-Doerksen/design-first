@@ -78,10 +78,13 @@ subagents get the session's groups; a new clause DES-13 at ADVISE rather than re
 owner: a mechanism that exists is cited; a mechanism that is specified but not shipped prints
 BUILDABLE and points here; a standing ruling prints OWNER; a request stays HONOUR with its reason in
 the owning file. The planned mechanisms, each a Change Request when built:
-- *Repo scan* (new claim type `tree_each`): for every repository under the root that matches a
-  shape, require files or strings. Carries DES-01 (DECISIONS.md and ARCHITECTURE.md present),
-  OBS-01 (a logger), OBS-05 (a crash trap in the entry file), OBS-08 (MANUAL.md), OBS-09 (a game's
-  watchdog), and the brain's game and skin checks.
+- *Repo scan* (claim type `tree_each`): **shipped in 0.1.6.** For every git repository under a
+  root that matches a shape, require files, globs or strings; a repository born before `since`
+  is reported, not failed (the ratchet, from git's first-commit date); `accepted` entries need a
+  reason. Carries DES-01, OBS-01, OBS-05, OBS-08, OBS-09 and the brain's GAME-15 and GAME-16.
+  The kit's own grade for those clauses stays BUILDABLE: the kit cannot assert a fact about an
+  adopter's repositories, so the claims live in the brain (two generic ones ship in
+  `templates/claims.json`), and the brain overlay re-grades the clauses to GATE.
 - *Regex scan* (claim type `tree_matches_none` / `tree_requires`): OBS-04 swallowed errors; the
   reduced-motion block; raw colours outside a token file.
 - *Stop hook*: at the end of a turn that changed source, ask for the cross-check (GATE-05), the
@@ -110,6 +113,7 @@ the owning file. The planned mechanisms, each a Change Request when built:
 | 11 | Subagent policy hook (agent.ps1), DES-11 rewritten, policy template, 21 hook cases | Done 2026-10-08 |
 | 12 | Law by route: route.ps1, subagent.ps1, lib/law-rows.ps1, DES-13, route-policy template, entry path trimmed, hook_smoke for two more events | Done 2026-10-08 |
 | 13 | HONOUR triage: ask.ps1, guard rules 5 and 6, survey anchors, grades re-derived, planned mechanisms in 2.7 | Done 2026-10-08 |
+| 14 | Repo scan: claim type tree_each with the first-commit ratchet; two template claims; selftest cases | Done 2026-10-08 |
 
 ## Change Log
 
@@ -126,3 +130,4 @@ the owning file. The planned mechanisms, each a Change Request when built:
 | 2026-10-08 | DES-11 rewritten (Change Request, owner interview of five questions): a subagent needs a brief with Goal / Files or Area / Done when / Ruled out (search types: Goal and Done when), a model from the brain's role table when the call names none, and a per-turn cap that asks above eight. Mechanism `hooks/agent.ps1` on the Agent tool, anchor `agent-brief` (deny) so the clause prints HOOK; `templates/agent-policy.json` copied to the brain by adopt. Version 0.1.2. | owner decision | hooks, law, templates, adopt |
 | 2026-10-08 | DES-13 added (ADVISE, anchor route-law in hooks/route.ps1): the law for the task arrives per prompt as LAW.md rows by group, once per session, sticky, cleared on compaction; subagent.ps1 gives every subagent the session's groups plus SAFE; templates/entry.json keeps only me.md and voice.md; hook_smoke accepts UserPromptSubmit and SubagentStart. Version 0.1.4. | owner decisions (3) | hooks, law, templates, doctor, tests |
 | 2026-10-08 | HONOUR triage applied (ten owner passes): OWN-04 HOOK (ask.ps1, one question per call); DES-02 and GATE-04 ADVISE (guard rule 5, source write with no DECISIONS.md); DES-03 ADVISE (guard rule 6, file over splitLines); GATE-13 ADVISE (fence anchor gains simplify); DES-09, VCS-01, VCS-02, VCS-04, VCS-22 GATE by survey anchors; DES-10 GATE by the ask rules (bare installs added); thirteen clauses BUILDABLE pointing at 2.7. Config gains splitLines and sourceExtensions. Version 0.1.5. | owner decisions (10 passes) | hooks, law, doctor, templates, tests |
+| 2026-10-08 | tree_each shipped (owner decision: ratchet by first-commit date, not an accept list, not RED now). Fields root, depth, where, exclude, require (file / glob / glob+pattern, globs joined by '|'), since, accepted. Measured on the first instance before building: 75 repositories, DECISIONS.md in 31, a manual in 9, a crash trap in 5, sound toggles in 5 of 27 games; a strict scan would fail two thirds on day one. Version 0.1.6. | planned mechanism built | doctor, templates, tests |

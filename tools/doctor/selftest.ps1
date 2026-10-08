@@ -30,12 +30,18 @@ $fakeHome = Split-Path -Parent $fakeHome
 Write-Host ''; Write-Host ("  Planting in {0}" -f $T) -ForegroundColor Cyan; Write-Host ''
 
 function New-TestRepo {
-    param([string] $Parent, [string] $Name, [switch] $NoCommit)
+    param([string] $Parent, [string] $Name, [switch] $NoCommit, [string] $Date)
     $p = NewDir (Join-Path $Parent $Name)
     & git -C $p init -q 2>&1 | Out-Null
     & git -C $p config user.email 'selftest@local' 2>&1 | Out-Null
     & git -C $p config user.name 'selftest' 2>&1 | Out-Null
-    if (-not $NoCommit) { W (Join-Path $p 'README.md') "test`n"; & git -C $p add -A 2>&1 | Out-Null; & git -C $p commit -q -m seed 2>&1 | Out-Null }
+    if (-not $NoCommit) {
+        W (Join-Path $p 'README.md') "test`n"; & git -C $p add -A 2>&1 | Out-Null
+        # A dated first commit makes the tree_each ratchet testable: born before `since` = grandfathered.
+        $saveA = $env:GIT_AUTHOR_DATE; $saveC = $env:GIT_COMMITTER_DATE
+        if ($Date) { $env:GIT_AUTHOR_DATE = $Date; $env:GIT_COMMITTER_DATE = $Date }
+        try { & git -C $p commit -q -m seed 2>&1 | Out-Null } finally { $env:GIT_AUTHOR_DATE = $saveA; $env:GIT_COMMITTER_DATE = $saveC }
+    }
     return $p
 }
 
@@ -83,6 +89,16 @@ try {
         permissions = [ordered]@{ deny = @('Read(**/.env)'); ask = @('Bash(npm install *)') }
         autoMode = [ordered]@{ soft_deny = @('Bash(rm *)', 'Edit(**/frozenref/**)') }
     })
+
+    # ---------------------------------------------------------------- tree_each scan fixture
+    # Four repositories under root\scan: good (manifest + map + a logger line), bad (nothing, born today),
+    # old (nothing, born 2019: grandfathered by `since`), acc (nothing, listed as accepted). The marker
+    # file tool.marker is in all but bad, so a `where` on it leaves bad out.
+    $scan = NewDir (Join-Path $root 'scan')
+    $sGood = New-TestRepo $scan 'good'; W (Join-Path $sGood 'DECISIONS.md') "d`n"; W (Join-Path $sGood 'ARCHITECTURE.md') "a`n"; W (Join-Path $sGood 'tool.marker') "m`n"; W (Join-Path $sGood 'src\app.py') "import logging`nprint(1)`n"
+    $sBad  = New-TestRepo $scan 'bad';  W (Join-Path $sBad 'src\app.py') "print(2)`n"
+    $sOld  = New-TestRepo $scan 'old' -Date '2019-06-01T12:00:00+00:00'; W (Join-Path $sOld 'tool.marker') "m`n"
+    $sAcc  = New-TestRepo $scan 'acc';  W (Join-Path $sAcc 'tool.marker') "m`n"
 
     # ---------------------------------------------------------------- brain
     & git -C $brain init -q 2>&1 | Out-Null
@@ -216,6 +232,8 @@ exit 0
         [ordered]@{ id = 'T-TREE';        type = 'tree_free_of';       root = '${KIT}/leak-ok'; words = $leakWords; extensions = $leakExt; exclude = @('LICENSE'); allow = $leakAllow; why = 't' },
         [ordered]@{ id = 'T-TREEEQ';      type = 'tree_equals';        path = '${KIT}/eq-a'; other = '${KIT}/eq-b'; exclude = @('skip.txt'); why = 't' },
         [ordered]@{ id = 'T-TREEEQ-SAME'; type = 'tree_equals';        path = '${KIT}/eq-a'; other = '${KIT}/eq-a'; why = 't' },
+        [ordered]@{ id = 'T-SCAN';        type = 'tree_each';          root = '${ROOT}/scan'; depth = 1; where = [ordered]@{ anyOf = @('tool.marker') }; require = @([ordered]@{ file = 'DECISIONS.md' }, [ordered]@{ file = 'ARCHITECTURE.md' }); since = '2026-01-01'; accepted = @([ordered]@{ path = 'scan/acc'; reason = 'planted'; since = '2026-01-01' }); why = 't' },
+        [ordered]@{ id = 'T-SCAN-GLOB';   type = 'tree_each';          root = '${ROOT}/scan'; depth = 1; where = [ordered]@{ anyOf = @('DECISIONS.md') }; require = @([ordered]@{ glob = '**/*.py|**/*.js'; pattern = 'logging' }); why = 't' },
         [ordered]@{ id = 'T-SMOKE-PRE';   type = 'hook_smoke';         hook = 'good-guard'; event = 'PreToolUse'; why = 't' },
         [ordered]@{ id = 'T-SMOKE-START'; type = 'hook_smoke';         hook = 'good-entry'; event = 'SessionStart'; why = 't' },
         [ordered]@{ id = 'T-POINTER';     type = 'pointer_valid';      why = 't' },
@@ -236,6 +254,8 @@ exit 0
         [ordered]@{ id = 'F-TREE-SPAN';   type = 'tree_free_of';       root = '${KIT}/leak-span'; words = $leakWords; extensions = $leakExt; exclude = @('LICENSE'); allow = $leakAllow; why = 'f' },
         [ordered]@{ id = 'F-TREEEQ';      type = 'tree_equals';        path = '${KIT}/eq-a'; other = '${KIT}/eq-c'; exclude = @('skip.txt'); why = 'f' },
         [ordered]@{ id = 'F-TREEEQ-SKIP'; type = 'tree_equals';        path = '${KIT}/eq-a'; other = '${KIT}/eq-b'; why = 'f' },
+        [ordered]@{ id = 'F-SCAN';        type = 'tree_each';          root = '${ROOT}/scan'; depth = 1; require = @([ordered]@{ file = 'DECISIONS.md' }, [ordered]@{ file = 'ARCHITECTURE.md' }); since = '2026-01-01'; accepted = @([ordered]@{ path = 'scan/acc'; reason = 'planted'; since = '2026-01-01' }); why = 'f' },
+        [ordered]@{ id = 'F-SCAN-GLOB';   type = 'tree_each';          root = '${ROOT}/scan'; depth = 1; where = [ordered]@{ anyOf = @('src/app.py') }; require = @([ordered]@{ glob = '**/*.py'; pattern = 'excepthook' }); why = 'f' },
         [ordered]@{ id = 'F-SMOKE-PRE';   type = 'hook_smoke';         hook = 'bad-guard'; event = 'PreToolUse'; why = 'f' },
         [ordered]@{ id = 'F-SMOKE-CRASH'; type = 'hook_smoke';         hook = 'crash-guard'; event = 'PreToolUse'; why = 'f' },
         [ordered]@{ id = 'F-SMOKE-GONE';  type = 'hook_smoke';         hook = 'gone-guard'; event = 'PreToolUse'; why = 'f' },
@@ -248,6 +268,8 @@ exit 0
         [ordered]@{ id = 'U-KEYED';    type = 'json_keyed_match';  path = 'vectors-a.json'; other = 'vectors-b.json'; collection = 'vectors.nope'; key = 'id'; why = 'u' },
         [ordered]@{ id = 'U-SMOKE';    type = 'hook_smoke';        hook = 'unregistered'; event = 'PreToolUse'; why = 'u' },
         [ordered]@{ id = 'U-TREEEQ';   type = 'tree_equals';       path = '${KIT}/eq-a'; other = '${KIT}/eq-d'; why = 'u' },
+        [ordered]@{ id = 'U-SCAN';     type = 'tree_each';         root = '${ROOT}/no-such'; require = @([ordered]@{ file = 'x' }); why = 'u' },
+        [ordered]@{ id = 'U-SCAN-NONE';type = 'tree_each';         root = '${ROOT}/scan'; depth = 1; where = [ordered]@{ anyOf = @('nothing.has.this') }; require = @([ordered]@{ file = 'x' }); why = 'u' },
         [ordered]@{ id = 'U-TYPE';     type = 'bogus_type';        why = 'u' }
     )
     WJ (Join-Path $brain 'claims.json')         ([ordered]@{ schema = 1; claims = $trueClaims })
@@ -270,7 +292,7 @@ exit 0
     Assert-HasNot 'A: a worktree is not surveyed as its own repo (no remote)' $a.out 'no remote: wtmain-wt'
     Assert-HasNot 'A: a worktree is not surveyed as its own repo (gitattributes)' $a.out 'no .gitattributes: wtmain-wt'
     Assert-Has 'A: a dirty frozen worktree still trips frozenDirty' $a.out 'frozen reference has MOVED: wtmain-wt2'
-    Assert-Has 'A: repo count line folds worktrees' $a.out '8 repositories under root (0 archived, not counted; 2 worktree(s) folded into their parents)'
+    Assert-Has 'A: repo count line folds worktrees' $a.out '12 repositories under root (0 archived, not counted; 2 worktree(s) folded into their parents)'
     Assert-Has 'A: no git at all (enumerated)' $a.out 'no git at all: unversioned'
     Assert-HasNot 'A: ignore list suppresses _backups' $a.out 'no git at all: _backups'
     Assert-HasNot 'A: a container is not called unversioned' $a.out 'no git at all: category'
@@ -284,7 +306,7 @@ exit 0
     Assert-Has 'A: soft_deny counted against frozenPaths' $a.out 'soft_deny: 2 rule(s), 1 naming a frozen path'
     Assert-Has 'A: registered-but-missing hook' $a.out 'hook REGISTERED BUT MISSING'
     Assert-Has 'A: deny/ask rules read from root settings' $a.out 'root settings: 1 deny, 1 ask'
-    Assert-Has 'A: every true claim holds' $a.out 'CLAIMS  16 pass  0 fail  0 could not look'
+    Assert-Has 'A: every true claim holds' $a.out 'CLAIMS  18 pass  0 fail  0 could not look'
     Assert-HasNot 'A: no COULD-NOT-LOOK band' $a.out 'COULD-NOT-LOOK'
 
     # ================================================================ run B: same disk, surveyStrict true -> exit 1
@@ -308,6 +330,10 @@ exit 0
     Assert-Has 'C: tree_equals names the edited file' $c.out 'differs: notes.md'
     Assert-Has 'C: tree_equals names the extra file' $c.out 'only in other: extra.md'
     Assert-Has 'C: tree_equals sees an excluded file when it is not excluded' $c.out 'F-TREEEQ-SKIP  1 difference(s)'
+    Assert-Has 'C: tree_each names the repo born after since and what it lacks' $c.out 'bad: missing DECISIONS.md, missing ARCHITECTURE.md'
+    Assert-Has 'C: tree_each reports the grandfathered repo, not failed' $c.out 'predate 2026-01-01 and are reported, not failed: scan\old'
+    Assert-Has 'C: tree_each reports the accepted repo' $c.out '1 accepted: scan\acc'
+    Assert-Has 'C: tree_each glob+pattern names the pattern' $c.out 'no **/*.py file contains /excepthook/'
     Assert-Has 'C: SessionStart silent hook is a fail' $c.out 'printed nothing'
     Assert-Has 'C: PreToolUse non-JSON is a fail' $c.out 'stdout is not JSON'
     Assert-HasNot 'C: no COULD-NOT-LOOK from false claims' $c.out 'COULD-NOT-LOOK'
@@ -322,6 +348,8 @@ exit 0
     Assert-Has 'D: json_keyed_match with a missing collection path is unknown' $d.out "????  U-KEYED  collection 'vectors.nope' not found in"
     Assert-Has 'D: unregistered hook is unknown' $d.out '????  U-SMOKE'
     Assert-Has 'D: tree_equals with a missing folder is unknown' $d.out '????  U-TREEEQ  folder missing'
+    Assert-Has 'D: tree_each with a missing root is unknown' $d.out '????  U-SCAN  root folder missing'
+    Assert-Has 'D: tree_each that selects nothing is unknown, not green' $d.out '????  U-SCAN-NONE  nothing selected'
     Assert-Has 'D: unknown type is unknown' $d.out "unknown claim type 'bogus_type'"
     Assert-HasNot 'D: never GREEN' $d.out 'GREEN'
 

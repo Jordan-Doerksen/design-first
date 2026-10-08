@@ -12,6 +12,54 @@
       "id": "BRAIN-POINTER-01",
       "type": "pointer_valid",
       "why": "The pointer is the one file outside root, brain and plugin. Without it every hook runs brain-less and the Doctor cannot find this brain. Written by adopt.ps1; checked here so a deleted or moved pointer is a RED run, not a silent downgrade."
+    },
+    {
+      "id": "SCAN-MANIFEST-01",
+      "type": "tree_each",
+      "root": "${ROOT}",
+      "depth": 2,
+      "exclude": [
+        "_to_delete",
+        "_archive",
+        "_backups"
+      ],
+      "require": [
+        {
+          "file": "DECISIONS.md"
+        },
+        {
+          "file": "ARCHITECTURE.md"
+        }
+      ],
+      "since": "2026-10-08",
+      "why": "DES-01: every repository carries its decisions manifest and its architecture map. Repositories born before `since` (set it to your adopt date) are reported, not failed; a new one must comply. Add `where` or `exclude` for folders that are not projects."
+    },
+    {
+      "id": "SCAN-MANUAL-01",
+      "type": "tree_each",
+      "root": "${ROOT}",
+      "depth": 2,
+      "exclude": [
+        "_to_delete",
+        "_archive",
+        "_backups"
+      ],
+      "where": {
+        "anyOf": [
+          "package.json",
+          "pyproject.toml",
+          "requirements.txt",
+          "Cargo.toml",
+          "src-tauri/**"
+        ]
+      },
+      "require": [
+        {
+          "glob": "**/MANUAL.md"
+        }
+      ],
+      "since": "2026-10-08",
+      "why": "OBS-08: every runnable tool ships a manual with a symptom, meaning and fix table. Selected by the files a runnable project carries; born before `since` is reported, not failed."
     }
   ]
 }

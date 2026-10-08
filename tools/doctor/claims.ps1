@@ -73,6 +73,7 @@ function Invoke-OneClaim {
         'generated_matches'  { return Test-GeneratedMatchesClaim $c $Context }
         'tree_free_of'       { return Test-TreeFreeOfClaim $c $Context }
         'tree_equals'        { return Test-TreeEqualsClaim $c $Context }
+        'tree_each'          { return Test-TreeEachClaim $c $Context }
         'hook_smoke'         { return Test-HookSmokeClaim $c $Context }
         'pointer_valid'      { return Test-PointerValidClaim $c $Context }
         'config_schema'      { return Test-ConfigSchemaClaim $c $Context }
