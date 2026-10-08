@@ -176,6 +176,17 @@ exit 0
     W (Join-Path $kit 'leak-bad\notes.md')  "written by $first alone`n"
     W (Join-Path $kit 'leak-span\README.md') "Author: $slug`n"
     W (Join-Path $kit 'leak-span\other.md')  "also $slug here`n"
+    # Equal trees. a and b: same files, one differing only by CRLF, one excluded file that differs.
+    # c: one edited file and one extra file. d: a folder that does not exist.
+    W (Join-Path $kit 'eq-a\notes.md')    "line one`nline two`n"
+    W (Join-Path $kit 'eq-a\sub\x.json')  "{ `"a`": 1 }`n"
+    W (Join-Path $kit 'eq-a\skip.txt')    "generated here`n"
+    W (Join-Path $kit 'eq-b\notes.md')    "line one`r`nline two`r`n"
+    W (Join-Path $kit 'eq-b\sub\x.json')  "{ `"a`": 1 }`n"
+    W (Join-Path $kit 'eq-b\skip.txt')    "generated there`n"
+    W (Join-Path $kit 'eq-c\notes.md')    "line one`nline two (edited)`n"
+    W (Join-Path $kit 'eq-c\sub\x.json')  "{ `"a`": 1 }`n"
+    W (Join-Path $kit 'eq-c\extra.md')    "only here`n"
     # The Doctor itself, copied in, so -Kit resolves ${KIT} to this sandbox and reads its claims.
     $kitDoctor = NewDir (Join-Path $kit 'tools\doctor')
     Get-ChildItem -LiteralPath $here -Filter '*.ps1' | Where-Object { $_.Name -ne 'selftest.ps1' } | Copy-Item -Destination $kitDoctor
@@ -203,6 +214,8 @@ exit 0
         [ordered]@{ id = 'T-KEYED';       type = 'json_keyed_match';   path = 'vectors-a.json'; other = '${BRAIN}/vectors-b.json'; collection = 'vectors.cases'; key = 'id'; why = 't' },
         [ordered]@{ id = 'T-GEN';         type = 'generated_matches';  generator = 'tools/law/build-law.ps1'; source = '${KIT}/law.json'; output = '${KIT}/LAW.md'; why = 't' },
         [ordered]@{ id = 'T-TREE';        type = 'tree_free_of';       root = '${KIT}/leak-ok'; words = $leakWords; extensions = $leakExt; exclude = @('LICENSE'); allow = $leakAllow; why = 't' },
+        [ordered]@{ id = 'T-TREEEQ';      type = 'tree_equals';        path = '${KIT}/eq-a'; other = '${KIT}/eq-b'; exclude = @('skip.txt'); why = 't' },
+        [ordered]@{ id = 'T-TREEEQ-SAME'; type = 'tree_equals';        path = '${KIT}/eq-a'; other = '${KIT}/eq-a'; why = 't' },
         [ordered]@{ id = 'T-SMOKE-PRE';   type = 'hook_smoke';         hook = 'good-guard'; event = 'PreToolUse'; why = 't' },
         [ordered]@{ id = 'T-SMOKE-START'; type = 'hook_smoke';         hook = 'good-entry'; event = 'SessionStart'; why = 't' },
         [ordered]@{ id = 'T-POINTER';     type = 'pointer_valid';      why = 't' },
@@ -221,6 +234,8 @@ exit 0
         [ordered]@{ id = 'F-GEN';         type = 'generated_matches';  generator = 'tools/law/build-law.ps1'; source = '${KIT}/law.json'; output = '${KIT}/LAW-drift.md'; why = 'f' },
         [ordered]@{ id = 'F-TREE';        type = 'tree_free_of';       root = '${KIT}/leak-bad'; words = $leakWords; extensions = $leakExt; exclude = @('LICENSE'); allow = $leakAllow; why = 'f' },
         [ordered]@{ id = 'F-TREE-SPAN';   type = 'tree_free_of';       root = '${KIT}/leak-span'; words = $leakWords; extensions = $leakExt; exclude = @('LICENSE'); allow = $leakAllow; why = 'f' },
+        [ordered]@{ id = 'F-TREEEQ';      type = 'tree_equals';        path = '${KIT}/eq-a'; other = '${KIT}/eq-c'; exclude = @('skip.txt'); why = 'f' },
+        [ordered]@{ id = 'F-TREEEQ-SKIP'; type = 'tree_equals';        path = '${KIT}/eq-a'; other = '${KIT}/eq-b'; why = 'f' },
         [ordered]@{ id = 'F-SMOKE-PRE';   type = 'hook_smoke';         hook = 'bad-guard'; event = 'PreToolUse'; why = 'f' },
         [ordered]@{ id = 'F-SMOKE-CRASH'; type = 'hook_smoke';         hook = 'crash-guard'; event = 'PreToolUse'; why = 'f' },
         [ordered]@{ id = 'F-SMOKE-GONE';  type = 'hook_smoke';         hook = 'gone-guard'; event = 'PreToolUse'; why = 'f' },
@@ -232,6 +247,7 @@ exit 0
         [ordered]@{ id = 'U-CONTAINS'; type = 'file_contains';     path = '${BRAIN}/missing.md'; needle = 'x'; why = 'u' },
         [ordered]@{ id = 'U-KEYED';    type = 'json_keyed_match';  path = 'vectors-a.json'; other = 'vectors-b.json'; collection = 'vectors.nope'; key = 'id'; why = 'u' },
         [ordered]@{ id = 'U-SMOKE';    type = 'hook_smoke';        hook = 'unregistered'; event = 'PreToolUse'; why = 'u' },
+        [ordered]@{ id = 'U-TREEEQ';   type = 'tree_equals';       path = '${KIT}/eq-a'; other = '${KIT}/eq-d'; why = 'u' },
         [ordered]@{ id = 'U-TYPE';     type = 'bogus_type';        why = 'u' }
     )
     WJ (Join-Path $brain 'claims.json')         ([ordered]@{ schema = 1; claims = $trueClaims })
@@ -268,7 +284,7 @@ exit 0
     Assert-Has 'A: soft_deny counted against frozenPaths' $a.out 'soft_deny: 2 rule(s), 1 naming a frozen path'
     Assert-Has 'A: registered-but-missing hook' $a.out 'hook REGISTERED BUT MISSING'
     Assert-Has 'A: deny/ask rules read from root settings' $a.out 'root settings: 1 deny, 1 ask'
-    Assert-Has 'A: every true claim holds' $a.out 'CLAIMS  14 pass  0 fail  0 could not look'
+    Assert-Has 'A: every true claim holds' $a.out 'CLAIMS  16 pass  0 fail  0 could not look'
     Assert-HasNot 'A: no COULD-NOT-LOOK band' $a.out 'COULD-NOT-LOOK'
 
     # ================================================================ run B: same disk, surveyStrict true -> exit 1
@@ -289,6 +305,9 @@ exit 0
     Assert-Has 'C: generated_matches names the first differing byte' $c.out 'first difference at byte'
     Assert-Has 'C: json_keyed_match names the differing key and field' $c.out "F-KEYED  key 'id' = '2' differs: `$.out.legs[0] is '4' vs '5'"
     Assert-Has 'C: json_keyed_match requireAll names the missing key' $c.out 'F-KEYED-ALL  requireAll: 1 key(s) in'
+    Assert-Has 'C: tree_equals names the edited file' $c.out 'differs: notes.md'
+    Assert-Has 'C: tree_equals names the extra file' $c.out 'only in other: extra.md'
+    Assert-Has 'C: tree_equals sees an excluded file when it is not excluded' $c.out 'F-TREEEQ-SKIP  1 difference(s)'
     Assert-Has 'C: SessionStart silent hook is a fail' $c.out 'printed nothing'
     Assert-Has 'C: PreToolUse non-JSON is a fail' $c.out 'stdout is not JSON'
     Assert-HasNot 'C: no COULD-NOT-LOOK from false claims' $c.out 'COULD-NOT-LOOK'
@@ -302,6 +321,7 @@ exit 0
     Assert-Has 'D: missing file for file_contains is unknown' $d.out '????  U-CONTAINS'
     Assert-Has 'D: json_keyed_match with a missing collection path is unknown' $d.out "????  U-KEYED  collection 'vectors.nope' not found in"
     Assert-Has 'D: unregistered hook is unknown' $d.out '????  U-SMOKE'
+    Assert-Has 'D: tree_equals with a missing folder is unknown' $d.out '????  U-TREEEQ  folder missing'
     Assert-Has 'D: unknown type is unknown' $d.out "unknown claim type 'bogus_type'"
     Assert-HasNot 'D: never GREEN' $d.out 'GREEN'
 

@@ -24,6 +24,8 @@ Without that line, the clamp is a suspicious no-op and gets removed.
 
 ## Verification and probes
 
+**2026-10-08 · The copy that runs is not the copy you edit.** The plugin host copies an installed plugin into its cache and re-copies it only when the manifest version changes. Seven commits of fixes sat in the checkout, among them the fix that made the entry path load at all, while every session ran the cached copy and the Doctor shim ran the cached Doctor. Nothing on the machine compared the two. → `PRIN-03` · `VCS-15` (the running copy versus the checkout is a fact about the disk: it is now the `tree_equals` claim type, and a brain asserts it as a claim; the version is bumped on every change that must reach an installed copy).
+
 **2026-09-22 · A claim whose needle also matches the note recording its own removal can never go
 red.** A Doctor claim proving a retired folder still had a live consumer used a bare word as its
 needle; the consumer had been removed, and the comment documenting the removal contained the word.
