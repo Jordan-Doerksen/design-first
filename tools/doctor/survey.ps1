@@ -61,6 +61,55 @@ function Get-RepoFindings {
     return ,$f
 }
 
+function Get-CategoryFindings {
+    # outsideCategory (2026-10-08): a live repository under the root whose first path segment is not
+    # one of categories.folders. Off when the config names no folders. Never a project, so never
+    # reported: the root itself, the brain, and the root's own .claude folder. The ratchet is git's
+    # first-commit date, the one tree_each uses: a repository born before categories.since is the
+    # move backlog (warn, folded into one line by Merge-CategoryBacklog); one born on or after it,
+    # or with no commit yet, is a fail, because that is when a move costs nothing.
+    param([Parameter(Mandatory = $true)] $Repos, [Parameter(Mandatory = $true)] $Config, [Parameter(Mandatory = $true)] $Context)
+    $f = @()
+    $cat = $Config.categories
+    if ($null -eq $cat) { return ,$f }
+    $folders = @($cat.folders | Where-Object { $_ } | ForEach-Object { ([string]$_).Trim('\', '/') })
+    if ($folders.Count -eq 0) { return ,$f }
+    $since = $null
+    if ($cat.since) {
+        $t = [DateTimeOffset]::MinValue
+        if ([DateTimeOffset]::TryParse([string]$cat.since, [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::AssumeUniversal, [ref]$t)) { $since = $t }
+        else { $f += New-Finding 'warn' 'categoriesBadSince' '' ("categories.since is not a date: '{0}' - every repository outside a category is treated as new" -f $cat.since) }
+    }
+    $never = @($Context.root, $Context.brain, $(if ($Context.root) { Join-Path $Context.root '.claude' })) | Where-Object { $_ } | ForEach-Object { [IO.Path]::GetFullPath([string]$_).TrimEnd('\') }
+    foreach ($r in @($Repos | Where-Object { -not $_.archived -and -not [bool]$_.worktree })) {
+        $full = [IO.Path]::GetFullPath([string]$r.fullPath).TrimEnd('\')
+        if (@($never | Where-Object { $_.Equals($full, [StringComparison]::OrdinalIgnoreCase) }).Count -gt 0) { continue }
+        $first = (([string]$r.path) -split '[\\/]')[0]
+        if ($folders -contains $first) { continue }
+        $born = Get-DfFirstCommitDate $full
+        if ($since -and $born -and $born -lt $since) {
+            $f += New-Finding 'warn' 'outsideCategory' $r.path ("outside a category folder: {0} (born {1}, before {2}: reported, not failed)" -f $r.path, $born.ToString('yyyy-MM-dd'), $since.ToString('yyyy-MM-dd'))
+        } else {
+            # anchor: survey-outside-category  mode: gate  verbs: place-project
+            $f += New-Finding 'fail' 'outsideCategory' $r.path ("outside a category folder: {0} - a project lives at <category>\<name> (categories: {1}). Move it now, while a move costs nothing, or accept it with a reason." -f $r.path, ($folders -join ', '))
+        }
+    }
+    return ,$f
+}
+
+function Merge-CategoryBacklog {
+    # Folds the grandfathered outsideCategory findings into one line. Run after acceptedExceptions
+    # are applied, so an accepted repository has already left the list. The move backlog is one
+    # fact; nine lines of it on every run is a check that stops being read.
+    param($Survey)
+    $old = @($Survey | Where-Object { $_.kind -eq 'outsideCategory' -and $_.severity -eq 'warn' })
+    if ($old.Count -lt 2) { return ,@($Survey) }
+    $rest = @($Survey | Where-Object { -not ($_.kind -eq 'outsideCategory' -and $_.severity -eq 'warn') })
+    $names = (@($old | ForEach-Object { $_.path } | Sort-Object) -join ', ')
+    $rest += New-Finding 'warn' 'outsideCategory' '' ("{0} repositories sit outside a category folder and predate the ratchet (reported, not failed; the move backlog): {1}" -f $old.Count, $names)
+    return ,$rest
+}
+
 function Get-UnversionedFindings {
     param([Parameter(Mandatory = $true)] $Folders)
     $f = @()

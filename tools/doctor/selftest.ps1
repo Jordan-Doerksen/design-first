@@ -84,6 +84,10 @@ try {
     W (Join-Path $root 'unversioned\work.txt') "real work, no history`n"
     W (Join-Path $root '_backups\old-snapshot\dump.txt') "deliberately not in git`n"
     $nested = New-TestRepo (NewDir (Join-Path $root 'category')) 'nested-repo'
+    # outsideCategory fixtures: with `category` and `scan` named as category folders, every repo at
+    # the root level is a stray. These two were born in 2019, before categories.since: the backlog.
+    New-TestRepo $root 'oldstray' -Date '2019-06-01T12:00:00+00:00' | Out-Null
+    New-TestRepo $root 'oldstray2' -Date '2019-06-02T12:00:00+00:00' | Out-Null
     W (Join-Path $root 'CLAUDE.md') "# entry`n`nThe prohibitions, in full.`n"
     WJ (Join-Path $root '.claude\settings.json') ([ordered]@{
         permissions = [ordered]@{ deny = @('Read(**/.env)'); ask = @('Bash(npm install *)') }
@@ -150,7 +154,10 @@ try {
         frozenPaths = @('${ROOT}/frozenref', '${ROOT}/wtmain-wt2'); tombstonedPaths = @()
         unversionedMaxDepth = 3; unversionedIgnorePathParts = @('\_backups\')
         secretExceptions = @()
-        acceptedExceptions = @([ordered]@{ path = 'foreign'; kinds = @('foreignRemote'); since = '2026-01-01'; reason = 'vendored, planted' })
+        acceptedExceptions = @(
+            [ordered]@{ path = 'foreign'; kinds = @('foreignRemote'); since = '2026-01-01'; reason = 'vendored, planted' },
+            [ordered]@{ path = 'leaky'; kinds = @('outsideCategory'); since = '2026-01-01'; reason = 'planted stray' })
+        categories = [ordered]@{ folders = @('category', 'scan'); since = '2026-01-01' }
         entryPointSnapshots = @(
             [ordered]@{ live = 'entry-point/drifted.md';    snapshot = 'entry-point/drifted.md.snapshot' },
             [ordered]@{ live = 'entry-point/nosnapshot.md'; snapshot = 'entry-point/nosnapshot.md.snapshot' },
@@ -323,7 +330,13 @@ exit 0
     Assert-HasNot 'A: a worktree is not surveyed as its own repo (no remote)' $a.out 'no remote: wtmain-wt'
     Assert-HasNot 'A: a worktree is not surveyed as its own repo (gitattributes)' $a.out 'no .gitattributes: wtmain-wt'
     Assert-Has 'A: a dirty frozen worktree still trips frozenDirty' $a.out 'frozen reference has MOVED: wtmain-wt2'
-    Assert-Has 'A: repo count line folds worktrees' $a.out '12 repositories under root (0 archived, not counted; 2 worktree(s) folded into their parents)'
+    Assert-Has 'A: repo count line folds worktrees' $a.out '14 repositories under root (0 archived, not counted; 2 worktree(s) folded into their parents)'
+    Assert-Has 'A: a new repo outside a category folder is named, with the categories' $a.out 'outside a category folder: unbacked - a project lives at <category>\<name> (categories: category, scan)'
+    Assert-Has 'A: repos born before categories.since fold into one backlog line' $a.out '2 repositories sit outside a category folder and predate the ratchet (reported, not failed; the move backlog): oldstray, oldstray2'
+    Assert-HasNot 'A: a repo inside a category folder is not reported' $a.out 'outside a category folder: category\nested-repo'
+    Assert-HasNot 'A: a repo inside a second category folder is not reported' $a.out 'outside a category folder: scan\'
+    Assert-HasNot 'A: a worktree is not reported as outside a category' $a.out 'outside a category folder: wtmain-wt'
+    Assert-Has 'A: an accepted stray is shown as accepted' $a.out '[accepted 2026-01-01: planted stray]'
     Assert-Has 'A: no git at all (enumerated)' $a.out 'no git at all: unversioned'
     Assert-HasNot 'A: ignore list suppresses _backups' $a.out 'no git at all: _backups'
     Assert-HasNot 'A: a container is not called unversioned' $a.out 'no git at all: category'
@@ -455,6 +468,22 @@ exit 0
     $g2 = [IO.File]::ReadAllBytes((Join-Path $brain 'state\repos.generated.md'))
     if ([Linq.Enumerable]::SequenceEqual($g1, $g2)) { Ok 'H: repos.generated.md is byte-identical on a re-run' } else { Bad 'H: determinism' 'generated table changed with nothing changed' }
     if ($g1.Length -ge 3 -and $g1[0] -eq 0xEF -and $g1[1] -eq 0xBB) { Bad 'H: state files have no BOM' 'BOM found' } else { Ok 'H: state files have no BOM' }
+
+    # ================================================================ run I: a brain under the root, and the root's own .claude as a repo
+    # Neither is a project, so neither is "outside a category folder". With no categories.since
+    # there is no backlog: every stray is a fail, the 2019 ones included.
+    Write-Host '  Run I: outsideCategory with the brain and .claude under the root' -ForegroundColor Cyan
+    $brain2 = New-TestRepo $root 'brain2'
+    & git -C (Join-Path $root '.claude') init -q 2>&1 | Out-Null
+    WJ (Join-Path $brain2 'doctor.config.json') ([ordered]@{ schema = 1; ownerRemotePatterns = @('github.com/test-owner/'); categories = [ordered]@{ folders = @('category', 'scan') } })
+    WJ (Join-Path $brain2 'claims.json') ([ordered]@{ schema = 1; claims = @() })
+    $ptr2 = Join-Path $T 'pointer-brain2.json'
+    WJ $ptr2 ([ordered]@{ schema = 1; root = $root; brain = $brain2; pluginRoot = $kit; pluginKind = 'checkout' })
+    $i = Invoke-Doctor -DoctorArgs @() -Profile $fakeHome -PointerOverride $ptr2
+    Assert-HasNot 'I: the brain is never outside a category' $i.out 'outside a category folder: brain2'
+    Assert-HasNot 'I: the root .claude folder is never outside a category' $i.out 'outside a category folder: .claude'
+    Assert-Has 'I: with no since, a 2019 stray is a fail like any other' $i.out 'outside a category folder: oldstray - a project lives at'
+    Assert-HasNot 'I: with no since there is no backlog line' $i.out 'predate the ratchet'
 } finally {
     Remove-Item -LiteralPath $T -Recurse -Force -ErrorAction SilentlyContinue
 }

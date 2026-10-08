@@ -17,6 +17,7 @@
     "acceptedExceptions": "doctor.ps1 - (path, kind) pairs that are reported but not counted; each needs since and reason",
     "entryPointSnapshots": "doctor.ps1 - live file vs byte snapshot, compared after CRLF->LF",
     "enforcement": "enforcement.ps1 - fenceLogStaleDays only",
+    "categories": "survey.ps1 - folders: top-level folders under root that hold projects; a repository under any other first folder is reported as outsideCategory (never the root, the brain or the root .claude folder). since: ISO date; a stray born before it is reported, one born on or after it is a fail. Empty folders: the check is off",
     "splitLines": "hooks/guard.ps1 rule 6 (file-size) - a source write that leaves a file over this many lines asks (DES-03); 0 disables",
     "sourceExtensions": "hooks/guard.ps1 rules 5 and 6 - which extensions count as source for the manifest and size rules; docs, config and data are not source",
     "stopDocs": "hooks/stop.ps1 - file names that count as documents for the Stop card (DES-07); anything under a docs/ folder counts too"
@@ -64,6 +65,18 @@
   "entryPointSnapshots": [],
   "enforcement": {
     "fenceLogStaleDays": 30
+  },
+  "_categoriesExample": {
+    "folders": [
+      "games",
+      "tools",
+      "web"
+    ],
+    "since": "2026-01-01"
+  },
+  "categories": {
+    "folders": [],
+    "since": ""
   },
   "splitLines": 500,
   "sourceExtensions": [

@@ -109,7 +109,13 @@ the owning file. The planned mechanisms, each a Change Request when built:
   through `KIT-RATCHET-01` (the kit's own LAW.md); `templates/claims.json` ships
   `RATCHET-HONOUR-01` for an adopter's LAW.md. Written limit: the record is local state, so a
   fresh checkout records its own baseline.
-- *Survey finding* `outsideCategory`: a repository outside a category folder (MAP-04).
+- *Survey finding* `outsideCategory`: **shipped in 0.1.11.** With `categories.folders` set in the
+  brain config, a live repository whose first folder under root is not one of them is reported.
+  The ratchet is the one the owner chose for the repo scan: git's first-commit date against
+  `categories.since`. Born before it: a warn, folded into one backlog line. Born on or after it,
+  or no commit yet: a fail, which is RED under `surveyStrict`. Never reported: the root, the
+  brain, the root's `.claude` folder. `acceptedExceptions` takes the kind. The kit has no clause
+  for this; a brain cites the anchor `survey-outside-category` (verb `place-project`).
 - *Entry hook, game repositories*: print the state card from the repository's documents at
   session start (GAME-13).
 - *Brain pre-commit hook*: a law file in the diff needs claims.json in the diff (VCS-23).
@@ -137,6 +143,7 @@ the owning file. The planned mechanisms, each a Change Request when built:
 | 17 | Stop hook scope: the edit ledger and the card ignore a path outside the root or in no repository; 6 cases | Done 2026-10-08 |
 | 18 | Adopt regression: `emptyOk` on the tree claims, the two template scan claims carry it; the hook-read config keys are known to the dead-key check | Done 2026-10-08 |
 | 19 | Ratchet claim: claim type `ratchet`, records in `state/ratchets.json`, kit claim and template claim; PRIN-04 at GATE; 17 cases | Done 2026-10-08 |
+| 20 | Survey finding `outsideCategory`: config `categories`, first-commit ratchet, one backlog line; 10 cases | Done 2026-10-08 |
 
 ## Change Log
 
@@ -159,3 +166,4 @@ the owning file. The planned mechanisms, each a Change Request when built:
 | 2026-10-08 | Stop hook scope fix, the first lesson from the live hook. Measured before the fix: six new cases failed, and the card read "Repository <temp folder>: 1 source file(s) changed" for a scratch file. `Get-DfLedgerRepo` (hooks/lib/guard-rules.ps1) returns the repository an edit counts against, or nothing when the path is outside the root (when a pointer names one) or in no git repository; guard.ps1 records only an edit it returns a repository for, and stop.ps1 filters with it too, so a ledger written before the fix cannot raise the card. No pointer: the root test is skipped, the repository test stays. The test runner's FAIL printer threw on a detail holding a CRLF (cut length taken before the newline fold); fixed in the same chunk because it hid the failures. Hook cases 182. Version 0.1.9. | kit fix | hooks, tests |
 | 2026-10-08 | Adopt regression found while shipping 0.1.9: the adopt self-test had stood at 44 of 46 since 0.1.6, because both template scan claims return UNKNOWN when a root holds no matching repository, so the first Doctor run of every new adopter exited 2. Nothing ran the adopt self-test after 0.1.4. Fix: optional `emptyOk: true` on `tree_each` and `tree_rules` (nothing selected is a PASS that says so); the default stays UNKNOWN, because in a populated root nothing selected means the selector is broken. Chosen without an interview: one defensible answer, opt-in per claim, reversible by deleting the field. Second fix: `splitLines`, `sourceExtensions` and `stopDocs` are read by the hooks, and the Doctor reported each as a dead key in every brain that carried them; they are now in the reader table. Adopt self-test 46 of 46, Doctor self-test 105. Ships in 0.1.10. | kit fix | doctor, templates, tests |
 | 2026-10-08 | `ratchet` shipped (owner decision: a rise gets through by a signed raise, not by no valve and not as a notice). Measured before building: the HONOUR count of the first instance across its six generated versions read 108, 106, 105, 105, 26 and never rose; the kit's own count is 38 of 78. Decisions taken without an interview, each reversible: the record lives in `state/ratchets.json` keyed by claim id and is written by doctor.ps1 after the run, because a claim is read-only; a failing ratchet does not move its record; an `accepted` entry is spent on first use; a passing claim may carry a `note`, printed as one INFO line (baseline recorded, fell, signed). PRIN-04 moves from BUILDABLE to GATE by `KIT-RATCHET-01`. Doctor self-test 122. Version 0.1.10. | planned mechanism built | doctor, law, templates, tests |
+| 2026-10-08 | `outsideCategory` shipped. Measured on the first instance before building: 94 live repositories, 83 inside seven category folders, 11 outside (the brain, the root's `.claude`, eight projects at the root level, one inside a tool cache); every one of the eleven was born before 2026-10-08, so none fails on day one. Decisions taken without an interview: the ratchet reuses the owner's repo-scan ruling (first-commit date, reported not failed); the backlog folds into one line, because nine lines on every run stop being read; the brain and the root's `.claude` folder are derived from the pointer and never reported, so no accepted entry has to be typed for them; a stray with no commit yet is a fail, because that is when a move costs nothing. The check is off until `categories.folders` is set. Doctor self-test 132. Version 0.1.11. | planned mechanism built | doctor, templates, tests |

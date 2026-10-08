@@ -124,6 +124,10 @@ worktree under `frozenPaths` with changes still prints `frozen reference has MOV
 | `SHALLOW clone: <repo> (N commits visible). It cannot be pushed to a new remote.` | fail | Truncated history. `git fsck` cannot see this; only the marker file can. | `git -C <repo> fetch --unshallow <remote>`. |
 | `frozen reference has MOVED: <repo> (N uncommitted entries)` | fail | Something edited a path in `frozenPaths`. Also printed for a linked worktree under a frozen path. | Read the diff. Keep or revert is the owner's call. |
 | `N linked worktree(s) of <parent>: <names>` | info | Those folders are worktrees of `<parent>`; their remote, history and tracked-file findings are reported once, on the parent. | Nothing. Remove a worktree with `git -C <parent> worktree remove <name>` when it is done. |
+| `outside a category folder: <repo> - a project lives at <category>\<name>` | fail | `categories.folders` is set, and this repository's first folder under root is not one of them. It was born on or after `categories.since`, or has no commit yet. | Move it into a category now, while a move costs nothing. If it belongs where it is, add `{ path, kinds: ["outsideCategory"], since, reason }` to `acceptedExceptions`. |
+| `outside a category folder: <repo> (born <date>, before <since>: reported, not failed)` | warn | The same, for one repository born before `categories.since`. | Move it when its work allows, or accept it with a reason. |
+| `N repositories sit outside a category folder and predate the ratchet (...): <names>` | warn | Two or more of the line above, folded into one: the move backlog. | The same, one repository at a time. Never the root, the brain or the root's `.claude` folder; those are not projects. |
+| `categories.since is not a date: '<value>'` | warn | The ratchet date could not be read, so every stray is treated as new. | Write it as `YYYY-MM-DD`. |
 | `no .gitattributes: <repo> - core.autocrlf decides its bytes, not the repo` | warn | A machine setting decides the repo's bytes. | Add one when the tree is clean. |
 | `no git at all: <path> (N files) - nothing is protecting them` | warn | Real content in no repository. Enumerated, not looked up. | `git init`, `.gitignore` before the first commit, remote. If deliberate, add a part to `unversionedIgnorePathParts` with a reason. |
 | `tracked .env: <repo>/<file> - a secret file is in git.` | fail | A secret file is tracked. | Rotate first, then `git rm --cached`, then ignore it. Or register it in `secretExceptions` on purpose. |
@@ -150,7 +154,7 @@ Finding kinds for `acceptedExceptions`: `noRemote`, `emptyRepo`, `foreignRemote`
 `shallow`, `frozenDirty`, `noGitattributes`, `noGitAtAll`, `trackedSecret`, `hookMissing`,
 `hooksJsonMissing`, `rootSettingsMissing`, `noDenyRules`, `fenceStale`, `deadConfigKey`,
 `entryPointDrift`, `entryPointSnapshotMissing`, `entryPointLiveMissing`, `restoreDrillStale`,
-`restoreDrillFailed`. The `path` is the one printed in the finding (`${ROOT}`-relative or absolute).
+`restoreDrillFailed`, `outsideCategory`. The `path` is the one printed in the finding (`${ROOT}`-relative or absolute).
 
 ## The COULD-NOT-LOOK band
 
@@ -184,6 +188,8 @@ Finding kinds for `acceptedExceptions`: `noRemote`, `emptyRepo`, `foreignRemote`
 | `acceptedExceptions` | doctor.ps1 | `{ path, kinds[], since, reason }`: reported, not counted. |
 | `entryPointSnapshots` | doctor.ps1 | `{ live, snapshot }` pairs, compared after CRLF->LF. |
 | `enforcement.fenceLogStaleDays` | enforcement.ps1 | Days before `fence hook has not fired` is printed. |
+| `categories.folders` | survey.ps1 | Top-level folders under root that hold projects. A repository under any other first folder is `outside a category folder`. Empty: the check is off. |
+| `categories.since` | survey.ps1 | ISO date. A stray born before it (git's first-commit date) is reported; one born on or after it is a fail. Empty: every stray is a fail. |
 | `splitLines` | hooks/guard.ps1 | A source write that leaves a file over this many lines asks (DES-03). Default 500; 0 disables. |
 | `sourceExtensions` | hooks/guard.ps1, hooks/stop.ps1 | Which extensions count as source. Documents, config and data do not. |
 | `stopDocs` | hooks/stop.ps1 | File names that count as documents on the Stop card. A file under `docs/` counts too. |

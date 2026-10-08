@@ -129,6 +129,10 @@ try {
     $survey += Get-RepoFindings -Repos $repos
 } catch { $couldNotLook += "repository sweep failed: $($_.Exception.Message)" }
 
+# categories (reader: survey.ps1): a repository outside a category folder. Off with no folders named.
+try { $survey += Get-CategoryFindings -Repos $repos -Config $cfg -Context $ctx }
+catch { $couldNotLook += "category check failed: $($_.Exception.Message)" }
+
 try { $survey += Get-UnversionedFindings -Folders (Get-UnversionedFolders -Root $ctx.root -Config $cfg) }
 catch { $couldNotLook += "unversioned-folder sweep failed: $($_.Exception.Message)" }
 
@@ -171,6 +175,7 @@ $survey = @($survey | ForEach-Object {
         [PSCustomObject]@{ severity = 'accepted'; kind = $_.kind; path = $_.path; message = ("{0}  [accepted {1}: {2}]" -f $_.message, $acc.since, $acc.reason) }
     } else { $_ }
 })
+$survey = Merge-CategoryBacklog -Survey $survey   # the grandfathered outsideCategory findings, one line
 
 # ---------------------------------------------------------------- CLAIMS band
 if ([string]::IsNullOrWhiteSpace($ClaimsPath)) {
