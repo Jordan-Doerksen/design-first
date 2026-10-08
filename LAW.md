@@ -49,7 +49,7 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | DES-04 | HONOUR | Every tunable value lives in a config file, never in logic; changing behaviour never requires changing code. | `kit:instructions/design-methodology.md` |
 | DES-05 | HONOUR | Build the smallest slice that works, then show the owner; never over-engineer the slice and never skip the design. | `kit:workflows/coding.md` |
 | DES-06 | HONOUR | During a chunk, edit only that chunk's files; no unrelated refactor. | `kit:instructions/design-methodology.md` |
-| DES-07 | BUILDABLE | Documents are co-equal artifacts, updated before the work is called done; document debt is technical debt. | `kit:workflows/coding.md` |
+| DES-07 | HOOK | Documents are co-equal artifacts, updated before the work is called done; document debt is technical debt. | `kit:workflows/coding.md` |
 | DES-08 | HONOUR | Every workaround carries an inline note saying what failed and why this is the fix, because an unexplained correction gets cleaned up and the defect returns. | `kit:lessons/lessons.md` |
 | DES-09 | GATE | Every repository carries its line-ending attributes file in its first commit; the bytes belong to the repository, not to a machine setting. | `kit:instructions/integrity-law.md` |
 | DES-10 | GATE | Install with the fail-on-drift verb, never the resolve-fresh verb, and pin the toolchain as well as the dependencies. | `kit:workflows/coding.md` |
@@ -65,9 +65,9 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | GATE-02 | HONOUR | Silence is not approval; full approval with nothing to cut is said out loud. | `kit:instructions/interview-every-add-law.md` |
 | GATE-03 | GATE | A new third-party package is an owner decision, never an addition the agent makes itself; name it exactly and wait. | `kit:instructions/interview-every-add-law.md` |
 | GATE-04 | ADVISE | The Programmer hat unlocks only after the interview pass is complete. | `kit:instructions/interview-every-add-law.md` |
-| GATE-05 | BUILDABLE | After each chunk, run the cross-check against the manifest, the architecture and the core goal. | `kit:instructions/design-methodology.md` |
-| GATE-06 | BUILDABLE | Any change to design, behaviour, config, risk, execution, data flow or dependencies needs a Change Request, and an approved one updates the Change Log. | `kit:instructions/design-methodology.md` |
-| GATE-07 | BUILDABLE | Code that runs is not done; done is the Definition of Done checklist in the owning file. | `kit:instructions/design-methodology.md` |
+| GATE-05 | HOOK | After each chunk, run the cross-check against the manifest, the architecture and the core goal. | `kit:instructions/design-methodology.md` |
+| GATE-06 | HOOK | Any change to design, behaviour, config, risk, execution, data flow or dependencies needs a Change Request, and an approved one updates the Change Log. | `kit:instructions/design-methodology.md` |
+| GATE-07 | HOOK | Code that runs is not done; done is the Definition of Done checklist in the owning file. | `kit:instructions/design-methodology.md` |
 | GATE-08 | HONOUR | Work where a wrong output costs money, safety or a person's trust gets an adversarial gap review of the spec and the manifest before the repository exists. | `kit:workflows/design-gate.md` |
 | GATE-09 | HONOUR | The gate is cleared when every finding is resolved or recorded, never because the review returned nothing; a review that finds nothing is a failed review. | `kit:workflows/design-gate.md` |
 | GATE-10 | HONOUR | When a tool fails later, check the spec first; a failure the spec did not predict is a spec failure, not only a code failure. | `kit:workflows/design-gate.md` |
@@ -160,10 +160,10 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | grade | count |
 |---|---|
 | DENY | 0 |
-| HOOK | 7 |
+| HOOK | 11 |
 | ADVISE | 6 |
 | GATE | 11 |
-| BUILDABLE | 13 |
+| BUILDABLE | 9 |
 | OWNER | 3 |
 | HONOUR | 38 |
 | total | 78 |

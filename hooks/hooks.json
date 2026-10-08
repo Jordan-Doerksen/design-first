@@ -58,6 +58,18 @@
         ]
       }
     ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "pwsh -NoProfile -File \"${CLAUDE_PLUGIN_ROOT}/hooks/stop.ps1\"",
+            "timeout": 20
+          }
+        ]
+      }
+    ],
     "SubagentStart": [
       {
         "hooks": [

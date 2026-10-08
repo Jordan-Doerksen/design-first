@@ -221,11 +221,11 @@
       "verb": "document",
       "rule": "Documents are co-equal artifacts, updated before the work is called done; document debt is technical debt.",
       "owner": "kit:workflows/coding.md",
-      "grade": "BUILDABLE",
+      "grade": "HOOK",
       "since": "2026-09-22",
       "enforcedBy": {
-        "kind": "planned",
-        "ref": "DECISIONS.md#2.7"
+        "kind": "hook",
+        "ref": "hooks/stop.ps1#stop-done"
       }
     },
     {
@@ -348,11 +348,11 @@
       "verb": "cross-check",
       "rule": "After each chunk, run the cross-check against the manifest, the architecture and the core goal.",
       "owner": "kit:instructions/design-methodology.md",
-      "grade": "BUILDABLE",
+      "grade": "HOOK",
       "since": "2026-09-22",
       "enforcedBy": {
-        "kind": "planned",
-        "ref": "DECISIONS.md#2.7"
+        "kind": "hook",
+        "ref": "hooks/stop.ps1#stop-done"
       }
     },
     {
@@ -361,11 +361,11 @@
       "verb": "change",
       "rule": "Any change to design, behaviour, config, risk, execution, data flow or dependencies needs a Change Request, and an approved one updates the Change Log.",
       "owner": "kit:instructions/design-methodology.md",
-      "grade": "BUILDABLE",
+      "grade": "HOOK",
       "since": "2026-09-22",
       "enforcedBy": {
-        "kind": "planned",
-        "ref": "DECISIONS.md#2.7"
+        "kind": "hook",
+        "ref": "hooks/stop.ps1#stop-done"
       }
     },
     {
@@ -374,11 +374,11 @@
       "verb": "finish",
       "rule": "Code that runs is not done; done is the Definition of Done checklist in the owning file.",
       "owner": "kit:instructions/design-methodology.md",
-      "grade": "BUILDABLE",
+      "grade": "HOOK",
       "since": "2026-09-22",
       "enforcedBy": {
-        "kind": "planned",
-        "ref": "DECISIONS.md#2.7"
+        "kind": "hook",
+        "ref": "hooks/stop.ps1#stop-done"
       }
     },
     {

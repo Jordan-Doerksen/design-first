@@ -31,7 +31,16 @@ try {
     $prompt    = if ($j -and $j.PSObject.Properties['prompt']) { [string]$j.prompt } else { '' }
     $sessionId = if ($j -and $j.session_id) { [string]$j.session_id } else { 'unknown' }
     $cwd       = if ($j -and $j.cwd) { ConvertTo-DfFullPath ([string]$j.cwd) } else { (Get-Location).Path }
+
+    # A new prompt is a turn boundary: the guard's edit ledger (read by stop.ps1) starts over.
+    $ledger = Join-Path (Get-DfMarkerDir) ((($sessionId -replace '[^A-Za-z0-9_.-]', '_')) + '.edits')
+    if (Test-Path -LiteralPath $ledger -PathType Leaf) { Remove-Item -LiteralPath $ledger -Force -ErrorAction SilentlyContinue }
+
     if ([string]::IsNullOrWhiteSpace($prompt)) { exit 0 }
+    # The host can attach reminder blocks (skills lists, instructions) to the prompt it hands over.
+    # Those carry words like page, review, log and gate that are not the owner's; match the typed
+    # text only. Seen 2026-10-08: the first prompt after a restart routed four groups it never named.
+    $prompt = [regex]::Replace($prompt, '(?is)<system-reminder>.*?</system-reminder>', ' ')
 
     $ptr = Read-DfPointer
     if ($null -eq $ptr.pointer) { exit 0 }           # no brain: the entry hook already said so

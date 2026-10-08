@@ -160,14 +160,14 @@ function Find-RegisteredHook {
 }
 
 function Test-HookSmokeClaim {
-    # Fields: hook (e.g. "guard"), event (SessionStart | PreToolUse | UserPromptSubmit | SubagentStart). Reads hooks/hooks.json under
+    # Fields: hook (e.g. "guard"), event (SessionStart | PreToolUse | UserPromptSubmit | SubagentStart | Stop). Reads hooks/hooks.json under
     # pluginRoot, substitutes ${CLAUDE_PLUGIN_ROOT}, runs the registered command with synthetic stdin
     # and a 10 s timeout. Pass per event: SessionStart = exit 0 + non-empty stdout;
     # PreToolUse = exit 0 + (empty stdout or parseable JSON).
     param($c, $Context)
     $hook = [string]$c.hook; $event = [string]$c.event
     if ([string]::IsNullOrWhiteSpace($hook)) { return New-ClaimResult $c 'UNKNOWN' "claim has no 'hook'" }
-    if ($event -notin @('SessionStart', 'PreToolUse', 'UserPromptSubmit', 'SubagentStart')) { return New-ClaimResult $c 'UNKNOWN' "'event' must be SessionStart, PreToolUse, UserPromptSubmit or SubagentStart (got '$event')" }
+    if ($event -notin @('SessionStart', 'PreToolUse', 'UserPromptSubmit', 'SubagentStart', 'Stop')) { return New-ClaimResult $c 'UNKNOWN' "'event' must be SessionStart, PreToolUse, UserPromptSubmit, SubagentStart or Stop (got '$event')" }
     $pluginRoot = $Context.pluginRoot
     if ([string]::IsNullOrWhiteSpace($pluginRoot)) { return New-ClaimResult $c 'UNKNOWN' 'no pluginRoot to read hooks.json from' }
     $hooksPath = Join-Path $pluginRoot 'hooks\hooks.json'
@@ -200,6 +200,7 @@ function Test-HookSmokeClaim {
         'PreToolUse'   { [ordered]@{ session_id = 'doctor-smoke'; hook_event_name = 'PreToolUse'; tool_name = 'Bash'; tool_input = [ordered]@{ command = 'echo doctor-smoke' }; cwd = $cwd; transcript_path = '' } }
         'UserPromptSubmit' { [ordered]@{ session_id = 'doctor-smoke'; hook_event_name = 'UserPromptSubmit'; prompt_id = 'doctor-smoke'; prompt = 'doctor smoke: a build task touching a repo'; cwd = $cwd; transcript_path = '' } }
         'SubagentStart'    { [ordered]@{ session_id = 'doctor-smoke'; hook_event_name = 'SubagentStart'; agent_id = 'doctor-smoke'; agent_type = 'general-purpose'; cwd = $cwd; transcript_path = '' } }
+        'Stop'             { [ordered]@{ session_id = 'doctor-smoke'; hook_event_name = 'Stop'; stop_hook_active = $false; last_assistant_message = 'doctor smoke'; cwd = $cwd; transcript_path = '' } }
     }
     $run = Invoke-Process -Exe $resolved.Source -Arguments @($tokens | Select-Object -Skip 1) -StdIn ($stdin | ConvertTo-Json -Compress -Depth 5) `
                           -TimeoutSeconds 10 -WorkDir $cwd -Env @{ CLAUDE_PLUGIN_ROOT = $pluginRoot; DF_POINTER_PATH = (Get-PointerPath) }

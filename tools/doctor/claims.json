@@ -107,6 +107,13 @@
       "hook": "subagent",
       "event": "SubagentStart",
       "why": "DES-13: the subagent hook is registered for every spawn and starts. Exit 0 and an empty or JSON reply."
+    },
+    {
+      "id": "KIT-SMOKE-07",
+      "type": "hook_smoke",
+      "hook": "stop",
+      "event": "Stop",
+      "why": "DES-07, GATE-05/06/07: the Stop hook is registered and starts. With no ledger for the smoke session it must exit 0 and print nothing."
     }
   ]
 }

@@ -87,6 +87,20 @@ try {
              "This notice appears once per session.")
     }
 
+    # The edit ledger for stop.ps1: every ALLOWED Edit / Write / NotebookEdit of this turn, one line
+    # "path<TAB>flags". route.ps1 clears it at each prompt. A DECISIONS.md write whose new text carries
+    # a Change Log row ("| 2026-10-08 | ...") is flagged, so the Stop card can tell a Change Request
+    # from a drift edit without diffing the file.
+    if (-not $result -and $tool -in @('Edit', 'Write', 'NotebookEdit') -and $full) {
+        $flags = ''
+        if ((Split-Path -Leaf $full) -ieq 'DECISIONS.md') {
+            $newText = if ($tool -eq 'Write') { [string]$ti.content } else { [string]$ti.new_string }
+            if ($newText -match '(?m)^\|\s*\d{4}-\d{2}-\d{2}\s*\|') { $flags = 'changelog' }
+        }
+        $ledger = Join-Path (Get-DfMarkerDir) ((($sessionId -replace '[^A-Za-z0-9_.-]', '_')) + '.edits')
+        Add-DfTextLine $ledger ("{0}`t{1}" -f $full, $flags)
+    }
+
     if ($result) {
         Add-DfTextLine (Get-DfFenceLogPath) ("{0}  BLOCKED[{1}]" -f (Get-Date).ToString('yyyy-MM-dd HH:mm:ss'), $result.systemMessage)
         Write-DfJson $result

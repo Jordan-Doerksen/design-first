@@ -134,6 +134,7 @@ function Classify([string]$out) {
     if ([string]::IsNullOrWhiteSpace($out)) { return 'allow' }
     try { $j = $out | ConvertFrom-Json } catch { return "bad-output" }
     $h = $j.hookSpecificOutput
+    if ($j.decision -eq 'block') { return 'block' }
     if ($h -and $h.permissionDecision -eq 'deny') { return 'deny' }
     if ($h -and $h.permissionDecision -eq 'ask') { return 'ask' }
     if ($h -and $h.updatedInput) { return 'rewrite' }
@@ -162,6 +163,8 @@ foreach ($event in $hj.hooks.PSObject.Properties.Name) {
                 @{ session_id = 'smoke'; cwd = $root; hook_event_name = 'UserPromptSubmit'; prompt_id = 'smoke'; prompt = 'smoke prompt' } | ConvertTo-Json -Compress
             } elseif ($event -eq 'SubagentStart') {
                 @{ session_id = 'smoke'; cwd = $root; hook_event_name = 'SubagentStart'; agent_id = 'smoke'; agent_type = 'general-purpose' } | ConvertTo-Json -Compress
+            } elseif ($event -eq 'Stop') {
+                @{ session_id = 'smoke'; cwd = $root; hook_event_name = 'Stop'; stop_hook_active = $false; last_assistant_message = 'smoke' } | ConvertTo-Json -Compress
             } else {
                 @{ session_id = 'smoke'; cwd = $root; hook_event_name = $event; tool_name = 'Edit'; tool_input = @{ file_path = (Join-Path $root 'ordinary\x.gd'); old_string = 'a'; new_string = 'b' } } | ConvertTo-Json -Compress
             }
@@ -313,6 +316,45 @@ $e = Entry $root 'r1' 'compact'
 Record 'entry: compaction clears the session routes' 'cleared' $(if (-not (Test-Path -LiteralPath (Join-Path $env:DF_MARKER_DIR 'r1.routes'))) { 'cleared' } else { 'kept' }) $e.out
 $r = Route 'commit it' 'r1' $root
 Record 'route: after compaction the group is injected again' 'vcs-again' $(if ($r.out -match 'group VCS') { 'vcs-again' } else { 'silent' }) $r.out
+
+# ------------------------------------------------------------------ 5. stop.ps1 + the edit ledger (DES-07, GATE-05/06/07)
+Write-Host '-- stop.ps1 and the edit ledger'
+function Stop([string]$session, [bool]$active) {
+    $stdin = @{ session_id = $session; cwd = $root; hook_event_name = 'Stop'; stop_hook_active = $active; last_assistant_message = 'x' } | ConvertTo-Json -Compress
+    return (Invoke-Hook 'stop.ps1' $stdin)
+}
+function Ledger([string]$session) { return (Join-Path $env:DF_MARKER_DIR ($session + '.edits')) }
+# the guard writes the ledger for an allowed source edit, with the changelog flag on a DECISIONS.md write that carries a row
+$null = Invoke-Hook 'guard.ps1' (@{ session_id = 'st-ledger'; cwd = $repoClean; hook_event_name = 'PreToolUse'; tool_name = 'Edit'; tool_input = @{ file_path = (Join-Path $repoClean 'src\main.py'); old_string = 'a'; new_string = 'b' } } | ConvertTo-Json -Compress)
+$null = Invoke-Hook 'guard.ps1' (@{ session_id = 'st-ledger'; cwd = $repoClean; hook_event_name = 'PreToolUse'; tool_name = 'Edit'; tool_input = @{ file_path = (Join-Path $repoClean 'DECISIONS.md'); old_string = 'a'; new_string = "| 2026-10-08 | a row | r |`n" } } | ConvertTo-Json -Compress)
+$null = Invoke-Hook 'guard.ps1' (@{ session_id = 'st-ledger'; cwd = $repoClean; hook_event_name = 'PreToolUse'; tool_name = 'Edit'; tool_input = @{ file_path = (Join-Path $root 'frozen\x.py'); old_string = 'a'; new_string = 'b' } } | ConvertTo-Json -Compress)
+$led = if (Test-Path -LiteralPath (Ledger 'st-ledger')) { Get-Content -LiteralPath (Ledger 'st-ledger') -Raw } else { '' }
+Record 'ledger: an allowed source edit is recorded' 'recorded' $(if ($led -like "*src\main.py*") { 'recorded' } else { 'missing' }) $led
+Record 'ledger: a DECISIONS.md edit with a Change Log row is flagged' 'flagged' $(if ($led -match 'DECISIONS\.md\tchangelog') { 'flagged' } else { 'unflagged' }) $led
+Record 'ledger: a denied edit (frozen path) is not recorded' 'absent' $(if ($led -notlike '*frozen*') { 'absent' } else { 'present' }) $led
+# stop: source changed, docs touched with a changelog row -> block, card names the docs and no GATE-06 line
+$r = Stop 'st-ledger' $false
+Record 'stop: source changed this turn -> block with the card' 'block' $(if ($r.code -eq 0) { Classify $r.out } else { "exit$($r.code)" }) $r.out
+Record 'stop: the card names the documents touched' 'named' $(if ($r.out -like '*Documents touched: DECISIONS.md*') { 'named' } else { 'missing' }) $r.out
+Record 'stop: a Change Log row present -> no GATE-06 line' 'quiet' $(if ($r.out -notlike '*no Change Log row*') { 'quiet' } else { 'nagged' }) $r.out
+$r = Stop 'st-ledger' $true
+Record 'stop: second attempt (stop_hook_active) -> yields' 'allow' $(if ($r.code -eq 0 -and [string]::IsNullOrWhiteSpace($r.out)) { 'allow' } else { 'blocked-again' }) $r.out
+# stop: source changed, no doc touched -> DES-07 line; DECISIONS edited with no row -> GATE-06 line
+Put (Ledger 'st-nodoc') ((Join-Path $repoClean 'src\main.py') + "`t`n")
+$r = Stop 'st-nodoc' $false
+Record 'stop: no document touched -> DES-07 line' 'des07' $(if ((Classify $r.out) -eq 'block' -and $r.out -like '*Documents touched: none*') { 'des07' } else { 'wrong' }) $r.out
+Put (Ledger 'st-norow') ((Join-Path $repoClean 'src\main.py') + "`t`n" + (Join-Path $repoClean 'DECISIONS.md') + "`t`n")
+$r = Stop 'st-norow' $false
+Record 'stop: DECISIONS.md edited with no Change Log row -> GATE-06 line' 'gate06' $(if ($r.out -like '*no Change Log row*') { 'gate06' } else { 'quiet' }) $r.out
+# stop: docs only, or nothing -> silent
+Put (Ledger 'st-docs') ((Join-Path $repoClean 'README.md') + "`t`n")
+$r = Stop 'st-docs' $false
+Record 'stop: only documents changed -> silent' 'allow' $(if ([string]::IsNullOrWhiteSpace($r.out)) { 'allow' } else { 'blocked' }) $r.out
+$r = Stop 'st-empty' $false
+Record 'stop: no ledger -> silent' 'allow' $(if ([string]::IsNullOrWhiteSpace($r.out)) { 'allow' } else { 'blocked' }) $r.out
+# a new prompt clears the ledger
+$null = Route 'yes' 'st-ledger' $root
+Record 'route: a new prompt clears the edit ledger' 'cleared' $(if (-not (Test-Path -LiteralPath (Ledger 'st-ledger'))) { 'cleared' } else { 'kept' }) ''
 
 # ------------------------------------------------------------------ summary
 $passed = @($results | Where-Object pass).Count
