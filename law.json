@@ -93,11 +93,11 @@
       "verb": "mechanise",
       "rule": "The next misbehaviour produces a mechanism, not a paragraph; writing the rule harder is the reflex that made adherence worse.",
       "owner": "kit:instructions/principles.md",
-      "grade": "BUILDABLE",
+      "grade": "GATE",
       "since": "2026-09-22",
       "enforcedBy": {
-        "kind": "planned",
-        "ref": "DECISIONS.md#2.7"
+        "kind": "doctor-claim",
+        "ref": "KIT-RATCHET-01"
       }
     },
     {

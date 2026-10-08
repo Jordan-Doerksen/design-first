@@ -14,6 +14,13 @@
       "why": "The pointer is the one file outside root, brain and plugin. Without it every hook runs brain-less and the Doctor cannot find this brain. Written by adopt.ps1; checked here so a deleted or moved pointer is a RED run, not a silent downgrade."
     },
     {
+      "id": "RATCHET-HONOUR-01",
+      "type": "ratchet",
+      "path": "${BRAIN}/LAW.md",
+      "row": "HONOUR",
+      "why": "PRIN-04: the HONOUR count in this brain's generated LAW.md may only fall. The first run records the baseline in state/ratchets.json. A rise turns the run RED: give the new rule a mechanism, give it the grade it really has (a standing ruling is OWNER), or sign the raise by adding accepted: { value, since, reason } to this claim; a signed raise works once."
+    },
+    {
       "id": "SCAN-MANIFEST-01",
       "type": "tree_each",
       "root": "${ROOT}",

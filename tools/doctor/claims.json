@@ -114,6 +114,13 @@
       "hook": "stop",
       "event": "Stop",
       "why": "DES-07, GATE-05/06/07: the Stop hook is registered and starts. With no ledger for the smoke session it must exit 0 and print nothing."
+    },
+    {
+      "id": "KIT-RATCHET-01",
+      "type": "ratchet",
+      "path": "${KIT}/LAW.md",
+      "row": "HONOUR",
+      "why": "PRIN-04: the next misbehaviour produces a mechanism, not a paragraph. The HONOUR count in the generated LAW.md may only fall. A rise means a rule arrived with nothing to enforce it: give it a mechanism, give it the grade it really has, or sign the raise here (accepted: value, since, reason; it works once). The record is local state (state/ratchets.json), so a fresh checkout records its own baseline on the first run."
     }
   ]
 }

@@ -30,7 +30,7 @@ param(
 $ErrorActionPreference = 'Stop'
 try { [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false) } catch { }
 $here = $PSScriptRoot
-foreach ($f in 'context', 'repos', 'enforcement', 'survey', 'claims', 'claims-tree', 'claims-exec', 'report') {
+foreach ($f in 'context', 'repos', 'enforcement', 'survey', 'claims', 'claims-tree', 'claims-exec', 'claims-ratchet', 'report') {
     . (Join-Path $here "$f.ps1")
 }
 
@@ -180,12 +180,15 @@ try { $claims += Invoke-Claims -ClaimsPath $ClaimsPath -Context $ctx }
 catch { $couldNotLook += "claims run failed: $($_.Exception.Message)" }
 foreach ($c in $claims) {
     if ($c.status -eq 'UNKNOWN') { $couldNotLook += ("claim {0} could not be evaluated: {1}" -f $c.id, $c.detail) }
+    # A passing claim may carry a note worth one INFO line: a ratchet that moved, or its first record.
+    if ($null -ne $c.PSObject.Properties['note'] -and $c.note) { $survey += New-Finding 'info' 'claimNote' '' ([string]$c.note) }
 }
 
 # ---------------------------------------------------------------- verdict, state, report
 $verdict = Get-Verdict -Claims $claims -Survey $survey -CouldNotLook $couldNotLook -SurveyStrict $cfg.surveyStrict
 try {
     Write-State -StateDir $derived.stateDir -Repos $repos -Claims $claims -Survey $survey -CouldNotLook $couldNotLook -Verdict $verdict -Stamp $stamp -Mode $mode
+    Save-DfRatchets -StateDir $derived.stateDir -Claims $claims -Stamp $stamp   # ratchet records (claims-ratchet.ps1)
 } catch {
     if (-not $Json) { Write-Host ("  WARNING: state could not be written to {0}: {1}" -f $derived.stateDir, $_.Exception.Message) -ForegroundColor Yellow }
 }

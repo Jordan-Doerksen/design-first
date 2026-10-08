@@ -27,7 +27,7 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 |---|---|---|---|
 | PRIN-01 | OWNER | Context economy comes before every other rule: every decision about files, folders and config reduces what an agent must read before it can change something safely. | `kit:instructions/principles.md` |
 | PRIN-03 | GATE | A fact about the disk is generated, never typed; if it can be derived, derive it. | `kit:instructions/principles.md` |
-| PRIN-04 | BUILDABLE | The next misbehaviour produces a mechanism, not a paragraph; writing the rule harder is the reflex that made adherence worse. | `kit:instructions/principles.md` |
+| PRIN-04 | GATE | The next misbehaviour produces a mechanism, not a paragraph; writing the rule harder is the reflex that made adherence worse. | `kit:instructions/principles.md` |
 | PRIN-05 | HONOUR | One subject, one file; a rule stated in two places will disagree in two places. | `kit:instructions/principles.md` |
 
 ## OWN - Working with the owner
@@ -162,8 +162,8 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | DENY | 0 |
 | HOOK | 11 |
 | ADVISE | 6 |
-| GATE | 11 |
-| BUILDABLE | 9 |
+| GATE | 12 |
+| BUILDABLE | 8 |
 | OWNER | 3 |
 | HONOUR | 38 |
 | total | 78 |

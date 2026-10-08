@@ -5,7 +5,8 @@
 # Statuses: PASS | FAIL (CLAIMS band, RED) | UNKNOWN (COULD-NOT-LOOK band, exit 2).
 # The dispatcher and the simple types live here; tree_free_of is in claims-tree.ps1, the two
 # process-spawning types (generated_matches, hook_smoke) are in claims-exec.ps1, and the two-file
-# keyed compare (json_keyed_match) is in claims-keyed.ps1, dot-sourced below.
+# keyed compare (json_keyed_match) is in claims-keyed.ps1, dot-sourced below. The ratchet type is in
+# claims-ratchet.ps1, loaded by doctor.ps1 with the other claim files.
 
 . (Join-Path $PSScriptRoot 'claims-keyed.ps1')
 
@@ -75,6 +76,7 @@ function Invoke-OneClaim {
         'tree_equals'        { return Test-TreeEqualsClaim $c $Context }
         'tree_each'          { return Test-TreeEachClaim $c $Context }
         'tree_rules'         { return Test-TreeRulesClaim $c $Context }
+        'ratchet'            { return Test-RatchetClaim $c $Context }
         'hook_smoke'         { return Test-HookSmokeClaim $c $Context }
         'pointer_valid'      { return Test-PointerValidClaim $c $Context }
         'config_schema'      { return Test-ConfigSchemaClaim $c $Context }

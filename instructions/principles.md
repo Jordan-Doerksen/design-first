@@ -64,6 +64,15 @@ permission `ask` rule, a Doctor claim that goes RED, or a tool whose allowlist d
 verb. The `grade` column in `LAW.md` exists so this question is asked of every clause and the
 honest answer is visible.
 
+**The mechanism for this clause is a ratchet.** The Doctor reads the `HONOUR` row of the Summary in
+the generated `LAW.md` and compares it with the value it recorded on the last run
+(`state/ratchets.json`). The count may fall, and the record follows it down. A count that rises
+turns the run RED, because a rise means a new rule arrived with nothing to enforce it. There are
+three ways out, in this order: give the rule a mechanism; give it the grade it really has (a
+standing ruling is `OWNER`, not `HONOUR`); or sign the raise in the claim with `accepted`: the new
+value, the date and the reason. A signed raise works once. Written limit: the record is local
+state, so a fresh checkout records its own baseline on its first run.
+
 *Worked example.* An agent repeatedly ran a whole test suite locally on a platform the suite was
 not written for, after the lesson had been written down twice. The third time, instead of a third
 paragraph, a `PreToolUse` hook was added that fires only on a whole-suite run inside a repository

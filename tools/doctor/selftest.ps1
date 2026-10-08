@@ -115,6 +115,15 @@ try {
     W (Join-Path $ep 'nosnapshot.md') "governs everything, backed up nowhere`n"
     W (Join-Path $ep 'eolonly.md') "same content`r`nsecond line`r`n";    W (Join-Path $ep 'eolonly.md.snapshot') "same content`nsecond line`n"
     WJ (Join-Path $brain 'config-old.json') ([ordered]@{ schema = 0 })
+    # ratchet fixtures: a generated-looking table whose HONOUR row reads 26 (and a decoy 99 under
+    # another heading), and planted records: FALL was 30, SIGNED / ROSE / SHORT were 20, SPENT was 20
+    # with its accepted entry already used. NEW has no record.
+    W (Join-Path $brain 'law-count.md') "# LAW`n`n## Other`n`n| HONOUR | 99 |`n`n## Summary`n`n| grade | count |`n|---|---|`n| HONOUR | 26 |`n| total | 135 |`n"
+    $rk = { param($v, $used) [ordered]@{ value = $v; recordedAt = '2026-01-01 00:00:00'; acceptedUsed = $used } }
+    WJ (Join-Path $brain 'state\ratchets.json') ([ordered]@{
+        'T-RATCHET-FALL' = (& $rk 30 ''); 'T-RATCHET-SIGNED' = (& $rk 20 ''); 'F-RATCHET-ROSE' = (& $rk 20 '')
+        'F-RATCHET-SHORT' = (& $rk 20 ''); 'F-RATCHET-SPENT' = (& $rk 20 '2026-10-01|26') })
+    $signed = [ordered]@{ value = 26; since = '2026-10-01'; reason = 'planted raise' }
     # json_keyed_match fixtures: a nested collection (dotted path), keyed by `id`. A and B share
     # ids 1 and 2 (equal, with B's property order shuffled) and each holds a key the other lacks.
     # C repeats A but changes one nested field of the shared id 2.
@@ -244,6 +253,9 @@ exit 0
         [ordered]@{ id = 'T-RULES-SINCE'; type = 'tree_rules';         root = '${ROOT}/scan'; depth = 1; where = [ordered]@{ anyOf = @('styles/app.css') }; since = '2099-01-01'; except = @('**/tokens.css'); allowOnLine = 'deliberate'; rules = @([ordered]@{ id = 'raw-colour'; files = '**/*.css'; forbid = '#[0-9a-f]{3,8}\b' }, [ordered]@{ id = 'reduced-motion'; files = '**/*.css'; when = 'animation|transition|@keyframes'; require = 'prefers-reduced-motion' }, [ordered]@{ id = 'bare-except'; files = '**/*.py'; forbid = 'except\s*:\s*pass' }); why = 't' },
         [ordered]@{ id = 'T-SCAN-GLOB';   type = 'tree_each';          root = '${ROOT}/scan'; depth = 1; where = [ordered]@{ anyOf = @('DECISIONS.md') }; require = @([ordered]@{ glob = '**/*.py|**/*.js'; pattern = 'logging' }); why = 't' },
         [ordered]@{ id = 'T-SCAN-EMPTYOK'; type = 'tree_each';         root = '${ROOT}/scan'; depth = 1; where = [ordered]@{ anyOf = @('nothing.has.this') }; require = @([ordered]@{ file = 'x' }); emptyOk = $true; why = 't' },
+        [ordered]@{ id = 'T-RATCHET-NEW';    type = 'ratchet';         path = 'law-count.md'; row = 'HONOUR'; why = 't' },
+        [ordered]@{ id = 'T-RATCHET-FALL';   type = 'ratchet';         path = '${BRAIN}/law-count.md'; row = 'HONOUR'; heading = 'Summary'; why = 't' },
+        [ordered]@{ id = 'T-RATCHET-SIGNED'; type = 'ratchet';         path = 'law-count.md'; row = 'HONOUR'; accepted = $signed; why = 't' },
         [ordered]@{ id = 'T-SMOKE-PRE';   type = 'hook_smoke';         hook = 'good-guard'; event = 'PreToolUse'; why = 't' },
         [ordered]@{ id = 'T-SMOKE-START'; type = 'hook_smoke';         hook = 'good-entry'; event = 'SessionStart'; why = 't' },
         [ordered]@{ id = 'T-POINTER';     type = 'pointer_valid';      why = 't' },
@@ -268,6 +280,9 @@ exit 0
         [ordered]@{ id = 'F-RULES';       type = 'tree_rules';         root = '${ROOT}/scan'; depth = 1; where = [ordered]@{ anyOf = @('styles/app.css') }; except = @('**/tokens.css'); allowOnLine = 'deliberate'; rules = @([ordered]@{ id = 'raw-colour'; files = '**/*.css'; forbid = '#[0-9a-f]{3,8}\b' }, [ordered]@{ id = 'reduced-motion'; files = '**/*.css'; when = 'animation|transition|@keyframes'; require = 'prefers-reduced-motion' }, [ordered]@{ id = 'bare-except'; files = '**/*.py'; forbid = 'except\s*:\s*pass' }); why = 'f' },
         [ordered]@{ id = 'F-RULES-NOALLOW'; type = 'tree_rules';       root = '${ROOT}/scan'; depth = 1; where = [ordered]@{ anyOf = @('src/git.py') }; rules = @([ordered]@{ id = 'bare-except'; files = '**/*.py'; forbid = 'except\s*:\s*pass' }); why = 'f' },
         [ordered]@{ id = 'F-SCAN-GLOB';   type = 'tree_each';          root = '${ROOT}/scan'; depth = 1; where = [ordered]@{ anyOf = @('src/app.py') }; require = @([ordered]@{ glob = '**/*.py'; pattern = 'excepthook' }); why = 'f' },
+        [ordered]@{ id = 'F-RATCHET-ROSE';  type = 'ratchet';          path = 'law-count.md'; row = 'HONOUR'; why = 'f' },
+        [ordered]@{ id = 'F-RATCHET-SHORT'; type = 'ratchet';          path = 'law-count.md'; row = 'HONOUR'; accepted = [ordered]@{ value = 25; since = '2026-10-01'; reason = 'planted, one short' }; why = 'f' },
+        [ordered]@{ id = 'F-RATCHET-SPENT'; type = 'ratchet';          path = 'law-count.md'; row = 'HONOUR'; accepted = $signed; why = 'f' },
         [ordered]@{ id = 'F-SMOKE-PRE';   type = 'hook_smoke';         hook = 'bad-guard'; event = 'PreToolUse'; why = 'f' },
         [ordered]@{ id = 'F-SMOKE-CRASH'; type = 'hook_smoke';         hook = 'crash-guard'; event = 'PreToolUse'; why = 'f' },
         [ordered]@{ id = 'F-SMOKE-GONE';  type = 'hook_smoke';         hook = 'gone-guard'; event = 'PreToolUse'; why = 'f' },
@@ -283,6 +298,9 @@ exit 0
         [ordered]@{ id = 'U-SCAN';     type = 'tree_each';         root = '${ROOT}/no-such'; require = @([ordered]@{ file = 'x' }); why = 'u' },
         [ordered]@{ id = 'U-RULES';    type = 'tree_rules';        root = '${ROOT}/scan'; depth = 1; rules = @(); why = 'u' },
         [ordered]@{ id = 'U-SCAN-NONE';type = 'tree_each';         root = '${ROOT}/scan'; depth = 1; where = [ordered]@{ anyOf = @('nothing.has.this') }; require = @([ordered]@{ file = 'x' }); why = 'u' },
+        [ordered]@{ id = 'U-RATCHET-ROW';    type = 'ratchet';     path = 'law-count.md'; row = 'NOPE'; why = 'u' },
+        [ordered]@{ id = 'U-RATCHET-HEAD';   type = 'ratchet';     path = 'law-count.md'; row = 'HONOUR'; heading = 'Missing'; why = 'u' },
+        [ordered]@{ id = 'U-RATCHET-REASON'; type = 'ratchet';     path = 'law-count.md'; row = 'HONOUR'; accepted = [ordered]@{ value = 26; since = '2026-10-01' }; why = 'u' },
         [ordered]@{ id = 'U-TYPE';     type = 'bogus_type';        why = 'u' }
     )
     WJ (Join-Path $brain 'claims.json')         ([ordered]@{ schema = 1; claims = $trueClaims })
@@ -320,8 +338,15 @@ exit 0
     Assert-Has 'A: soft_deny counted against frozenPaths' $a.out 'soft_deny: 2 rule(s), 1 naming a frozen path'
     Assert-Has 'A: registered-but-missing hook' $a.out 'hook REGISTERED BUT MISSING'
     Assert-Has 'A: deny/ask rules read from root settings' $a.out 'root settings: 1 deny, 1 ask'
-    Assert-Has 'A: every true claim holds (emptyOk: nothing selected is a pass that says so)' $a.out 'CLAIMS  21 pass  0 fail  0 could not look'
+    Assert-Has 'A: every true claim holds (emptyOk: nothing selected is a pass that says so)' $a.out 'CLAIMS  24 pass  0 fail  0 could not look'
     Assert-HasNot 'A: no COULD-NOT-LOOK band' $a.out 'COULD-NOT-LOOK'
+    Assert-Has 'A: ratchet with no record says the baseline was recorded' $a.out 'ratchet T-RATCHET-NEW: baseline recorded, HONOUR = 26'
+    Assert-Has 'A: ratchet reads the row under its heading, and reports a fall' $a.out 'ratchet T-RATCHET-FALL: HONOUR fell from 30 to 26'
+    Assert-Has 'A: ratchet lets a signed raise through and prints the reason' $a.out 'HONOUR rose from 20 to 26, signed 2026-10-01: planted raise'
+    $rj = Get-Content -LiteralPath (Join-Path $brain 'state\ratchets.json') -Raw | ConvertFrom-Json
+    if ($rj.'T-RATCHET-NEW'.value -eq 26 -and $rj.'T-RATCHET-FALL'.value -eq 26 -and $rj.'T-RATCHET-SIGNED'.value -eq 26) { Ok 'A: ratchet records are written after the run' } else { Bad 'A: ratchet records' ($rj | ConvertTo-Json -Compress) }
+    if ($rj.'T-RATCHET-SIGNED'.acceptedUsed -eq '2026-10-01|26') { Ok 'A: a signed raise is marked spent in the record' } else { Bad 'A: spent mark' ([string]$rj.'T-RATCHET-SIGNED'.acceptedUsed) }
+    $rBytes = [IO.File]::ReadAllBytes((Join-Path $brain 'state\ratchets.json'))
 
     # ================================================================ run B: same disk, surveyStrict true -> exit 1
     Write-Host '  Run B: true claims, surveyStrict true' -ForegroundColor Cyan
@@ -329,6 +354,8 @@ exit 0
     Assert-Exit 'B: surveyStrict turns survey fails RED' $b.code 1
     Assert-Has 'B: verdict RED' $b.out 'VERDICT: RED'
     Assert-Has 'B: reason names surveyStrict' $b.out 'surveyStrict is true'
+    Assert-HasNot 'B: a ratchet at its record prints no note on the second run' $b.out 'ratchet T-RATCHET'
+    if ([Linq.Enumerable]::SequenceEqual($rBytes, [IO.File]::ReadAllBytes((Join-Path $brain 'state\ratchets.json')))) { Ok 'B: ratchets.json is byte-identical when nothing moved' } else { Bad 'B: ratchet determinism' 'ratchets.json changed with nothing changed' }
 
     # ================================================================ run C: one false claim per type -> exit 1
     Write-Host '  Run C: false claims' -ForegroundColor Cyan
@@ -356,6 +383,11 @@ exit 0
     Assert-Has 'C: SessionStart silent hook is a fail' $c.out 'printed nothing'
     Assert-Has 'C: PreToolUse non-JSON is a fail' $c.out 'stdout is not JSON'
     Assert-HasNot 'C: no COULD-NOT-LOOK from false claims' $c.out 'COULD-NOT-LOOK'
+    Assert-Has 'C: ratchet names the rise and that nothing signs it' $c.out "F-RATCHET-ROSE  HONOUR rose from 20 to 26"
+    Assert-Has 'C: ratchet says the accepted raise is one short' $c.out 'the accepted raise covers 25, not 26'
+    Assert-Has 'C: ratchet refuses a spent raise' $c.out 'was already spent'
+    $rj = Get-Content -LiteralPath (Join-Path $brain 'state\ratchets.json') -Raw | ConvertFrom-Json
+    if ($rj.'F-RATCHET-ROSE'.value -eq 20) { Ok 'C: a failing ratchet does not move its record (a re-run stays RED)' } else { Bad 'C: ratchet record moved on FAIL' ([string]$rj.'F-RATCHET-ROSE'.value) }
 
     # ================================================================ run D: unevaluatable claims -> exit 2, never GREEN
     Write-Host '  Run D: unknown claims' -ForegroundColor Cyan
@@ -370,6 +402,9 @@ exit 0
     Assert-Has 'D: tree_each with a missing root is unknown' $d.out '????  U-SCAN  root folder missing'
     Assert-Has 'D: tree_each that selects nothing is unknown, not green' $d.out '????  U-SCAN-NONE  nothing selected'
     Assert-Has 'D: tree_rules with no rules is unknown' $d.out "????  U-RULES  claim has no 'rules'"
+    Assert-Has 'D: ratchet with no such row is unknown, not zero' $d.out "????  U-RATCHET-ROW  no row 'NOPE' under heading 'Summary'"
+    Assert-Has 'D: ratchet with no such heading is unknown' $d.out "????  U-RATCHET-HEAD  heading 'Missing' not found"
+    Assert-Has 'D: ratchet with an unsigned accepted entry is unknown' $d.out '????  U-RATCHET-REASON  accepted has no reason'
     Assert-Has 'D: unknown type is unknown' $d.out "unknown claim type 'bogus_type'"
     Assert-HasNot 'D: never GREEN' $d.out 'GREEN'
 
