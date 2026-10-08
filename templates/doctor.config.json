@@ -17,6 +17,7 @@
     "acceptedExceptions": "doctor.ps1 - (path, kind) pairs that are reported but not counted; each needs since and reason",
     "entryPointSnapshots": "doctor.ps1 - live file vs byte snapshot, compared after CRLF->LF",
     "enforcement": "enforcement.ps1 - fenceLogStaleDays only",
+    "lawClaim": "tools/vcs/law-claim.ps1 (the commit check, VCS-23) - extraFiles: more repo-relative paths that count as law files; trailer: the waiver line's name; minReason: shortest reason accepted",
     "categories": "survey.ps1 - folders: top-level folders under root that hold projects; a repository under any other first folder is reported as outsideCategory (never the root, the brain or the root .claude folder). since: ISO date; a stray born before it is reported, one born on or after it is a fail. Empty folders: the check is off",
     "splitLines": "hooks/guard.ps1 rule 6 (file-size) - a source write that leaves a file over this many lines asks (DES-03); 0 disables",
     "sourceExtensions": "hooks/guard.ps1 rules 5 and 6 - which extensions count as source for the manifest and size rules; docs, config and data are not source",
@@ -77,6 +78,11 @@
   "categories": {
     "folders": [],
     "since": ""
+  },
+  "lawClaim": {
+    "extraFiles": [],
+    "trailer": "No-Claim",
+    "minReason": 10
   },
   "splitLines": 500,
   "sourceExtensions": [

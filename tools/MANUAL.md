@@ -189,6 +189,9 @@ Finding kinds for `acceptedExceptions`: `noRemote`, `emptyRepo`, `foreignRemote`
 | `entryPointSnapshots` | doctor.ps1 | `{ live, snapshot }` pairs, compared after CRLF->LF. |
 | `enforcement.fenceLogStaleDays` | enforcement.ps1 | Days before `fence hook has not fired` is printed. |
 | `categories.folders` | survey.ps1 | Top-level folders under root that hold projects. A repository under any other first folder is `outside a category folder`. Empty: the check is off. |
+| `lawClaim.extraFiles` | tools/vcs/law-claim.ps1 | More repo-relative paths that count as law files for the commit check. |
+| `lawClaim.trailer` | tools/vcs/law-claim.ps1 | The waiver line's name. Default `No-Claim`. |
+| `lawClaim.minReason` | tools/vcs/law-claim.ps1 | Shortest reason accepted on the waiver line. Default 10 characters. |
 | `categories.since` | survey.ps1 | ISO date. A stray born before it (git's first-commit date) is reported; one born on or after it is a fail. Empty: every stray is a fail. |
 | `splitLines` | hooks/guard.ps1 | A source write that leaves a file over this many lines asks (DES-03). Default 500; 0 disables. |
 | `sourceExtensions` | hooks/guard.ps1, hooks/stop.ps1 | Which extensions count as source. Documents, config and data do not. |
@@ -226,6 +229,36 @@ reported exactly once (one of them frozen and dirty, which must still trip), and
 0, 1 and 2, the `-Kit` and `-Json` paths and the `Doctor.bat` shim. It never touches your real
 folders. About a minute. Run it after any change to the Doctor: a check that cannot fail is worse
 than no check.
+
+## The commit check: `tools\vcs\law-claim.ps1` (VCS-23)
+
+A git `commit-msg` hook for a brain that is a repository. A commit that changes a law file must
+carry a claim, or a written reason why it needs none.
+
+**Install** (once per clone; `.git\hooks` is not versioned):
+
+```
+Copy-Item <pluginRoot>\templates\commit-msg <brain>\.git\hooks\commit-msg
+```
+
+The shim finds the kit through the pointer on every commit, so it survives a plugin update. Then
+add two claims so the Doctor proves it is there: `path_exists` on `${BRAIN}/.git/hooks/commit-msg`,
+and `file_contains` on the same file with the needle `tools\vcs\law-claim.ps1`.
+
+**A law file** is every owning file the brain's `LAW.md` names as `brain:<path>`, plus
+`law.overlay.json`, plus `lawClaim.extraFiles`. The list is read from `LAW.md` at commit time.
+
+| You see | Means | Do |
+|---|---|---|
+| `design-first VCS-23: this commit changes a law file and carries no claim.` | A law file is in the commit, `claims.json` is not, and the message has no waiver. The commit was refused. | Stage the claim in `claims.json`. Or, when the change states no fact about the disk, add a line `No-Claim: <reason>` to the commit message. |
+| `The reason given ('...') is shorter than N characters` | The waiver line is there with no real reason. | Say why no claim is needed. |
+| `design-first law-claim: no pointer at <path>; VCS-23 was NOT checked` | The shim could not find the kit. The commit went through unchecked. | Start a session so `entry.ps1` writes the pointer, or run `/design-first:adopt`. |
+| `design-first law-claim: pwsh is not on PATH; VCS-23 was NOT checked` | PowerShell 7 was not found. The commit went through unchecked. | `winget install Microsoft.PowerShell`. |
+| `design-first law-claim: internal error, VCS-23 was NOT checked` | The script failed. The commit went through, and an ERROR line is in the hooks log. | Read the log line; report it. |
+| nothing, and a law commit went through | The shim is not installed in this clone, or the commit used `--no-verify`. | Install it. The two Doctor claims catch a missing shim. |
+
+Limits: the check sees that `claims.json` changed, not that the claim covers the new fact; a
+waiver's reason is read by a person; a merge is not checked; `--no-verify` skips every commit hook.
 
 ## Known gaps, stated honestly
 

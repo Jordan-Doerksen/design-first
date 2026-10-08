@@ -29,6 +29,7 @@ adopter's private layer), `pluginRoot` and its kind (checkout or cache).
 | `hooks/` | session guards | `hooks.json` | `<brain>/doctor.config.json`, `<brain>/agent-policy.json` | `lib/` holds the tokeniser, rules and shared helpers; anchors declare mode and verbs; `agent.ps1` rewrites an Agent call's model from the policy and counts spawns per turn in the marker folder; `route.ps1` keeps a per-session route file there and `lib/law-rows.ps1` reads LAW.md for both routers |
 | `tools/law/` | generator | `build-law.ps1` | `law.json` | `validate.ps1`, `render.ps1` dot-sourced; deterministic bytes |
 | `tools/doctor/` | disk checker | `doctor.ps1` | brain config + `claims.json` | `context`, `claims`, `claims-keyed`, `claims-tree`, `claims-exec`, `claims-ratchet`, `repos`, `enforcement`, `survey`, `report`, `selftest`; a claim is read-only, so a ratchet's record is written by `doctor.ps1` after the run, into `state/ratchets.json` |
+| `tools/vcs/` | git-side checks | `law-claim.ps1` | `<brain>/doctor.config.json` (`lawClaim`) | run by the shim `templates/commit-msg`, copied to `<brain>/.git/hooks/commit-msg`; the shim finds the kit through the pointer on every commit |
 | `tools/tests/` | hook self-test | `run.ps1` | `guard-cases.json` | temp repos and a fake pointer; never touches the real one |
 | `commands/` | adopt, remove, gut, move, scope, ship | one `.md` each | — | prompts ask; scripts write |
 | `tools/adopt.ps1`, `tools/remove.ps1` | the writers | — | `templates/` | record every write in `<brain>/state/installed.json` |

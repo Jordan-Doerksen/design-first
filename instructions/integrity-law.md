@@ -143,6 +143,13 @@ This is the rule that stops the rot returning. A claim is cheap: `path_exists`, 
   absent, confirm the verdict flips and the exit code follows, then restore. A claim that cannot
   fail is not a claim.
 
+**The mechanism** is a git `commit-msg` check, `tools/vcs/law-claim.ps1`, for a brain that is a
+repository. A commit that changes a law file (an owning file named in `LAW.md`, or the overlay) is
+refused unless `claims.json` is in the same commit, or the message carries a line
+`No-Claim: <reason>`. The waiver exists because most law edits state no fact about the disk: a
+rule about tone has nothing to claim, and a check that refuses those is a check that gets skipped.
+The reason stays in the history. Install and limits: `tools/MANUAL.md`.
+
 ### SKIN-07
 
 **Never snapshot a count from any external corpus into a law; read the catalogue for the current

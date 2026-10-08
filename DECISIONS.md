@@ -118,7 +118,14 @@ the owning file. The planned mechanisms, each a Change Request when built:
   for this; a brain cites the anchor `survey-outside-category` (verb `place-project`).
 - *Entry hook, game repositories*: print the state card from the repository's documents at
   session start (GAME-13).
-- *Brain pre-commit hook*: a law file in the diff needs claims.json in the diff (VCS-23).
+- *Brain commit check*: **shipped in 0.1.12** as `tools/vcs/law-claim.ps1` behind the shim
+  `templates/commit-msg` (owner decision: refuse, with a written waiver). A commit that changes a
+  law file is refused unless claims.json is in it or the message carries `No-Claim: <reason>`. It
+  is a `commit-msg` hook and not a `pre-commit` hook, because only `commit-msg` can read the
+  message. The law-file list is read from the brain's LAW.md at commit time. VCS-23 stays
+  BUILDABLE in the kit: `adopt` does not install the shim yet, so the kit cannot say a given
+  adopter has it. A brain that installs it re-grades the clause in its overlay (anchor
+  `law-claim`) and proves the shim with two claims. Open: install and remove through `adopt`.
 
 ## Build Timeline
 
@@ -144,6 +151,7 @@ the owning file. The planned mechanisms, each a Change Request when built:
 | 18 | Adopt regression: `emptyOk` on the tree claims, the two template scan claims carry it; the hook-read config keys are known to the dead-key check | Done 2026-10-08 |
 | 19 | Ratchet claim: claim type `ratchet`, records in `state/ratchets.json`, kit claim and template claim; PRIN-04 at GATE; 17 cases | Done 2026-10-08 |
 | 20 | Survey finding `outsideCategory`: config `categories`, first-commit ratchet, one backlog line; 10 cases | Done 2026-10-08 |
+| 21 | Commit check for VCS-23: `tools/vcs/law-claim.ps1`, shim `templates/commit-msg`, config `lawClaim`; 13 cases on real commits | Done 2026-10-08 |
 
 ## Change Log
 
@@ -167,3 +175,4 @@ the owning file. The planned mechanisms, each a Change Request when built:
 | 2026-10-08 | Adopt regression found while shipping 0.1.9: the adopt self-test had stood at 44 of 46 since 0.1.6, because both template scan claims return UNKNOWN when a root holds no matching repository, so the first Doctor run of every new adopter exited 2. Nothing ran the adopt self-test after 0.1.4. Fix: optional `emptyOk: true` on `tree_each` and `tree_rules` (nothing selected is a PASS that says so); the default stays UNKNOWN, because in a populated root nothing selected means the selector is broken. Chosen without an interview: one defensible answer, opt-in per claim, reversible by deleting the field. Second fix: `splitLines`, `sourceExtensions` and `stopDocs` are read by the hooks, and the Doctor reported each as a dead key in every brain that carried them; they are now in the reader table. Adopt self-test 46 of 46, Doctor self-test 105. Ships in 0.1.10. | kit fix | doctor, templates, tests |
 | 2026-10-08 | `ratchet` shipped (owner decision: a rise gets through by a signed raise, not by no valve and not as a notice). Measured before building: the HONOUR count of the first instance across its six generated versions read 108, 106, 105, 105, 26 and never rose; the kit's own count is 38 of 78. Decisions taken without an interview, each reversible: the record lives in `state/ratchets.json` keyed by claim id and is written by doctor.ps1 after the run, because a claim is read-only; a failing ratchet does not move its record; an `accepted` entry is spent on first use; a passing claim may carry a `note`, printed as one INFO line (baseline recorded, fell, signed). PRIN-04 moves from BUILDABLE to GATE by `KIT-RATCHET-01`. Doctor self-test 122. Version 0.1.10. | planned mechanism built | doctor, law, templates, tests |
 | 2026-10-08 | `outsideCategory` shipped. Measured on the first instance before building: 94 live repositories, 83 inside seven category folders, 11 outside (the brain, the root's `.claude`, eight projects at the root level, one inside a tool cache); every one of the eleven was born before 2026-10-08, so none fails on day one. Decisions taken without an interview: the ratchet reuses the owner's repo-scan ruling (first-commit date, reported not failed); the backlog folds into one line, because nine lines on every run stop being read; the brain and the root's `.claude` folder are derived from the pointer and never reported, so no accepted entry has to be typed for them; a stray with no commit yet is a fail, because that is when a move costs nothing. The check is off until `categories.folders` is set. Doctor self-test 132. Version 0.1.11. | planned mechanism built | doctor, templates, tests |
+| 2026-10-08 | Commit check for VCS-23 shipped (owner decision: refuse with a written waiver; not strict, not a reminder). Measured on the first instance before building: 86 commits, 30 touching a law file, 18 of those with no claims.json, among them rules about tone and a config-key mechanism; a strict hook would have refused six in ten. Decisions taken without an interview: `commit-msg` instead of `pre-commit` (the waiver is in the message); the law-file list is read from LAW.md, never typed; a merge is not checked; the shim resolves the kit through the pointer on every commit, because the cache path changes with every version; a missing pointer, a missing pwsh or an internal error lets the commit through and says so, and an internal error writes an ERROR line to the hooks log. Defect found by the self-test before it shipped: git piped into `Select-Object -First 1` leaves `$LASTEXITCODE` unset, which read as failure and let every commit through. Hook cases 195. Version 0.1.12. | planned mechanism built | tools/vcs, templates, doctor, tests |

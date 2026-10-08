@@ -58,7 +58,8 @@ more are BUILDABLE with the mechanism specified in DECISIONS.md 2.7. Most rules 
 | `hooks/` | `guard.ps1` (secrets, git history, frozen paths), `fence.ps1` (deletion and weakened assertions), `agent.ps1` (subagent brief contract, model routing, spawn cap), `route.ps1` (the law for the task, per prompt, from the index), `subagent.ps1` (the session's law into every subagent), `entry.ps1` (the personal layer on session start) |
 | `tools/doctor/` | checks claims, surveys repos, smokes the hooks; three bands, three exit codes |
 | `tools/law/` | the generator |
-| `tools/tests/` | 113 hook cases and the Doctor self-test, run under pwsh |
+| `tools/vcs/` | `law-claim.ps1`, a git commit check: a law file in a commit needs a claim or a written reason (install: `tools/MANUAL.md`) |
+| `tools/tests/` | the hook cases, on real hooks and real commits, and the Doctor self-test; run under pwsh |
 | `commands/` | `adopt`, `remove`, and four small working commands |
 | `agents/reviewer.md` | a read-only adversarial reviewer |
 | `templates/` | the files `adopt` writes into your root and your brain |
