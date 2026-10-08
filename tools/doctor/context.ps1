@@ -63,6 +63,7 @@ $script:ConfigReaders = [ordered]@{
     schema                     = 'doctor.ps1 (config_schema; mismatch -> MIGRATE)'
     surveyStrict               = 'report.ps1 (verdict: SURVEY fail findings turn RED when true)'
     maxDepth                   = 'repos.ps1 (Get-RepoFacts: how deep to look for .git)'
+    parallelGit                = 'repos.ps1 (Get-RepoFacts: how many repositories are read at a time; 1 = one after another)'
     excludePathParts           = 'repos.ps1 (Get-RepoFacts: skip repos whose path contains a part)'
     archivedPathParts          = 'repos.ps1 (Get-RepoFacts: archived repos are listed, not judged)'
     ownerRemotePatterns        = 'repos.ps1 (Get-RepoFacts: a remote matching none is FOREIGN)'
@@ -94,6 +95,7 @@ function Get-DefaultConfig {
         schema                     = 1
         surveyStrict               = $false
         maxDepth                   = 3
+        parallelGit                = 8
         excludePathParts           = @('\node_modules\', '\.claude\worktrees\', '\target\', '\.godot\')
         archivedPathParts          = @('\_archive\', '\_backups\')
         ownerRemotePatterns        = @()
@@ -169,6 +171,8 @@ function Read-DoctorConfig {
         $cfg.$pk = @($cfg.$pk | ForEach-Object { Expand-DfPath -Path ([string]$_) -Context $rootCtx })
     }
     $cfg.maxDepth = [int]$cfg.maxDepth
+    $pg = 0; if (-not [int]::TryParse([string]$cfg.parallelGit, [ref]$pg) -or $pg -lt 1) { $pg = 1 }
+    $cfg.parallelGit = $pg
     $cfg.unversionedMaxDepth = [int]$cfg.unversionedMaxDepth
     $cfg.surveyStrict = [bool]$cfg.surveyStrict
     $r.ok = $true

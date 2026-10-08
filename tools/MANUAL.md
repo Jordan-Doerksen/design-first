@@ -177,6 +177,7 @@ Finding kinds for `acceptedExceptions`: `noRemote`, `emptyRepo`, `foreignRemote`
 | `schema` | doctor.ps1 | Must be 1. Mismatch is the `MIGRATE` claim. |
 | `surveyStrict` | report.ps1 | `true`: survey `fail` findings turn the verdict RED. Default `false`. |
 | `maxDepth` | repos.ps1 | How deep to look for `.git` under root. |
+| `parallelGit` | repos.ps1 | How many repositories the sweep reads at a time. Default 8. Set 1 to read them one after another; the result is the same, only slower. |
 | `excludePathParts` | repos.ps1 | Repos whose path contains a part are not swept. |
 | `archivedPathParts` | repos.ps1 | Repos whose path contains a part are listed, not judged. |
 | `ownerRemotePatterns` | repos.ps1 | A remote URL containing none is FOREIGN. |
@@ -262,6 +263,12 @@ waiver's reason is read by a person; a merge is not checked; `--no-verify` skips
 
 ## Known gaps, stated honestly
 
+- A repository is listed once per run and the list is reused by every scan claim, and git is
+  asked for a first-commit date once per repository. A file created while the Doctor is running
+  is seen by the next run, not this one.
+- A `tree_rules` rule whose `forbid` pattern uses a lookaround, an atomic or named group, a
+  condition, an inline option or one of `\A \z \Z \G` is read line by line with no whole-text
+  check first. The result is the same; that rule is slower on a large tree.
 - The repo sweep reads `maxDepth` folders deep. A repo nested deeper is invisible.
 - A linked worktree whose parent lives outside `root` (or under `excludePathParts`) is still
   folded and the INFO line names the parent by full path, but nothing checks that parent.

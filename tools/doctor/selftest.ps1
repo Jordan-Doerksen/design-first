@@ -168,7 +168,8 @@ try {
         lawClaim = [ordered]@{ extraFiles = @(); trailer = 'No-Claim'; minReason = 10 }   # read by the commit check: must NOT be reported
     }
     WJ (Join-Path $brain 'doctor.config.json') $cfg
-    $strict = [ordered]@{} + $cfg; $strict.surveyStrict = $true; $strict.Remove('gitTimeoutSeconds')
+    # Strict also sets parallelGit 1: run B is the plain loop, run A the parallel sweep; same repos.json.
+    $strict = [ordered]@{} + $cfg; $strict.surveyStrict = $true; $strict.Remove('gitTimeoutSeconds'); $strict.parallelGit = 1
     WJ (Join-Path $brain 'doctor.config.strict.json') $strict
 
     # ---------------------------------------------------------------- kit-like tree
@@ -361,6 +362,7 @@ exit 0
     if ($rj.'T-RATCHET-NEW'.value -eq 26 -and $rj.'T-RATCHET-FALL'.value -eq 26 -and $rj.'T-RATCHET-SIGNED'.value -eq 26) { Ok 'A: ratchet records are written after the run' } else { Bad 'A: ratchet records' ($rj | ConvertTo-Json -Compress) }
     if ($rj.'T-RATCHET-SIGNED'.acceptedUsed -eq '2026-10-01|26') { Ok 'A: a signed raise is marked spent in the record' } else { Bad 'A: spent mark' ([string]$rj.'T-RATCHET-SIGNED'.acceptedUsed) }
     $rBytes = [IO.File]::ReadAllBytes((Join-Path $brain 'state\ratchets.json'))
+    $reposParallel = [IO.File]::ReadAllBytes((Join-Path $brain 'state\repos.json'))
 
     # ================================================================ run B: same disk, surveyStrict true -> exit 1
     Write-Host '  Run B: true claims, surveyStrict true' -ForegroundColor Cyan
@@ -368,6 +370,8 @@ exit 0
     Assert-Exit 'B: surveyStrict turns survey fails RED' $b.code 1
     Assert-Has 'B: verdict RED' $b.out 'VERDICT: RED'
     Assert-Has 'B: reason names surveyStrict' $b.out 'surveyStrict is true'
+    if ([Linq.Enumerable]::SequenceEqual($reposParallel, [IO.File]::ReadAllBytes((Join-Path $brain 'state\repos.json')))) { Ok 'B: the sweep one repository at a time (parallelGit 1) writes the same repos.json as the parallel sweep' } else { Bad 'B: parallel and sequential sweeps differ' 'repos.json changed between run A (parallel) and run B (parallelGit 1)' }
+    Assert-HasNot 'B: parallelGit is a known config key' $b.out 'dead config key: parallelGit'
     Assert-HasNot 'B: a ratchet at its record prints no note on the second run' $b.out 'ratchet T-RATCHET'
     if ([Linq.Enumerable]::SequenceEqual($rBytes, [IO.File]::ReadAllBytes((Join-Path $brain 'state\ratchets.json')))) { Ok 'B: ratchets.json is byte-identical when nothing moved' } else { Bad 'B: ratchet determinism' 'ratchets.json changed with nothing changed' }
 

@@ -6,6 +6,7 @@
     "schema": "doctor.ps1 - must be 1; a mismatch is the MIGRATE finding",
     "surveyStrict": "report.ps1 - when true, SURVEY findings of severity fail turn the verdict RED (exit 1)",
     "maxDepth": "repos.ps1 - how many folders deep to look for .git under root",
+    "parallelGit": "repos.ps1 - how many repositories the sweep reads at a time; 1 reads them one after another (same result, slower)",
     "excludePathParts": "repos.ps1 - a repo whose path contains one of these is not swept at all",
     "archivedPathParts": "repos.ps1 - a repo whose path contains one of these is listed but not judged",
     "ownerRemotePatterns": "repos.ps1 - a remote URL containing none of these is FOREIGN",
@@ -25,6 +26,7 @@
   },
   "surveyStrict": false,
   "maxDepth": 3,
+  "parallelGit": 8,
   "excludePathParts": [
     "\\node_modules\\",
     "\\.claude\\worktrees\\",

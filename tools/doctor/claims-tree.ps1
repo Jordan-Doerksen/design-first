@@ -165,7 +165,20 @@ function Test-TreeEqualsClaim {
 
 $script:DfScanSkipDirs = @('.git', 'node_modules', 'target', '.venv', '__pycache__', 'dist', 'build', '.godot', '.tools')
 
+# Per-run caches (2026-10-08). A Doctor run is one process, and a brain can hold a dozen scan claims
+# over the same repositories. Measured on the first instance before these existed: 237 s per run,
+# 197 s of it in tree_each and tree_rules, because every claim listed every repository again (94,326
+# files, 13 s a time) and asked git for the same first-commit date again. Each of these is now
+# produced once per run and reused. Nothing can go stale inside one run: the Doctor writes only its
+# own state folder, and it writes it after the claims.
+$script:DfScanRepoCache    = @{}   # "<root>|<depth>" -> repository folders
+$script:DfRepoFilesCache   = @{}   # repository folder -> its file list
+$script:DfFirstCommitCache = @{}   # repository folder -> first-commit date, or $null
+$script:DfGlobRxCache      = @{}   # glob text -> its regex
+
 function Get-DfScanRepos([string]$rootFull, [int]$depth) {
+    $key = "$rootFull|$depth"
+    if ($script:DfScanRepoCache.ContainsKey($key)) { return $script:DfScanRepoCache[$key] }
     $found = [Collections.Generic.List[string]]::new()
     $queue = [Collections.Generic.Queue[object]]::new()
     foreach ($d in (Get-ChildItem -LiteralPath $rootFull -Directory -Force -ErrorAction SilentlyContinue)) { $queue.Enqueue(@{ dir = $d.FullName; level = 1 }) }
@@ -178,23 +191,28 @@ function Get-DfScanRepos([string]$rootFull, [int]$depth) {
             foreach ($d in (Get-ChildItem -LiteralPath $it.dir -Directory -Force -ErrorAction SilentlyContinue)) { $queue.Enqueue(@{ dir = $d.FullName; level = $it.level + 1 }) }
         }
     }
-    return @($found | Sort-Object)
+    $script:DfScanRepoCache[$key] = @($found | Sort-Object)
+    return $script:DfScanRepoCache[$key]
 }
 
 function ConvertTo-DfGlobRegex([string]$glob) {
     # ** = any path, * = within a segment, ? = one char; matched against the forward-slash relative
     # path. Several globs may be joined with '|' (any of them matches).
+    if ($script:DfGlobRxCache.ContainsKey($glob)) { return $script:DfGlobRxCache[$glob] }
     $parts = @()
     foreach ($one in ($glob -split '\|')) {
         $g = $one.Trim().Replace('\', '/').TrimStart('/')
         if (-not $g) { continue }
         $parts += [regex]::Escape($g).Replace('\*\*/', '(?:.*/)?').Replace('\*\*', '.*').Replace('\*', '[^/]*').Replace('\?', '[^/]')
     }
-    return [regex]::new('^(?:' + ($parts -join '|') + ')$', [Text.RegularExpressions.RegexOptions]::IgnoreCase)
+    $script:DfGlobRxCache[$glob] = [regex]::new('^(?:' + ($parts -join '|') + ')$', [Text.RegularExpressions.RegexOptions]::IgnoreCase)
+    return $script:DfGlobRxCache[$glob]
 }
 
 function Get-DfRepoFiles([string]$repo) {
+    if ($script:DfRepoFilesCache.ContainsKey($repo)) { return $script:DfRepoFilesCache[$repo] }
     $out = [Collections.Generic.List[object]]::new()
+    $script:DfRepoFilesCache[$repo] = $out      # the list object is cached; it is filled below and never changed after
     $stack = [Collections.Generic.Stack[string]]::new(); $stack.Push($repo)
     $rootLen = $repo.TrimEnd('\').Length
     while ($stack.Count -gt 0) {
@@ -216,20 +234,30 @@ function Test-DfRequirement($req, [string]$repo, $files) {
         return "missing $($req.file)"
     }
     if ($req.glob) {
+        # One pass in file order with an early exit: the first matching file settles a bare glob, and
+        # the first matching file that holds the pattern settles a glob with a pattern. The pattern's
+        # regex is built at the first matching file, as before, so a bad pattern fails the same way.
         $rx = ConvertTo-DfGlobRegex ([string]$req.glob)
-        $hits = @($files | Where-Object { $rx.IsMatch($_.rel) })
-        if ($hits.Count -eq 0) { return "no file matches $($req.glob)" }
-        if (-not $req.pattern) { return $null }
-        $prx = [regex]::new([string]$req.pattern, [Text.RegularExpressions.RegexOptions]::IgnoreCase)
-        foreach ($h in $hits) {
+        $prx = $null; $any = $false
+        foreach ($h in $files) {
+            if (-not $rx.IsMatch($h.rel)) { continue }
+            if (-not $req.pattern) { return $null }
+            if (-not $any) { $any = $true; $prx = [regex]::new([string]$req.pattern, [Text.RegularExpressions.RegexOptions]::IgnoreCase) }
             try { if ($prx.IsMatch([IO.File]::ReadAllText($h.full))) { return $null } } catch { }
         }
+        if (-not $any) { return "no file matches $($req.glob)" }
         return "no $($req.glob) file contains /$($req.pattern)/"
     }
     return 'requirement has neither file nor glob'
 }
 
 function Get-DfFirstCommitDate([string]$repo) {
+    if ($script:DfFirstCommitCache.ContainsKey($repo)) { return $script:DfFirstCommitCache[$repo] }
+    $script:DfFirstCommitCache[$repo] = Get-DfFirstCommitDateUncached $repo
+    return $script:DfFirstCommitCache[$repo]
+}
+
+function Get-DfFirstCommitDateUncached([string]$repo) {
     try {
         $prev = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
         $roots = & git -C $repo rev-list --max-parents=0 HEAD 2>$null
@@ -269,6 +297,7 @@ function Invoke-DfRepoScan {
         $accepted[(ConvertTo-RelKey ([string]$a.path))] = [string]$a.reason
     }
     $exclude = @($c.exclude | Where-Object { $_ } | ForEach-Object { ConvertTo-RelKey ([string]$_) })
+    $whereRx = @(if ($c.where -and $c.where.anyOf) { @($c.where.anyOf) | ForEach-Object { ConvertTo-DfGlobRegex ([string]$_) } })
     $repos = Get-DfScanRepos $rootFull $depth
     $selected = 0; $fails = @(); $grand = @(); $acc = @(); $met = 0
     foreach ($repo in $repos) {
@@ -279,10 +308,11 @@ function Invoke-DfRepoScan {
         if ($skip) { continue }
         $files = Get-DfRepoFiles $repo
         if ($c.where -and $c.where.anyOf) {
+            # Any file matching any glob selects the repository; stop at the first one.
             $ok = $false
-            foreach ($w in @($c.where.anyOf)) {
-                $rx = ConvertTo-DfGlobRegex ([string]$w)
-                if (@($files | Where-Object { $rx.IsMatch($_.rel) }).Count -gt 0) { $ok = $true; break }
+            foreach ($rx in $whereRx) {
+                foreach ($f in $files) { if ($rx.IsMatch($f.rel)) { $ok = $true; break } }
+                if ($ok) { break }
             }
             if (-not $ok) { continue }
         }
@@ -347,39 +377,68 @@ function Test-TreeRulesClaim {
     $exceptRx = @($c.except | Where-Object { $_ } | ForEach-Object { ConvertTo-DfGlobRegex ([string]$_) })
     $allowRx = if ($c.allowOnLine) { [regex]::new([string]$c.allowOnLine, [Text.RegularExpressions.RegexOptions]::IgnoreCase) } else { $null }
     $opts = [Text.RegularExpressions.RegexOptions]::IgnoreCase
+    $multi = $opts -bor [Text.RegularExpressions.RegexOptions]::Multiline
+    # One entry per rule, built once per claim: the rule and its file glob. A forbid regex is built at
+    # the first file the rule reads, as before, so a bad pattern fails the claim in the same way.
+    $plan = @(foreach ($r in $rules) { @{ rule = $r; glob = (ConvertTo-DfGlobRegex $(if ($r.files) { [string]$r.files } else { $defaultFiles })); frx = $null; mrx = $null; lineLocal = $false } })
     return Invoke-DfRepoScan $c $Context {
         param($repo, $files)
-        $out = @()
-        foreach ($r in $rules) {
-            $glob = if ($r.files) { [string]$r.files } else { $defaultFiles }
-            $grx = ConvertTo-DfGlobRegex $glob
-            $hits = @(); $count = 0
-            foreach ($f in $files) {
-                if (-not $grx.IsMatch($f.rel)) { continue }
-                $skip = $false; foreach ($e in $exceptRx) { if ($e.IsMatch($f.rel)) { $skip = $true; break } }
-                if ($skip) { continue }
-                $text = ''
-                try { $text = [IO.File]::ReadAllText($f.full) } catch { continue }
+        # Files outside, rules inside: a file is read once however many rules cover it, and each
+        # rule still sees the files in the same order, so its count and its first hits are the same.
+        $tally = @(foreach ($p in $plan) { @{ hits = @(); n = 0 } })
+        foreach ($f in $files) {
+            $apply = @(for ($k = 0; $k -lt $plan.Count; $k++) { if ($plan[$k].glob.IsMatch($f.rel)) { $k } })
+            if ($apply.Count -eq 0) { continue }
+            $skip = $false; foreach ($e in $exceptRx) { if ($e.IsMatch($f.rel)) { $skip = $true; break } }
+            if ($skip) { continue }
+            $text = ''
+            try { $text = [IO.File]::ReadAllText($f.full) } catch { continue }
+            $norm = $null; $lines = $null
+            foreach ($k in $apply) {
+                $p = $plan[$k]; $r = $p.rule; $st = $tally[$k]
                 if ($r.forbid) {
-                    $frx = [regex]::new([string]$r.forbid, $opts)
-                    $lines = $text.Replace("`r`n", "`n") -split "`n"
+                    if ($null -eq $p.frx) {
+                        $p.frx = [regex]::new([string]$r.forbid, $opts)
+                        $p.lineLocal = Test-DfLineLocalPattern ([string]$r.forbid)
+                        if ($p.lineLocal) { $p.mrx = [regex]::new([string]$r.forbid, $multi) }
+                    }
+                    if ($null -eq $norm) { $norm = $text.Replace("`r`n", "`n") }
+                    # The whole-text check: no match in the text means no line can match, so the
+                    # line loop is skipped. Measured: 7.5 million lines, 53 s line by line, 5.5 s this way.
+                    if ($p.lineLocal -and -not $p.mrx.IsMatch($norm)) { continue }
+                    if ($null -eq $lines) { $lines = $norm -split "`n" }
                     for ($i = 0; $i -lt $lines.Count; $i++) {
-                        if (-not $frx.IsMatch($lines[$i])) { continue }
+                        if (-not $p.frx.IsMatch($lines[$i])) { continue }
                         if ($allowRx -and ($allowRx.IsMatch($lines[$i]) -or ($i -gt 0 -and $allowRx.IsMatch($lines[$i - 1])))) { continue }
-                        $count++; if ($hits.Count -lt 3) { $hits += ("{0}:{1}" -f $f.rel, ($i + 1)) }
+                        $st.n++; if ($st.hits.Count -lt 3) { $st.hits += ("{0}:{1}" -f $f.rel, ($i + 1)) }
                     }
                 }
                 else {
                     if ([regex]::IsMatch($text, [string]$r.when, $opts) -and -not [regex]::IsMatch($text, [string]$r.require, $opts)) {
-                        $count++; if ($hits.Count -lt 3) { $hits += $f.rel }
+                        $st.n++; if ($st.hits.Count -lt 3) { $st.hits += $f.rel }
                     }
                 }
             }
-            if ($count -gt 0) {
-                $more = if ($count -gt $hits.Count) { " +{0}" -f ($count - $hits.Count) } else { '' }
-                $out += ("{0}: {1}{2}" -f $r.id, ($hits -join ' '), $more)
+        }
+        $out = @()
+        for ($k = 0; $k -lt $plan.Count; $k++) {
+            $st = $tally[$k]
+            if ($st.n -gt 0) {
+                $more = if ($st.n -gt $st.hits.Count) { " +{0}" -f ($st.n - $st.hits.Count) } else { '' }
+                $out += ("{0}: {1}{2}" -f $plan[$k].rule.id, ($st.hits -join ' '), $more)
             }
         }
         return $out
     } 'pass every rule'
+}
+
+# True when a match of $pattern inside one line guarantees a match somewhere in the whole text under
+# the Multiline option. That holds for a pattern built from literals, classes, quantifiers, groups,
+# alternation, ^, $, \b and \B: the same path matches at the same place, ^ and $ hold at a line's
+# ends, and a newline is a non-word character, as the edge of a string is. It does not hold when the
+# pattern can look outside its line or refuse to backtrack, so any group construct other than (?:...)
+# (lookarounds, atomic and named groups, conditions, inline options) and the anchors \A \z \Z \G
+# switch the whole-text check off for that rule, and the rule is read line by line, as before.
+function Test-DfLineLocalPattern([string]$pattern) {
+    return ($pattern -notmatch '\(\?(?!:)' -and $pattern -cnotmatch '\\[AzZG]')
 }
