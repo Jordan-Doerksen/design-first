@@ -60,8 +60,11 @@ brain's role table by agent type, an explicit model always winning; (3) spawns a
 turn and the hook asks above the cap. Tunables in `<brain>/agent-policy.json`, template in the
 kit. DES-11's text changed to say what the hook checks; the old fan-out-by-file-count rule became
 body guidance ("parallelise independent decisions, not files"). Whether the host honours a
-rewritten `model` is proven by a live probe, not assumed; until that probe is recorded the routing
-half is a logged rewrite, not a guarantee.
+rewritten `model` was not documented, so it was proven by a live probe rather than assumed:
+2026-10-08, Claude Code desktop, plugin 0.1.2, an `Explore` spawn with no model named was
+rewritten to `haiku` by the hook and the subagent reported its own model id as
+`claude-haiku-5-5`. The routing half is a guarantee on that host; re-run the probe after a host
+upgrade.
 
 ## Build Timeline
 
