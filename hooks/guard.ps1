@@ -27,6 +27,7 @@ try {
     . (Join-Path $PSScriptRoot 'lib\common.ps1')
     . (Join-Path $PSScriptRoot 'lib\tokenise.ps1')
     . (Join-Path $PSScriptRoot 'lib\guard-rules.ps1')
+    . (Join-Path $PSScriptRoot 'lib\turn-changes.ps1')
 
     $raw = [Console]::In.ReadToEnd()
     if ([string]::IsNullOrWhiteSpace($raw)) { throw 'empty stdin (no tool call payload)' }
@@ -100,6 +101,16 @@ try {
         }
         $ledger = Join-Path (Get-DfMarkerDir) ((($sessionId -replace '[^A-Za-z0-9_.-]', '_')) + '.edits')
         Add-DfTextLine $ledger ("{0}`t{1}" -f $full, $flags)
+    }
+
+    # Nominate the repositories this call points at (lib\turn-changes.ps1). The ledger above only
+    # holds Edit and Write calls; a file a command changes is never in it. stop.ps1 asks git what
+    # changed since the prompt in every nominated repository, so a script's edits are seen too.
+    if (-not $result) {
+        $noms = @()
+        if ($tool -in @('Edit', 'Write', 'NotebookEdit')) { if ($full) { $noms = @(Find-DfRepoDir $full $ptr.root) } }
+        elseif ($tool -in @('Bash', 'PowerShell') -and -not [string]::IsNullOrWhiteSpace([string]$ti.command)) { $noms = @(Get-DfShellRepos $subs $cwd $ptr.root) }
+        Add-DfNominations $sessionId @($noms | Where-Object { $_ })
     }
 
     if ($result) {

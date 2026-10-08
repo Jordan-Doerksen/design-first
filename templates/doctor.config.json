@@ -22,7 +22,8 @@
     "categories": "survey.ps1 - folders: top-level folders under root that hold projects; a repository under any other first folder is reported as outsideCategory (never the root, the brain or the root .claude folder). since: ISO date; a stray born before it is reported, one born on or after it is a fail. Empty folders: the check is off",
     "splitLines": "hooks/guard.ps1 rule 6 (file-size) - a source write that leaves a file over this many lines asks (DES-03); 0 disables",
     "sourceExtensions": "hooks/guard.ps1 rules 5 and 6 - which extensions count as source for the manifest and size rules; docs, config and data are not source",
-    "stopDocs": "hooks/stop.ps1 - file names that count as documents for the Stop card (DES-07); anything under a docs/ folder counts too"
+    "stopDocs": "hooks/stop.ps1 - file names that count as documents for the Stop card (DES-07); anything under a docs/ folder counts too",
+    "stopFromGit": "hooks/stop.ps1 - true: the Stop card reads the turn's changes from git (commits made and files written since the prompt), so a file a command changed is counted; false: Edit and Write calls only"
   },
   "surveyStrict": false,
   "maxDepth": 3,
@@ -87,6 +88,7 @@
     "minReason": 10
   },
   "splitLines": 500,
+  "stopFromGit": true,
   "sourceExtensions": [
     ".py",
     ".js",

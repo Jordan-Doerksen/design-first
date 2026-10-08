@@ -82,6 +82,7 @@ $script:ConfigReaders = [ordered]@{
     splitLines                 = 'hooks/guard.ps1 (rule 6, file-size: the line count that asks)'
     sourceExtensions           = 'hooks/guard.ps1 (rules 5 and 6) / hooks/stop.ps1 (what counts as source)'
     stopDocs                   = 'hooks/stop.ps1 (file names that count as documents on the Stop card)'
+    stopFromGit                = 'hooks/stop.ps1 (true: the turn''s changes are read from git; false: Edit and Write calls only)'
 }
 
 # Keys the previous Doctor had that are now derived from the pointer or simply dead (SPEC 5.3).
@@ -112,6 +113,7 @@ function Get-DefaultConfig {
         splitLines                 = 500
         sourceExtensions           = @()
         stopDocs                   = @()
+        stopFromGit                = $true
     }
 }
 

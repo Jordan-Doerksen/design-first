@@ -164,7 +164,7 @@ try {
             [ordered]@{ live = 'entry-point/eolonly.md';    snapshot = 'entry-point/eolonly.md.snapshot' })
         enforcement = [ordered]@{ fenceLogStaleDays = 30 }
         gitTimeoutSeconds = 20   # dead key: must be reported
-        splitLines = 500; sourceExtensions = @('.py'); stopDocs = @('DECISIONS.md')   # read by the hooks: must NOT be reported
+        splitLines = 500; sourceExtensions = @('.py'); stopDocs = @('DECISIONS.md'); stopFromGit = $true   # read by the hooks: must NOT be reported
         lawClaim = [ordered]@{ extraFiles = @(); trailer = 'No-Claim'; minReason = 10 }   # read by the commit check: must NOT be reported
     }
     WJ (Join-Path $brain 'doctor.config.json') $cfg
@@ -349,7 +349,7 @@ exit 0
     Assert-Has 'A: restore drill stale' $a.out 'restore drill is'
     Assert-Has 'A: fence log absent is REPORTED as no trips yet' $a.out 'fence log: no trips yet'
     Assert-Has 'A: dead config key reported' $a.out 'dead config key: gitTimeoutSeconds'
-    foreach ($live in 'splitLines', 'sourceExtensions', 'stopDocs', 'lawClaim', 'categories') { Assert-HasNot "A: $live has a reader outside the Doctor, not a dead key" $a.out "dead config key: $live" }
+    foreach ($live in 'splitLines', 'sourceExtensions', 'stopDocs', 'stopFromGit', 'lawClaim', 'categories') { Assert-HasNot "A: $live has a reader outside the Doctor, not a dead key" $a.out "dead config key: $live" }
     Assert-Has 'A: soft_deny counted against frozenPaths' $a.out 'soft_deny: 2 rule(s), 1 naming a frozen path'
     Assert-Has 'A: registered-but-missing hook' $a.out 'hook REGISTERED BUT MISSING'
     Assert-Has 'A: deny/ask rules read from root settings' $a.out 'root settings: 1 deny, 1 ask'

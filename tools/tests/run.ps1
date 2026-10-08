@@ -389,11 +389,12 @@ Record 'stop: in-scope and out-of-scope source -> the card counts the repository
 $null = Route 'yes' 'st-ledger' $root
 Record 'route: a new prompt clears the edit ledger' 'cleared' $(if (-not (Test-Path -LiteralPath (Ledger 'st-ledger'))) { 'cleared' } else { 'kept' }) ''
 
-# ------------------------------------------------------------------ 6 and 7. cases split by domain (DES-03)
-# 6: the commit-msg check (VCS-23). 7: the state card (GAME-13). Each file uses the fixtures and
-# helpers above and records into the same result list.
+# ------------------------------------------------------------------ 6, 7 and 8. cases split by domain (DES-03)
+# 6: the commit-msg check (VCS-23). 7: the state card (GAME-13). 8: the Stop card reading the turn's
+# changes from git. Each file uses the fixtures and helpers above and records into the same result list.
 . (Join-Path $here 'cases-law-claim.ps1')
 . (Join-Path $here 'cases-state-card.ps1')
+. (Join-Path $here 'cases-stop-git.ps1')
 
 # ------------------------------------------------------------------ summary
 $passed = @($results | Where-Object pass).Count

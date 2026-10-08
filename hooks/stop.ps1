@@ -1,17 +1,26 @@
 # stop.ps1 - design-first Stop hook: a code turn does not end without its card (DES-07, GATE-05/06/07).
 #
-# The guard records every allowed Edit / Write / NotebookEdit of this session in a ledger
-# (<markers>/<session>.edits, one "path<TAB>flags" line); route.ps1 clears it at each prompt, so
-# the ledger is this turn's changes. When the turn changed source and the model tries to stop, this
-# hook refuses ONCE and hands back the card: the documents touched or not (DES-07), the Change Log
-# row when DECISIONS.md changed (GATE-06), the cross-check (GATE-05) and the Definition of Done
-# (GATE-07). The model answers the card in its reply; the next stop attempt (stop_hook_active) passes.
-# A turn that changed no source, or only documents, is never stopped. Owner decision 2026-10-08:
-# block once, then yield. Scope: only edits inside a git repository count, and only under the root
-# when the pointer names one; a scratch file outside both never raises the card.
+# When the turn changed source and the model tries to stop, this hook refuses ONCE and hands back
+# the card: the documents touched or not (DES-07), the Change Log row when DECISIONS.md changed
+# (GATE-06), the cross-check (GATE-05) and the Definition of Done (GATE-07). The model answers the
+# card in its reply; the next stop attempt (stop_hook_active) passes. A turn that changed no source,
+# or only documents, is never stopped. Owner decision 2026-10-08: block once, then yield.
+#
+# What changed is read from the disk, not from the tool calls (lib\turn-changes.ps1). The guard
+# nominates every repository this turn's calls pointed at; for each one git says which files are in
+# a commit made since the prompt, or are uncommitted and were written since the prompt. So a
+# document a script wrote is a document touched, and a source file a command changed counts.
+# Before 0.1.15 the card saw only Edit and Write calls, and said "Documents touched: none" over five
+# documents a patch script had just written.
+#
+# Fallbacks, each named on the card when it applies: a session with no prompt time on record, or
+# `stopFromGit` false in the brain config, or a repository git cannot read, is counted from the
+# edit ledger (<markers>/<session>.edits, the Edit / Write / NotebookEdit calls the guard allowed).
+# Scope: only a git repository counts, and only under the root when the pointer names one.
 #
 # Honest limit: the hook can require the card, not grade the answer. A model's claim that the
 # cross-check passed is a claim (AUTO-06); the deterministic checks are the Doctor and the gate.
+# What the disk reading cannot see is written at the top of lib\turn-changes.ps1.
 #
 # anchor: stop-done  mode: deny  verbs: document,cross-check,change,finish
 
@@ -21,15 +30,10 @@ $ErrorActionPreference = 'Stop'
 
 $script:DfDefaultStopDocs = @('DECISIONS.md', 'ARCHITECTURE.md', 'HANDOFF.md', 'CHANGELOG.md', 'README.md', 'SPEC.md', 'MANUAL.md')
 
-function Get-DfEditLedgerPath([string]$sessionId) {
-    $dir = Get-DfMarkerDir
-    if ([string]::IsNullOrWhiteSpace($sessionId)) { $sessionId = 'unknown' }
-    return (Join-Path $dir (($sessionId -replace '[^A-Za-z0-9_.-]', '_') + '.edits'))
-}
-
 try {
     . (Join-Path $PSScriptRoot 'lib\common.ps1')
-    . (Join-Path $PSScriptRoot 'lib\guard-rules.ps1')   # Get-DfRepoRoot, the default source extensions
+    . (Join-Path $PSScriptRoot 'lib\guard-rules.ps1')   # Get-DfLedgerRepo, the default source extensions
+    . (Join-Path $PSScriptRoot 'lib\turn-changes.ps1')
 
     $raw = ''
     try { if ([Console]::IsInputRedirected) { $raw = [Console]::In.ReadToEnd() } } catch { }
@@ -40,36 +44,79 @@ try {
     if ($j -and $j.PSObject.Properties['stop_hook_active']) { $active = [bool]$j.stop_hook_active }
     if ($active) { exit 0 }                                   # the card was handed over already; yield
 
-    $ledger = Get-DfEditLedgerPath $sessionId
-    if (-not (Test-Path -LiteralPath $ledger -PathType Leaf)) { exit 0 }
-    $lines = @(Get-Content -LiteralPath $ledger -Encoding utf8 | Where-Object { $_.Trim() })
-    if ($lines.Count -eq 0) { exit 0 }
+    $ledgerFile = Get-DfSessionFile $sessionId '.edits'
+    $lines = @(if (Test-Path -LiteralPath $ledgerFile -PathType Leaf) { Get-Content -LiteralPath $ledgerFile -Encoding utf8 | Where-Object { $_.Trim() } })
+    $nominated = @(Read-DfNominations $sessionId)             # @{ repo; base }: HEAD at the turn's first call there
+    if ($lines.Count -eq 0 -and $nominated.Count -eq 0) { exit 0 }
+    $baseOf = @{}; foreach ($n in $nominated) { $baseOf[$n.repo] = $n.base }
 
     $ptr = Read-DfPointer
-    $cfg = @{ present = $false; sourceExtensions = @(); splitLines = 0 }
+    $cfg = @{ present = $false; sourceExtensions = @(); splitLines = 0; stopFromGit = $true }
     try { $cfg = Read-DfBrainConfig $ptr } catch { }
     $exts = if ($cfg.sourceExtensions -and @($cfg.sourceExtensions).Count -gt 0) { @($cfg.sourceExtensions) } else { $script:DfDefaultSourceExtensions }
     $docs = $script:DfDefaultStopDocs
     if ($cfg.PSObject -and $cfg.ContainsKey('stopDocs') -and @($cfg.stopDocs).Count -gt 0) { $docs = @($cfg.stopDocs) }
+    $since = Get-DfTurnStart $sessionId
+    $fromGit = ($null -ne $since) -and -not ($cfg.ContainsKey('stopFromGit') -and $cfg.stopFromGit -eq $false)
 
-    # Group this turn's edits by repository root. A path outside the root or in no repository is
-    # skipped: the guard no longer records one, and a ledger written before that fix is filtered here.
-    $groups = @{}
+    # The edit ledger, by repository: the paths the Edit / Write calls named, and the Change Log flag.
+    # A path outside the root or in no repository is skipped (0.1.9).
+    $ledger = @{}
     foreach ($l in $lines) {
         $parts = $l -split "`t"
         $path = $parts[0]; $flags = if ($parts.Count -gt 1) { $parts[1] } else { '' }
-        $root = Get-DfLedgerRepo $path $ptr.root
-        if (-not $root) { continue }
-        if (-not $groups.ContainsKey($root)) { $groups[$root] = @{ src = [Collections.Generic.List[string]]::new(); docs = [Collections.Generic.List[string]]::new(); decisions = $false; changelog = $false } }
-        $g = $groups[$root]
-        $leaf = Split-Path -Leaf $path
-        $ext = [IO.Path]::GetExtension($path).ToLowerInvariant()
-        $isDoc = ($docs | Where-Object { $_ -ieq $leaf }).Count -gt 0 -or ($path -match '(?i)[\\/]docs[\\/]')
-        if ($isDoc) {
-            if (-not $g.docs.Contains($leaf)) { $g.docs.Add($leaf) }
-            if ($leaf -ieq 'DECISIONS.md') { $g.decisions = $true; if ($flags -match 'changelog') { $g.changelog = $true } }
+        $repo = Get-DfLedgerRepo $path $ptr.root
+        if (-not $repo) { continue }
+        # Same spelling of the folder as the guard's nominations use, so one repository is one group.
+        $asNominated = Find-DfRepoDir $path $ptr.root; if ($asNominated) { $repo = $asNominated }
+        if (-not $ledger.ContainsKey($repo)) { $ledger[$repo] = @{ paths = [Collections.Generic.List[string]]::new(); changelog = $false } }
+        if (-not $ledger[$repo].paths.Contains($path)) { $ledger[$repo].paths.Add($path) }
+        if ($flags -match 'changelog') { $ledger[$repo].changelog = $true }
+    }
+
+    # Every repository to look at: the ledger's, and the ones the guard nominated from shell calls.
+    $repos = [Collections.Generic.List[string]]::new()
+    foreach ($r in @($ledger.Keys) + $(if ($fromGit) { @($nominated | ForEach-Object { $_.repo }) } else { @() })) {
+        if (-not $r) { continue }
+        if ($ptr.root -and -not (Test-DfUnder $r $ptr.root)) { continue }
+        if (@($repos | Where-Object { $_ -ieq $r }).Count -eq 0) { $repos.Add($r) }
+    }
+
+    $groups = @{}
+    foreach ($repo in $repos) {
+        $g = @{ src = [Collections.Generic.List[string]]::new(); docs = [Collections.Generic.List[string]]::new(); decisions = $false; changelog = $false; how = 'calls' }
+        $paths = [Collections.Generic.List[string]]::new()
+        $led = if ($ledger.ContainsKey($repo)) { $ledger[$repo] } else { $null }
+        $ch = $null
+        if ($fromGit -and (Test-Path -LiteralPath $repo -PathType Container)) { $ch = Get-DfTurnChanges $repo $since $(if ($baseOf.ContainsKey($repo)) { [string]$baseOf[$repo] } else { '' }) }
+        if ($ch -and $ch.ok) {
+            $g.how = 'git'
+            foreach ($rel in $ch.paths) { $paths.Add((Join-Path $repo ($rel -replace '/', '\'))) }
+            # A file git ignores is in no status list. When an Edit or Write named it and it was
+            # written since the prompt, it changed; a call that was allowed and then failed did not.
+            if ($led) {
+                foreach ($p in $led.paths) {
+                    if (@($paths | Where-Object { $_ -ieq $p }).Count -gt 0) { continue }
+                    if ((Test-Path -LiteralPath $p -PathType Leaf) -and ([IO.File]::GetLastWriteTimeUtc($p) -ge $since.UtcDateTime)) { $paths.Add($p) }
+                }
+            }
+            $g.changelog = [bool]$ch.decisionsRow -or ($led -and $led.changelog)
         }
-        elseif ($exts -contains $ext) { if (-not $g.src.Contains($path)) { $g.src.Add($path) } }
+        else {
+            if ($led) { foreach ($p in $led.paths) { $paths.Add($p) }; $g.changelog = $led.changelog }
+            if ($fromGit) { $g.how = 'calls-git-failed' }
+        }
+        foreach ($path in $paths) {
+            $leaf = Split-Path -Leaf $path
+            $ext = [IO.Path]::GetExtension($path).ToLowerInvariant()
+            $isDoc = ($docs | Where-Object { $_ -ieq $leaf }).Count -gt 0 -or ($path -match '(?i)[\\/]docs[\\/]')
+            if ($isDoc) {
+                if (-not $g.docs.Contains($leaf)) { $g.docs.Add($leaf) }
+                if ($leaf -ieq 'DECISIONS.md') { $g.decisions = $true }
+            }
+            elseif ($exts -contains $ext) { if (-not $g.src.Contains($path)) { $g.src.Add($path) } }
+        }
+        $groups[$repo] = $g
     }
 
     $hits = @($groups.Keys | Where-Object { $groups[$_].src.Count -gt 0 } | Sort-Object)
@@ -84,8 +131,14 @@ try {
         if ($g.docs.Count -gt 0) { [void]$sb.AppendLine("  Documents touched: " + ($g.docs -join ', ') + ".") }
         else { [void]$sb.AppendLine("  Documents touched: none. DES-07: documents are co-equal; say which document should carry this change, or why none does.") }
         if ($g.decisions -and -not $g.changelog) { [void]$sb.AppendLine("  DECISIONS.md was edited with no Change Log row. GATE-06: a change to a decision is a Change Request; add the row, or say why this edit is not one.") }
+        if ($g.how -eq 'calls-git-failed') { [void]$sb.AppendLine("  git could not be read here, so this repository is counted from Edit and Write calls only; a file a command changed is not in the count.") }
     }
     [void]$sb.AppendLine("")
+    if (@($hits | Where-Object { $groups[$_].how -eq 'git' }).Count -gt 0) {
+        [void]$sb.AppendLine("Read from git, for each repository this turn's tool calls pointed at: files in a commit made since the prompt, and uncommitted files written since the prompt.")
+    } else {
+        [void]$sb.AppendLine("Counted from Edit and Write calls only; a file a command changed is not in the count.")
+    }
     [void]$sb.AppendLine("Cross-check (GATE-05): does the change still fit DECISIONS.md, ARCHITECTURE.md and the core goal? Name any clash.")
     [void]$sb.AppendLine("Definition of Done (GATE-07): what ran to prove it (command and its output, pasted, AUTO-06); any locked decision contradicted; does the result fit one screen of explanation.")
     [void]$sb.AppendLine("Nothing here is checked by this hook; it is checked by the Doctor and the repository's gate.")

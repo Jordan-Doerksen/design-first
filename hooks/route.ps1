@@ -23,6 +23,7 @@ $ErrorActionPreference = 'Stop'
 try {
     . (Join-Path $PSScriptRoot 'lib\common.ps1')
     . (Join-Path $PSScriptRoot 'lib\law-rows.ps1')
+    . (Join-Path $PSScriptRoot 'lib\turn-changes.ps1')
 
     $raw = ''
     try { if ([Console]::IsInputRedirected) { $raw = [Console]::In.ReadToEnd() } } catch { }
@@ -32,15 +33,30 @@ try {
     $sessionId = if ($j -and $j.session_id) { [string]$j.session_id } else { 'unknown' }
     $cwd       = if ($j -and $j.cwd) { ConvertTo-DfFullPath ([string]$j.cwd) } else { (Get-Location).Path }
 
-    # A new prompt is a turn boundary: the guard's edit ledger (read by stop.ps1) starts over.
-    $ledger = Join-Path (Get-DfMarkerDir) ((($sessionId -replace '[^A-Za-z0-9_.-]', '_')) + '.edits')
-    if (Test-Path -LiteralPath $ledger -PathType Leaf) { Remove-Item -LiteralPath $ledger -Force -ErrorAction SilentlyContinue }
+    # A prompt from the owner is a turn boundary: the guard's edit ledger and its list of nominated
+    # repositories start over, and the time is written down, so stop.ps1 can ask git what changed
+    # since (lib\turn-changes.ps1). A background-task notice is NOT a boundary. The host hands it to
+    # this hook as a prompt in the middle of a turn; taking it for one made the card forget every
+    # edit before it. Seen 2026-10-08: two notices in one turn, each one routed as if typed.
+    $isNotice = $prompt -match '(?is)<task-notification>.*?</task-notification>'
+    if (-not $isNotice) {
+        foreach ($ext in '.edits', '.repos') {
+            $f = Get-DfSessionFile $sessionId $ext
+            if (Test-Path -LiteralPath $f -PathType Leaf) { Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue }
+        }
+        $turn = Get-DfSessionFile $sessionId '.turn'
+        $turnDir = Split-Path -Parent $turn
+        if (-not (Test-Path -LiteralPath $turnDir)) { New-Item -ItemType Directory -Force -Path $turnDir | Out-Null }
+        Set-Content -LiteralPath $turn -Value ([DateTimeOffset]::Now.ToString('o')) -Encoding utf8
+    }
 
     if ([string]::IsNullOrWhiteSpace($prompt)) { exit 0 }
     # The host can attach reminder blocks (skills lists, instructions) to the prompt it hands over.
     # Those carry words like page, review, log and gate that are not the owner's; match the typed
     # text only. Seen 2026-10-08: the first prompt after a restart routed four groups it never named.
+    # A task notice carries the words of a command description; they are not the owner's either.
     $prompt = [regex]::Replace($prompt, '(?is)<system-reminder>.*?</system-reminder>', ' ')
+    $prompt = [regex]::Replace($prompt, '(?is)<task-notification>.*?</task-notification>', ' ')
 
     $ptr = Read-DfPointer
     if ($null -eq $ptr.pointer) { exit 0 }           # no brain: the entry hook already said so
