@@ -128,7 +128,7 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 |---|---|---|---|
 | GAME-11 | HONOUR | State the hat you wear and wear one at a time; the Programmer hat stays locked until an owner-approved spec exists. | `kit:workflows/coding.md` |
 | GAME-12 | HONOUR | The inner gate runs after every small verifiable change (verify, stop, show what changed and what it proves, wait), the outer gate runs at every chunk boundary, and only a trivial, reversible, owner-requested single-file edit is exempt. | `kit:workflows/coding.md` |
-| GAME-13 | BUILDABLE | A session on a game repository opens with a state card built from the repository's documents, never from memory, and a disagreement with the real state is raised before any work. | `kit:workflows/coding.md` |
+| GAME-13 | ADVISE | A session on a game repository opens with a state card built from the repository's documents, never from memory, and a disagreement with the real state is raised before any work. | `kit:workflows/coding.md` |
 | GAME-14 | HONOUR | Cite the pattern or do not claim one; a pattern the cited reference does not contain is labelled as from memory, not from the reference. | `kit:workflows/coding.md` |
 
 ## DISP - Display
@@ -161,9 +161,9 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 |---|---|
 | DENY | 0 |
 | HOOK | 11 |
-| ADVISE | 6 |
+| ADVISE | 7 |
 | GATE | 12 |
-| BUILDABLE | 8 |
+| BUILDABLE | 7 |
 | OWNER | 3 |
 | HONOUR | 38 |
 | total | 78 |

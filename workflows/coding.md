@@ -221,6 +221,20 @@ far · what is next.** Take it from `HANDOFF.md` + `DECISIONS.md` + the story le
 memory. If those sources disagree with the repository's actual state (`git status`, `git branch -a`,
 what runs), say so before continuing. A stale hand-off is a defect, the same as a silent failure.
 
+**The mechanism** is the session-start hook. When a session starts inside a game repository,
+`hooks/entry.ps1` prints the card's machine half after the entry path: what git says (branch,
+uncommitted, unpushed, last commit), what the manifest says (the core goal, the Build Timeline
+position, the last Change Log row, the open questions) and what the hand-off says (its state and
+next sections), each document with its age in commits. A hand-off far behind HEAD is flagged
+STALE. A part that is not there is named as missing. You post the card, add the hats in play, and
+name any disagreement before the first edit.
+
+Which repositories are game repositories is the brain's `route-policy.json`: a top-level folder
+mapped to the `GAME` group in `folders`, and `stateCard.groups`. Written limits: the card fires
+only when the session starts in the repository, and most sessions start at the root, where you
+build the card by hand from the same documents; the hook reads the documents' shape, not their
+truth; a document that is many commits old is old, not necessarily wrong.
+
 ### GAME-14
 
 **Cite the pattern or do not claim one; a pattern the cited reference does not contain is labelled

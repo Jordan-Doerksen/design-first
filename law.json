@@ -815,11 +815,11 @@
       "verb": "open-session",
       "rule": "A session on a game repository opens with a state card built from the repository's documents, never from memory, and a disagreement with the real state is raised before any work.",
       "owner": "kit:workflows/coding.md",
-      "grade": "BUILDABLE",
+      "grade": "ADVISE",
       "since": "2026-09-22",
       "enforcedBy": {
-        "kind": "planned",
-        "ref": "DECISIONS.md#2.7"
+        "kind": "hook",
+        "ref": "hooks/entry.ps1#state-card"
       }
     },
     {

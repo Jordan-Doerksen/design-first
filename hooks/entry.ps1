@@ -12,6 +12,9 @@
 #      "kit:" entries resolve under pointer.pluginRoot (the kit the brain's LAW.md and Doctor
 #      run from; the running plugin root when the pointer has none), "brain:" under the brain.
 #      Outside root: one line. No pointer: the /design-first:adopt line.
+#   5. cwd inside a repository whose top-level folder the route policy maps to a state-card group
+#      (a game repository): print the state card built from its documents and git (GAME-13,
+#      lib\state-card.ps1).
 # Output is buffered and printed once, so an internal error can still answer as JSON on both
 # channels with the ERROR logged.
 #
@@ -153,6 +156,17 @@ try {
                         else { $lines.Add(" $n. MISSING: $rel (could not be resolved)$suffix") }
                     }
                     if ($n -eq 0) { $lines.Add(" (entry.json lists no files)") }
+                }
+                # 5. the state card (GAME-13): only when the session starts inside a repository whose
+                #    top-level folder the route policy maps to a state-card group. A failure here
+                #    must not cost the session its entry path, so it is caught, logged and said.
+                try {
+                    . (Join-Path $PSScriptRoot 'lib\law-rows.ps1')
+                    . (Join-Path $PSScriptRoot 'lib\state-card.ps1')
+                    foreach ($cl in @(Get-DfStateCardLines $cwd $ptr)) { $lines.Add([string]$cl) }
+                } catch {
+                    Write-DfLog 'ERROR' 'entry' "state card failed: $($_.Exception.Message)"
+                    $lines.Add("design-first: the state card could not be built ($($_.Exception.Message)); logged. Build it by hand from the repository's documents (GAME-13).")
                 }
             }
             else {
