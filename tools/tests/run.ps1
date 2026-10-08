@@ -37,7 +37,10 @@ function Record([string]$name, [string]$expected, [string]$got, [string]$detail)
     $color = if ($ok) { 'Green' } else { 'Red' }
     $line = '  {0}  {1,-72} {2,-8} {3}' -f $tag, $name.Substring(0, [Math]::Min(72, $name.Length)), $expected, $got
     Write-Host $line -ForegroundColor $color
-    if (-not $ok -and $detail) { Write-Host ('        ' + ($detail -replace "`r?`n", ' ').Substring(0, [Math]::Min(300, $detail.Length))) -ForegroundColor DarkGray }
+    # Workaround: the cut length is taken AFTER the newline fold. Taken before, a failing case whose
+    # detail held a CRLF asked Substring for more characters than the folded text had, and the
+    # printer threw on the first FAIL instead of showing it.
+    if (-not $ok -and $detail) { $flat = $detail -replace "`r?`n", ' '; Write-Host ('        ' + $flat.Substring(0, [Math]::Min(300, $flat.Length))) -ForegroundColor DarkGray }
 }
 
 # ------------------------------------------------------------------ fixtures
@@ -352,6 +355,36 @@ $r = Stop 'st-docs' $false
 Record 'stop: only documents changed -> silent' 'allow' $(if ([string]::IsNullOrWhiteSpace($r.out)) { 'allow' } else { 'blocked' }) $r.out
 $r = Stop 'st-empty' $false
 Record 'stop: no ledger -> silent' 'allow' $(if ([string]::IsNullOrWhiteSpace($r.out)) { 'allow' } else { 'blocked' }) $r.out
+# ledger scope: only a path in a git repository, and under the root when the pointer names one, is a
+# code change. The first live card counted the session scratchpad as a repository.
+function GuardEdit([string]$session, [string]$path) {
+    return (Invoke-Hook 'guard.ps1' (@{ session_id = $session; cwd = $root; hook_event_name = 'PreToolUse'; tool_name = 'Write'; tool_input = @{ file_path = $path; content = 'x = 1' } } | ConvertTo-Json -Compress))
+}
+function LedgerText([string]$session) { if (Test-Path -LiteralPath (Ledger $session)) { return (Get-Content -LiteralPath (Ledger $session) -Raw) } else { return '' } }
+$repoOut = Join-Path $T 'outside\repo-out'
+New-Item -ItemType Directory -Force -Path $repoOut | Out-Null
+RunGit $repoOut @('init', '-q', '-b', 'main')
+Put (Join-Path $repoOut 'DECISIONS.md') '# decisions'
+$scratch = Join-Path $T 'outside\scratch.py'
+$null = GuardEdit 'sc-norepo' (Join-Path $root 'ordinary\new.py')
+Record 'ledger scope: under the root, in no repository -> not recorded' 'absent' $(if ([string]::IsNullOrWhiteSpace((LedgerText 'sc-norepo'))) { 'absent' } else { 'present' }) (LedgerText 'sc-norepo')
+$null = GuardEdit 'sc-scratch' $scratch
+Record 'ledger scope: outside the root, in no repository -> not recorded' 'absent' $(if ([string]::IsNullOrWhiteSpace((LedgerText 'sc-scratch'))) { 'absent' } else { 'present' }) (LedgerText 'sc-scratch')
+$null = GuardEdit 'sc-repoout' (Join-Path $repoOut 'a.py')
+Record 'ledger scope: a repository outside the root -> not recorded' 'absent' $(if ([string]::IsNullOrWhiteSpace((LedgerText 'sc-repoout'))) { 'absent' } else { 'present' }) (LedgerText 'sc-repoout')
+$saved = $env:DF_POINTER_PATH; $env:DF_POINTER_PATH = Join-Path $T 'no-such-pointer.json'
+$null = GuardEdit 'sc-noptr' (Join-Path $repoOut 'a.py')
+$null = GuardEdit 'sc-noptr' $scratch
+$env:DF_POINTER_PATH = $saved
+$led = LedgerText 'sc-noptr'
+Record 'ledger scope: no pointer, a repository edit is recorded, a loose file is not' 'repo-only' $(if ($led -like '*repo-out\a.py*' -and $led -notlike '*scratch.py*') { 'repo-only' } else { 'wrong' }) $led
+# a ledger written before the fix (or by hand) is filtered by the Stop hook as well
+Put (Ledger 'sc-old') ($scratch + "`t`n")
+$r = Stop 'sc-old' $false
+Record 'stop: only an out-of-scope path in the ledger -> silent' 'allow' $(if ($r.code -eq 0 -and [string]::IsNullOrWhiteSpace($r.out)) { 'allow' } else { 'blocked' }) $r.out
+Put (Ledger 'sc-mixed') ($scratch + "`t`n" + (Join-Path $repoOut 'a.py') + "`t`n" + (Join-Path $repoClean 'src\main.py') + "`t`n")
+$r = Stop 'sc-mixed' $false
+Record 'stop: in-scope and out-of-scope source -> the card counts the repository only' 'one-repo' $(if ((Classify $r.out) -eq 'block' -and $r.out -like '*repo-clean: 1 source file*' -and $r.out -notlike '*outside*') { 'one-repo' } else { 'wrong' }) $r.out
 # a new prompt clears the ledger
 $null = Route 'yes' 'st-ledger' $root
 Record 'route: a new prompt clears the edit ledger' 'cleared' $(if (-not (Test-Path -LiteralPath (Ledger 'st-ledger'))) { 'cleared' } else { 'kept' }) ''

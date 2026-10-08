@@ -7,7 +7,8 @@
 # row when DECISIONS.md changed (GATE-06), the cross-check (GATE-05) and the Definition of Done
 # (GATE-07). The model answers the card in its reply; the next stop attempt (stop_hook_active) passes.
 # A turn that changed no source, or only documents, is never stopped. Owner decision 2026-10-08:
-# block once, then yield.
+# block once, then yield. Scope: only edits inside a git repository count, and only under the root
+# when the pointer names one; a scratch file outside both never raises the card.
 #
 # Honest limit: the hook can require the card, not grade the answer. A model's claim that the
 # cross-check passed is a claim (AUTO-06); the deterministic checks are the Doctor and the gate.
@@ -51,13 +52,14 @@ try {
     $docs = $script:DfDefaultStopDocs
     if ($cfg.PSObject -and $cfg.ContainsKey('stopDocs') -and @($cfg.stopDocs).Count -gt 0) { $docs = @($cfg.stopDocs) }
 
-    # Group this turn's edits by repository root; a path outside any repository is grouped under its folder.
+    # Group this turn's edits by repository root. A path outside the root or in no repository is
+    # skipped: the guard no longer records one, and a ledger written before that fix is filtered here.
     $groups = @{}
     foreach ($l in $lines) {
         $parts = $l -split "`t"
         $path = $parts[0]; $flags = if ($parts.Count -gt 1) { $parts[1] } else { '' }
-        $root = Get-DfRepoRoot $path
-        if (-not $root) { $root = Split-Path -Parent $path }
+        $root = Get-DfLedgerRepo $path $ptr.root
+        if (-not $root) { continue }
         if (-not $groups.ContainsKey($root)) { $groups[$root] = @{ src = [Collections.Generic.List[string]]::new(); docs = [Collections.Generic.List[string]]::new(); decisions = $false; changelog = $false } }
         $g = $groups[$root]
         $leaf = Split-Path -Leaf $path

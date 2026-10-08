@@ -90,8 +90,9 @@ try {
     # The edit ledger for stop.ps1: every ALLOWED Edit / Write / NotebookEdit of this turn, one line
     # "path<TAB>flags". route.ps1 clears it at each prompt. A DECISIONS.md write whose new text carries
     # a Change Log row ("| 2026-10-08 | ...") is flagged, so the Stop card can tell a Change Request
-    # from a drift edit without diffing the file.
-    if (-not $result -and $tool -in @('Edit', 'Write', 'NotebookEdit') -and $full) {
+    # from a drift edit without diffing the file. Only an edit inside a git repository, and under the
+    # root when the pointer names one, is recorded (Get-DfLedgerRepo): a scratch file is not a change.
+    if (-not $result -and $tool -in @('Edit', 'Write', 'NotebookEdit') -and $full -and (Get-DfLedgerRepo $full $ptr.root)) {
         $flags = ''
         if ((Split-Path -Leaf $full) -ieq 'DECISIONS.md') {
             $newText = if ($tool -eq 'Write') { [string]$ti.content } else { [string]$ti.new_string }

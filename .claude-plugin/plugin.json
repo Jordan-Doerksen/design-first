@@ -1,7 +1,7 @@
 {
   "name": "design-first",
   "displayName": "design-first",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "A working method for building with coding agents: interview before code, decisions locked in a manifest, every rule with an id and an honest enforcement grade, a Doctor that checks the disk instead of trusting prose.",
   "author": { "name": "Jordan-Doerksen" }
 }

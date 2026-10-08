@@ -97,7 +97,9 @@ the owning file. The planned mechanisms, each a Change Request when built:
   the first attempt to stop is refused with the card (documents touched, the Change Log row when
   DECISIONS.md changed, the cross-check, the Definition of Done) and the second attempt passes.
   Carries DES-07, GATE-05, GATE-06, GATE-07 at HOOK. It requires the card, it cannot grade the
-  answer.
+  answer. **Scope, corrected in 0.1.9:** an edit counts only inside a git repository, and only
+  under the root when the pointer names one. The first live card named the session scratchpad
+  as a repository, because a path in no repository was grouped under its own folder.
 - *Ratchet claim*: the HONOUR count in the generated LAW.md may only fall (PRIN-04).
 - *Survey finding* `outsideCategory`: a repository outside a category folder (MAP-04).
 - *Entry hook, game repositories*: print the state card from the repository's documents at
@@ -124,6 +126,7 @@ the owning file. The planned mechanisms, each a Change Request when built:
 | 14 | Repo scan: claim type tree_each with the first-commit ratchet; two template claims; selftest cases | Done 2026-10-08 |
 | 15 | Stop hook: stop.ps1, the edit ledger in guard.ps1, route.ps1 clears it per turn; 11 cases | Done 2026-10-08 |
 | 16 | Regex scan: tree_rules sharing the repo selection with tree_each; selftest cases | Done 2026-10-08 |
+| 17 | Stop hook scope: the edit ledger and the card ignore a path outside the root or in no repository; 6 cases | Done 2026-10-08 |
 
 ## Change Log
 
@@ -143,3 +146,4 @@ the owning file. The planned mechanisms, each a Change Request when built:
 | 2026-10-08 | tree_each shipped (owner decision: ratchet by first-commit date, not an accept list, not RED now). Fields root, depth, where, exclude, require (file / glob / glob+pattern, globs joined by '|'), since, accepted. Measured on the first instance before building: 75 repositories, DECISIONS.md in 31, a manual in 9, a crash trap in 5, sound toggles in 5 of 27 games; a strict scan would fail two thirds on day one. Version 0.1.6. | planned mechanism built | doctor, templates, tests |
 | 2026-10-08 | Stop hook shipped (owner decision: block once, then yield). guard.ps1 writes the turn's allowed edits to <markers>/<session>.edits with a changelog flag on DECISIONS.md rows; route.ps1 clears it at each prompt; stop.ps1 blocks the first stop of a turn that changed source with the card and yields on stop_hook_active. DES-07, GATE-05, GATE-06, GATE-07 print HOOK. hook_smoke accepts Stop; config gains stopDocs. Version 0.1.7. | planned mechanism built | hooks, law, doctor, templates, tests |
 | 2026-10-08 | tree_rules shipped; the repository selection, ratchet and accepted handling moved into Invoke-DfRepoScan, shared with tree_each. Measured on the first instance before building: 107 stylesheets with a raw colour outside a token file (47 in the live site, ratified debt D-A09), 32 stylesheets animating without a reduced-motion block, 3 motion layers writing transforms. Version 0.1.8. | planned mechanism built | doctor, tests |
+| 2026-10-08 | Stop hook scope fix, the first lesson from the live hook. Measured before the fix: six new cases failed, and the card read "Repository <temp folder>: 1 source file(s) changed" for a scratch file. `Get-DfLedgerRepo` (hooks/lib/guard-rules.ps1) returns the repository an edit counts against, or nothing when the path is outside the root (when a pointer names one) or in no git repository; guard.ps1 records only an edit it returns a repository for, and stop.ps1 filters with it too, so a ledger written before the fix cannot raise the card. No pointer: the root test is skipped, the repository test stays. The test runner's FAIL printer threw on a detail holding a CRLF (cut length taken before the newline fold); fixed in the same chunk because it hid the failures. Hook cases 182. Version 0.1.9. | kit fix | hooks, tests |

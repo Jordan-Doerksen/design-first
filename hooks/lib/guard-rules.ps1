@@ -220,6 +220,17 @@ function Get-DfRepoRoot([string]$full) {
     return (ConvertTo-DfFullPath ([string]($r.out | Select-Object -First 1)))
 }
 
+# The repository an edit counts against in the edit ledger and on the Stop card, or $null when the
+# edit is not a code change: a path outside the root (when a pointer names one), or in no git
+# repository. Workaround: the first live Stop card (2026-10-08) named the session scratchpad as a
+# repository, because a path with no repository was grouped under its own folder. A scratch file
+# has no manifest to cross-check and no documents to update, so it must not raise the card.
+function Get-DfLedgerRepo([string]$full, [string]$root) {
+    if (-not $full) { return $null }
+    if ($root -and -not (Test-DfUnder $full $root)) { return $null }
+    return (Get-DfRepoRoot $full)
+}
+
 function Test-DfManifestRule([string]$full, [string[]]$sourceExts, [string]$sessionId, [string]$owner, [string[]]$skipUnder) {
     if (-not $full) { return }
     $ext = [IO.Path]::GetExtension($full).ToLowerInvariant()
