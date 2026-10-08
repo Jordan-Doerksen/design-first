@@ -85,8 +85,13 @@ the owning file. The planned mechanisms, each a Change Request when built:
   The kit's own grade for those clauses stays BUILDABLE: the kit cannot assert a fact about an
   adopter's repositories, so the claims live in the brain (two generic ones ship in
   `templates/claims.json`), and the brain overlay re-grades the clauses to GATE.
-- *Regex scan* (claim type `tree_matches_none` / `tree_requires`): OBS-04 swallowed errors; the
-  reduced-motion block; raw colours outside a token file.
+- *Regex scan* (claim type `tree_rules`): **shipped in 0.1.8.** Same selection and ratchet as
+  `tree_each`; per repository, files matching a glob are read and each rule applied: `forbid`
+  (no line may match, unless that line or the one above carries the `allowOnLine` reason) or
+  `when` + `require` (a file that matches the one must match the other). Carries SAFE-05,
+  OBS-04, SKIN-03, SKIN-04 and GAME-07 through brain claims. Written residual for OBS-04: a
+  stderr redirect on a command whose exit code is read is not a swallowed error and cannot be
+  told apart by regex, so the claim counts only an empty catch and a bare except.
 - *Stop hook*: **shipped in 0.1.7** (`hooks/stop.ps1`, owner decision: block once, then yield).
   The guard records every allowed edit of the turn in a ledger; when the turn changed source,
   the first attempt to stop is refused with the card (documents touched, the Change Log row when
@@ -118,6 +123,7 @@ the owning file. The planned mechanisms, each a Change Request when built:
 | 13 | HONOUR triage: ask.ps1, guard rules 5 and 6, survey anchors, grades re-derived, planned mechanisms in 2.7 | Done 2026-10-08 |
 | 14 | Repo scan: claim type tree_each with the first-commit ratchet; two template claims; selftest cases | Done 2026-10-08 |
 | 15 | Stop hook: stop.ps1, the edit ledger in guard.ps1, route.ps1 clears it per turn; 11 cases | Done 2026-10-08 |
+| 16 | Regex scan: tree_rules sharing the repo selection with tree_each; selftest cases | Done 2026-10-08 |
 
 ## Change Log
 
@@ -136,3 +142,4 @@ the owning file. The planned mechanisms, each a Change Request when built:
 | 2026-10-08 | HONOUR triage applied (ten owner passes): OWN-04 HOOK (ask.ps1, one question per call); DES-02 and GATE-04 ADVISE (guard rule 5, source write with no DECISIONS.md); DES-03 ADVISE (guard rule 6, file over splitLines); GATE-13 ADVISE (fence anchor gains simplify); DES-09, VCS-01, VCS-02, VCS-04, VCS-22 GATE by survey anchors; DES-10 GATE by the ask rules (bare installs added); thirteen clauses BUILDABLE pointing at 2.7. Config gains splitLines and sourceExtensions. Version 0.1.5. | owner decisions (10 passes) | hooks, law, doctor, templates, tests |
 | 2026-10-08 | tree_each shipped (owner decision: ratchet by first-commit date, not an accept list, not RED now). Fields root, depth, where, exclude, require (file / glob / glob+pattern, globs joined by '|'), since, accepted. Measured on the first instance before building: 75 repositories, DECISIONS.md in 31, a manual in 9, a crash trap in 5, sound toggles in 5 of 27 games; a strict scan would fail two thirds on day one. Version 0.1.6. | planned mechanism built | doctor, templates, tests |
 | 2026-10-08 | Stop hook shipped (owner decision: block once, then yield). guard.ps1 writes the turn's allowed edits to <markers>/<session>.edits with a changelog flag on DECISIONS.md rows; route.ps1 clears it at each prompt; stop.ps1 blocks the first stop of a turn that changed source with the card and yields on stop_hook_active. DES-07, GATE-05, GATE-06, GATE-07 print HOOK. hook_smoke accepts Stop; config gains stopDocs. Version 0.1.7. | planned mechanism built | hooks, law, doctor, templates, tests |
+| 2026-10-08 | tree_rules shipped; the repository selection, ratchet and accepted handling moved into Invoke-DfRepoScan, shared with tree_each. Measured on the first instance before building: 107 stylesheets with a raw colour outside a token file (47 in the live site, ratified debt D-A09), 32 stylesheets animating without a reduced-motion block, 3 motion layers writing transforms. Version 0.1.8. | planned mechanism built | doctor, tests |

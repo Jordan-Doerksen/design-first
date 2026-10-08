@@ -242,14 +242,16 @@ function Get-DfFirstCommitDate([string]$repo) {
     return $null
 }
 
-function Test-TreeEachClaim {
-    param($c, $Context)
+# ---------------------------------------------------------------- repo scan selection (shared)
+# tree_each and tree_rules select the same way: git repositories under `root` (depth), `where.anyOf`
+# globs, `exclude` prefixes, the `since` ratchet on git's first-commit date, and `accepted` entries
+# with a reason. $Check is a scriptblock (repo, files) -> @() of strings naming what falls short.
+function Invoke-DfRepoScan {
+    param($c, $Context, [scriptblock] $Check, [string] $Verb)
     $d = ''
     $root = Resolve-ClaimPath -Raw ([string]$c.root) -Context $Context -Detail ([ref]$d)
     if ($null -eq $root) { return New-ClaimResult $c 'UNKNOWN' ($d -replace "'path'", "'root'") }
     if (-not (Test-Path -LiteralPath $root -PathType Container)) { return New-ClaimResult $c 'UNKNOWN' "root folder missing: $root" }
-    $reqs = @($c.require | Where-Object { $null -ne $_ })
-    if ($reqs.Count -eq 0) { return New-ClaimResult $c 'UNKNOWN' "claim has no 'require'" }
     $depth = 2; if ($c.depth) { [void][int]::TryParse([string]$c.depth, [ref]$depth); if ($depth -lt 1) { $depth = 1 } }
     $since = $null
     if ($c.since) {
@@ -269,13 +271,13 @@ function Test-TreeEachClaim {
     $repos = Get-DfScanRepos $rootFull $depth
     $selected = 0; $fails = @(); $grand = @(); $acc = @(); $met = 0
     foreach ($repo in $repos) {
-        $files = $null
-        $relKey = ConvertTo-RelKey ($(if ($repo.StartsWith($ctxRoot, [StringComparison]::OrdinalIgnoreCase)) { $repo.Substring($ctxRoot.Length) } else { $repo }))
+        $relRaw = if ($repo.StartsWith($ctxRoot, [StringComparison]::OrdinalIgnoreCase)) { $repo.Substring($ctxRoot.Length).TrimStart('\') } else { $repo }
+        $relKey = ConvertTo-RelKey $relRaw
         $skip = $false
         foreach ($x in $exclude) { if ($relKey -eq $x -or $relKey.StartsWith($x.TrimEnd('/') + '/')) { $skip = $true; break } }
         if ($skip) { continue }
+        $files = Get-DfRepoFiles $repo
         if ($c.where -and $c.where.anyOf) {
-            $files = Get-DfRepoFiles $repo
             $ok = $false
             foreach ($w in @($c.where.anyOf)) {
                 $rx = ConvertTo-DfGlobRegex ([string]$w)
@@ -284,25 +286,91 @@ function Test-TreeEachClaim {
             if (-not $ok) { continue }
         }
         $selected++
-        if ($null -eq $files) { $files = Get-DfRepoFiles $repo }
-        $rel = if ($repo.StartsWith($ctxRoot, [StringComparison]::OrdinalIgnoreCase)) { $repo.Substring($ctxRoot.Length).TrimStart('\') } else { $repo }
-        $missing = @()
-        foreach ($r in $reqs) { $m = Test-DfRequirement $r $repo $files; if ($m) { $missing += $m } }
+        $missing = @(& $Check $repo $files)
         if ($missing.Count -eq 0) { $met++; continue }
-        $key = ConvertTo-RelKey $rel
-        if ($accepted.ContainsKey($key)) { $acc += ("{0} ({1})" -f $rel, ($missing -join ', ')); continue }
+        if ($accepted.ContainsKey($relKey)) { $acc += ("{0} ({1})" -f $relRaw, ($missing -join ', ')); continue }
         if ($since) {
             $born = Get-DfFirstCommitDate $repo
-            if ($born -and $born -lt $since) { $grand += ("{0} ({1})" -f $rel, ($missing -join ', ')); continue }
+            if ($born -and $born -lt $since) { $grand += ("{0} ({1})" -f $relRaw, ($missing -join ', ')); continue }
         }
-        $fails += ("{0}: {1}" -f $rel, ($missing -join ', '))
+        $fails += ("{0}: {1}" -f $relRaw, ($missing -join ', '))
     }
     if ($selected -eq 0) { return New-ClaimResult $c 'UNKNOWN' "nothing selected under $root (no repository matched 'where'); nothing was checked" }
     $tail = ''
     if ($grand.Count -gt 0) { $tail += ("; {0} predate {1} and are reported, not failed: {2}" -f $grand.Count, $since.ToString('yyyy-MM-dd'), (@($grand | Select-Object -First 12) -join ' | ')) }
     if ($acc.Count -gt 0) { $tail += ("; {0} accepted: {1}" -f $acc.Count, (@($acc | Select-Object -First 12) -join ' | ')) }
-    if ($fails.Count -eq 0) { return New-ClaimResult $c 'PASS' ("{0} of {1} repositories under {2} meet the requirement{3}" -f $met, $selected, $root, $tail) }
+    if ($fails.Count -eq 0) { return New-ClaimResult $c 'PASS' ("{0} of {1} repositories under {2} {3}{4}" -f $met, $selected, $root, $Verb, $tail) }
     $shown = @($fails | Select-Object -First 12)
     $more = if ($fails.Count -gt $shown.Count) { " (+{0} more)" -f ($fails.Count - $shown.Count) } else { '' }
     return New-ClaimResult $c 'FAIL' ("{0} of {1} repositories under {2} fall short: {3}{4}{5}" -f $fails.Count, $selected, $root, ($shown -join ' | '), $more, $tail)
+}
+
+function Test-TreeEachClaim {
+    param($c, $Context)
+    $reqs = @($c.require | Where-Object { $null -ne $_ })
+    if ($reqs.Count -eq 0) { return New-ClaimResult $c 'UNKNOWN' "claim has no 'require'" }
+    return Invoke-DfRepoScan $c $Context {
+        param($repo, $files)
+        $out = @()
+        foreach ($r in $reqs) { $m = Test-DfRequirement $r $repo $files; if ($m) { $out += $m } }
+        return $out
+    } 'meet the requirement'
+}
+
+# ---------------------------------------------------------------- tree_rules
+# The regex scan (2026-10-08). Same selection as tree_each, then per repository: every file matching
+# `files` (a glob, '|'-joined) and not matching an `except` glob is read, and each rule is applied:
+#   { id, forbid: <regex> }                  no line may match; a line that also matches `allowOnLine`,
+#                                            or whose previous line does, is not counted (a reason written
+#                                            next to the exception is the exception)
+#   { id, when: <regex>, require: <regex> }  a file that matches `when` anywhere must also match `require`
+# A rule may carry its own `files` glob. A repository with any hit falls short; the detail names
+# rule, file and line for the first hits. Carries SAFE-05, OBS-04, SKIN-03, SKIN-04, GAME-07.
+function Test-TreeRulesClaim {
+    param($c, $Context)
+    $rules = @($c.rules | Where-Object { $null -ne $_ })
+    if ($rules.Count -eq 0) { return New-ClaimResult $c 'UNKNOWN' "claim has no 'rules'" }
+    foreach ($r in $rules) {
+        if (-not $r.id) { return New-ClaimResult $c 'UNKNOWN' 'a rule has no id' }
+        if (-not $r.forbid -and -not ($r.when -and $r.require)) { return New-ClaimResult $c 'UNKNOWN' "rule '$($r.id)' needs forbid, or when + require" }
+    }
+    $defaultFiles = if ($c.files) { [string]$c.files } else { '**/*' }
+    $exceptRx = @($c.except | Where-Object { $_ } | ForEach-Object { ConvertTo-DfGlobRegex ([string]$_) })
+    $allowRx = if ($c.allowOnLine) { [regex]::new([string]$c.allowOnLine, [Text.RegularExpressions.RegexOptions]::IgnoreCase) } else { $null }
+    $opts = [Text.RegularExpressions.RegexOptions]::IgnoreCase
+    return Invoke-DfRepoScan $c $Context {
+        param($repo, $files)
+        $out = @()
+        foreach ($r in $rules) {
+            $glob = if ($r.files) { [string]$r.files } else { $defaultFiles }
+            $grx = ConvertTo-DfGlobRegex $glob
+            $hits = @(); $count = 0
+            foreach ($f in $files) {
+                if (-not $grx.IsMatch($f.rel)) { continue }
+                $skip = $false; foreach ($e in $exceptRx) { if ($e.IsMatch($f.rel)) { $skip = $true; break } }
+                if ($skip) { continue }
+                $text = ''
+                try { $text = [IO.File]::ReadAllText($f.full) } catch { continue }
+                if ($r.forbid) {
+                    $frx = [regex]::new([string]$r.forbid, $opts)
+                    $lines = $text.Replace("`r`n", "`n") -split "`n"
+                    for ($i = 0; $i -lt $lines.Count; $i++) {
+                        if (-not $frx.IsMatch($lines[$i])) { continue }
+                        if ($allowRx -and ($allowRx.IsMatch($lines[$i]) -or ($i -gt 0 -and $allowRx.IsMatch($lines[$i - 1])))) { continue }
+                        $count++; if ($hits.Count -lt 3) { $hits += ("{0}:{1}" -f $f.rel, ($i + 1)) }
+                    }
+                }
+                else {
+                    if ([regex]::IsMatch($text, [string]$r.when, $opts) -and -not [regex]::IsMatch($text, [string]$r.require, $opts)) {
+                        $count++; if ($hits.Count -lt 3) { $hits += $f.rel }
+                    }
+                }
+            }
+            if ($count -gt 0) {
+                $more = if ($count -gt $hits.Count) { " +{0}" -f ($count - $hits.Count) } else { '' }
+                $out += ("{0}: {1}{2}" -f $r.id, ($hits -join ' '), $more)
+            }
+        }
+        return $out
+    } 'pass every rule'
 }

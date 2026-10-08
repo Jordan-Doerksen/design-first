@@ -96,7 +96,13 @@ try {
     # file tool.marker is in all but bad, so a `where` on it leaves bad out.
     $scan = NewDir (Join-Path $root 'scan')
     $sGood = New-TestRepo $scan 'good'; W (Join-Path $sGood 'DECISIONS.md') "d`n"; W (Join-Path $sGood 'ARCHITECTURE.md') "a`n"; W (Join-Path $sGood 'tool.marker') "m`n"; W (Join-Path $sGood 'src\app.py') "import logging`nprint(1)`n"
-    $sBad  = New-TestRepo $scan 'bad';  W (Join-Path $sBad 'src\app.py') "print(2)`n"
+    $sBad  = New-TestRepo $scan 'bad';  W (Join-Path $sBad 'src\app.py') "print(2)`ntry:`n    x()`nexcept: pass`n"
+    # tree_rules fixtures: good is compliant (vars only, a reduced-motion block, a commented exception);
+    # bad has a raw colour, an animation with no reduced-motion block, and a bare except.
+    W (Join-Path $sGood 'styles\tokens.css') ":root { --ink: #0F1720; }`n"
+    W (Join-Path $sGood 'styles\app.css') "h1 { color: var(--ink); animation: in 1s; }`n@media (prefers-reduced-motion: reduce) { h1 { animation: none; } }`n"
+    W (Join-Path $sGood 'src\git.py') "try:`n    x()`nexcept: pass  # deliberate: the exit code is read below`n"
+    W (Join-Path $sBad 'styles\app.css') "h1 { color: #fff; animation: in 1s; }`n"
     $sOld  = New-TestRepo $scan 'old' -Date '2019-06-01T12:00:00+00:00'; W (Join-Path $sOld 'tool.marker') "m`n"
     $sAcc  = New-TestRepo $scan 'acc';  W (Join-Path $sAcc 'tool.marker') "m`n"
 
@@ -233,6 +239,8 @@ exit 0
         [ordered]@{ id = 'T-TREEEQ';      type = 'tree_equals';        path = '${KIT}/eq-a'; other = '${KIT}/eq-b'; exclude = @('skip.txt'); why = 't' },
         [ordered]@{ id = 'T-TREEEQ-SAME'; type = 'tree_equals';        path = '${KIT}/eq-a'; other = '${KIT}/eq-a'; why = 't' },
         [ordered]@{ id = 'T-SCAN';        type = 'tree_each';          root = '${ROOT}/scan'; depth = 1; where = [ordered]@{ anyOf = @('tool.marker') }; require = @([ordered]@{ file = 'DECISIONS.md' }, [ordered]@{ file = 'ARCHITECTURE.md' }); since = '2026-01-01'; accepted = @([ordered]@{ path = 'scan/acc'; reason = 'planted'; since = '2026-01-01' }); why = 't' },
+        [ordered]@{ id = 'T-RULES';       type = 'tree_rules';         root = '${ROOT}/scan'; depth = 1; where = [ordered]@{ anyOf = @('tool.marker') }; except = @('**/tokens.css'); allowOnLine = 'deliberate'; rules = @([ordered]@{ id = 'raw-colour'; files = '**/*.css'; forbid = '#[0-9a-f]{3,8}\b' }, [ordered]@{ id = 'reduced-motion'; files = '**/*.css'; when = 'animation|transition|@keyframes'; require = 'prefers-reduced-motion' }, [ordered]@{ id = 'bare-except'; files = '**/*.py'; forbid = 'except\s*:\s*pass' }); why = 't' },
+        [ordered]@{ id = 'T-RULES-SINCE'; type = 'tree_rules';         root = '${ROOT}/scan'; depth = 1; where = [ordered]@{ anyOf = @('styles/app.css') }; since = '2099-01-01'; except = @('**/tokens.css'); allowOnLine = 'deliberate'; rules = @([ordered]@{ id = 'raw-colour'; files = '**/*.css'; forbid = '#[0-9a-f]{3,8}\b' }, [ordered]@{ id = 'reduced-motion'; files = '**/*.css'; when = 'animation|transition|@keyframes'; require = 'prefers-reduced-motion' }, [ordered]@{ id = 'bare-except'; files = '**/*.py'; forbid = 'except\s*:\s*pass' }); why = 't' },
         [ordered]@{ id = 'T-SCAN-GLOB';   type = 'tree_each';          root = '${ROOT}/scan'; depth = 1; where = [ordered]@{ anyOf = @('DECISIONS.md') }; require = @([ordered]@{ glob = '**/*.py|**/*.js'; pattern = 'logging' }); why = 't' },
         [ordered]@{ id = 'T-SMOKE-PRE';   type = 'hook_smoke';         hook = 'good-guard'; event = 'PreToolUse'; why = 't' },
         [ordered]@{ id = 'T-SMOKE-START'; type = 'hook_smoke';         hook = 'good-entry'; event = 'SessionStart'; why = 't' },
@@ -255,6 +263,8 @@ exit 0
         [ordered]@{ id = 'F-TREEEQ';      type = 'tree_equals';        path = '${KIT}/eq-a'; other = '${KIT}/eq-c'; exclude = @('skip.txt'); why = 'f' },
         [ordered]@{ id = 'F-TREEEQ-SKIP'; type = 'tree_equals';        path = '${KIT}/eq-a'; other = '${KIT}/eq-b'; why = 'f' },
         [ordered]@{ id = 'F-SCAN';        type = 'tree_each';          root = '${ROOT}/scan'; depth = 1; require = @([ordered]@{ file = 'DECISIONS.md' }, [ordered]@{ file = 'ARCHITECTURE.md' }); since = '2026-01-01'; accepted = @([ordered]@{ path = 'scan/acc'; reason = 'planted'; since = '2026-01-01' }); why = 'f' },
+        [ordered]@{ id = 'F-RULES';       type = 'tree_rules';         root = '${ROOT}/scan'; depth = 1; where = [ordered]@{ anyOf = @('styles/app.css') }; except = @('**/tokens.css'); allowOnLine = 'deliberate'; rules = @([ordered]@{ id = 'raw-colour'; files = '**/*.css'; forbid = '#[0-9a-f]{3,8}\b' }, [ordered]@{ id = 'reduced-motion'; files = '**/*.css'; when = 'animation|transition|@keyframes'; require = 'prefers-reduced-motion' }, [ordered]@{ id = 'bare-except'; files = '**/*.py'; forbid = 'except\s*:\s*pass' }); why = 'f' },
+        [ordered]@{ id = 'F-RULES-NOALLOW'; type = 'tree_rules';       root = '${ROOT}/scan'; depth = 1; where = [ordered]@{ anyOf = @('src/git.py') }; rules = @([ordered]@{ id = 'bare-except'; files = '**/*.py'; forbid = 'except\s*:\s*pass' }); why = 'f' },
         [ordered]@{ id = 'F-SCAN-GLOB';   type = 'tree_each';          root = '${ROOT}/scan'; depth = 1; where = [ordered]@{ anyOf = @('src/app.py') }; require = @([ordered]@{ glob = '**/*.py'; pattern = 'excepthook' }); why = 'f' },
         [ordered]@{ id = 'F-SMOKE-PRE';   type = 'hook_smoke';         hook = 'bad-guard'; event = 'PreToolUse'; why = 'f' },
         [ordered]@{ id = 'F-SMOKE-CRASH'; type = 'hook_smoke';         hook = 'crash-guard'; event = 'PreToolUse'; why = 'f' },
@@ -269,6 +279,7 @@ exit 0
         [ordered]@{ id = 'U-SMOKE';    type = 'hook_smoke';        hook = 'unregistered'; event = 'PreToolUse'; why = 'u' },
         [ordered]@{ id = 'U-TREEEQ';   type = 'tree_equals';       path = '${KIT}/eq-a'; other = '${KIT}/eq-d'; why = 'u' },
         [ordered]@{ id = 'U-SCAN';     type = 'tree_each';         root = '${ROOT}/no-such'; require = @([ordered]@{ file = 'x' }); why = 'u' },
+        [ordered]@{ id = 'U-RULES';    type = 'tree_rules';        root = '${ROOT}/scan'; depth = 1; rules = @(); why = 'u' },
         [ordered]@{ id = 'U-SCAN-NONE';type = 'tree_each';         root = '${ROOT}/scan'; depth = 1; where = [ordered]@{ anyOf = @('nothing.has.this') }; require = @([ordered]@{ file = 'x' }); why = 'u' },
         [ordered]@{ id = 'U-TYPE';     type = 'bogus_type';        why = 'u' }
     )
@@ -306,7 +317,7 @@ exit 0
     Assert-Has 'A: soft_deny counted against frozenPaths' $a.out 'soft_deny: 2 rule(s), 1 naming a frozen path'
     Assert-Has 'A: registered-but-missing hook' $a.out 'hook REGISTERED BUT MISSING'
     Assert-Has 'A: deny/ask rules read from root settings' $a.out 'root settings: 1 deny, 1 ask'
-    Assert-Has 'A: every true claim holds' $a.out 'CLAIMS  18 pass  0 fail  0 could not look'
+    Assert-Has 'A: every true claim holds' $a.out 'CLAIMS  20 pass  0 fail  0 could not look'
     Assert-HasNot 'A: no COULD-NOT-LOOK band' $a.out 'COULD-NOT-LOOK'
 
     # ================================================================ run B: same disk, surveyStrict true -> exit 1
@@ -334,6 +345,11 @@ exit 0
     Assert-Has 'C: tree_each reports the grandfathered repo, not failed' $c.out 'predate 2026-01-01 and are reported, not failed: scan\old'
     Assert-Has 'C: tree_each reports the accepted repo' $c.out '1 accepted: scan\acc'
     Assert-Has 'C: tree_each glob+pattern names the pattern' $c.out 'no **/*.py file contains /excepthook/'
+    Assert-Has 'C: tree_rules names the rule, file and line' $c.out 'raw-colour: styles/app.css:1'
+    Assert-Has 'C: tree_rules when+require names the file' $c.out 'reduced-motion: styles/app.css'
+    Assert-Has 'C: tree_rules counts a bare except' $c.out 'bare-except: src/app.py:4'
+    Assert-Has 'C: tree_rules without allowOnLine counts the commented exception' $c.out 'F-RULES-NOALLOW  1 of 1'
+    Assert-HasNot 'C: tree_rules does not touch the token file' $c.out 'tokens.css'
     Assert-Has 'C: SessionStart silent hook is a fail' $c.out 'printed nothing'
     Assert-Has 'C: PreToolUse non-JSON is a fail' $c.out 'stdout is not JSON'
     Assert-HasNot 'C: no COULD-NOT-LOOK from false claims' $c.out 'COULD-NOT-LOOK'
@@ -350,6 +366,7 @@ exit 0
     Assert-Has 'D: tree_equals with a missing folder is unknown' $d.out '????  U-TREEEQ  folder missing'
     Assert-Has 'D: tree_each with a missing root is unknown' $d.out '????  U-SCAN  root folder missing'
     Assert-Has 'D: tree_each that selects nothing is unknown, not green' $d.out '????  U-SCAN-NONE  nothing selected'
+    Assert-Has 'D: tree_rules with no rules is unknown' $d.out "????  U-RULES  claim has no 'rules'"
     Assert-Has 'D: unknown type is unknown' $d.out "unknown claim type 'bogus_type'"
     Assert-HasNot 'D: never GREEN' $d.out 'GREEN'
 
