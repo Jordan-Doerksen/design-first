@@ -151,13 +151,18 @@ foreach ($event in $hj.hooks.PSObject.Properties.Name) {
             $command = $h.command.Replace('${CLAUDE_PLUGIN_ROOT}', $kit)
             $payload = if ($event -eq 'SessionStart') {
                 @{ session_id = 'smoke'; cwd = $root; hook_event_name = 'SessionStart'; source = $entry.matcher } | ConvertTo-Json -Compress
+            } elseif ($event -eq 'UserPromptSubmit') {
+                @{ session_id = 'smoke'; cwd = $root; hook_event_name = 'UserPromptSubmit'; prompt_id = 'smoke'; prompt = 'smoke prompt' } | ConvertTo-Json -Compress
+            } elseif ($event -eq 'SubagentStart') {
+                @{ session_id = 'smoke'; cwd = $root; hook_event_name = 'SubagentStart'; agent_id = 'smoke'; agent_type = 'general-purpose' } | ConvertTo-Json -Compress
             } else {
                 @{ session_id = 'smoke'; cwd = $root; hook_event_name = $event; tool_name = 'Edit'; tool_input = @{ file_path = (Join-Path $root 'ordinary\x.gd'); old_string = 'a'; new_string = 'b' } } | ConvertTo-Json -Compress
             }
             $prev = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
             try { $out = @($payload | & pwsh -NoProfile -Command $command 2>&1 | ForEach-Object { [string]$_ }) -join "`n"; $code = $LASTEXITCODE } finally { $ErrorActionPreference = $prev }
-            $expected = if ($event -eq 'SessionStart') { 'exit0+stdout' } else { 'exit0+empty-or-json' }
+            $expected = if ($event -eq 'SessionStart') { 'exit0+stdout' } elseif ($event -eq 'UserPromptSubmit') { 'exit0+any' } else { 'exit0+empty-or-json' }
             $got = if ($code -ne 0) { "exit$code" }
+                   elseif ($event -eq 'UserPromptSubmit') { 'exit0+any' }
                    elseif ($event -eq 'SessionStart') { if ([string]::IsNullOrWhiteSpace($out)) { 'exit0+EMPTY' } else { 'exit0+stdout' } }
                    else { if ([string]::IsNullOrWhiteSpace($out)) { 'exit0+empty-or-json' } else { try { $null = $out | ConvertFrom-Json; 'exit0+empty-or-json' } catch { 'exit0+NOT-JSON' } } }
             Record "smoke $event/$($entry.matcher) -> $(Split-Path -Leaf ($h.command -replace '"', ''))" $expected $got $out
@@ -262,6 +267,41 @@ $env:CLAUDE_PLUGIN_ROOT = $null
 
 # The personal-word leak scan is NOT here: a word list in this file would itself be the leak. The
 # Doctor's tree_free_of claim owns that scan (SPEC 5.2, C6).
+
+# ------------------------------------------------------------------ 4. route.ps1 + subagent.ps1 (DES-13)
+Write-Host '-- route.ps1 and subagent.ps1'
+# The sandbox brain has no LAW.md and no route-policy.json, so the kit's LAW.md and template policy
+# are the index and the policy: the no-brain-files path.
+function Route([string]$prompt, [string]$session, [string]$cwd) {
+    $stdin = @{ session_id = $session; cwd = $cwd; hook_event_name = 'UserPromptSubmit'; prompt_id = 'p'; prompt = $prompt } | ConvertTo-Json -Compress
+    return (Invoke-Hook 'route.ps1' $stdin)
+}
+function Sub([string]$session, [string]$type) {
+    $stdin = @{ session_id = $session; cwd = $root; hook_event_name = 'SubagentStart'; agent_id = 'a'; agent_type = $type } | ConvertTo-Json -Compress
+    return (Invoke-Hook 'subagent.ps1' $stdin)
+}
+$r = Route 'please build the new feature and commit it' 'r1' $root
+Record 'route: a build+commit prompt injects DES and VCS rows' 'des+vcs' $(if ($r.code -eq 0 -and $r.out -match 'group DES' -and $r.out -match 'group VCS' -and $r.out -match 'DES-01 \[') { 'des+vcs' } else { 'wrong' }) $r.out
+Record 'route: rows name the owning file as a real path' 'resolved' $(if ($r.out -match 'full text: ' -and $r.out -notmatch 'kit:instructions') { 'resolved' } else { 'unresolved' }) $r.out
+Record 'route: the active set is recorded for the session' 'recorded' $(if ((Test-Path -LiteralPath (Join-Path $env:DF_MARKER_DIR 'r1.routes')) -and ((Get-Content (Join-Path $env:DF_MARKER_DIR 'r1.routes')) -contains 'DES')) { 'recorded' } else { 'missing' }) ''
+$r = Route 'yes please' 'r1' $root
+Record 'route: a follow-up that names nothing injects nothing' 'silent' $(if ($r.code -eq 0 -and [string]::IsNullOrWhiteSpace($r.out)) { 'silent' } else { 'noisy' }) $r.out
+$r = Route 'now commit and push the repo' 'r1' $root
+Record 'route: an already-active group is not injected twice' 'silent' $(if ($r.code -eq 0 -and [string]::IsNullOrWhiteSpace($r.out)) { 'silent' } else { 'again' }) $r.out
+$r = Route 'start the server and check the log' 'r1' $root
+Record 'route: a new group later in the session is added' 'obs' $(if ($r.out -match 'group OBS' -and $r.out -notmatch 'group DES') { 'obs' } else { 'wrong' }) $r.out
+$r = Route 'The goal is to design a loop' 'r2' $root
+Record 'route: whole words (design and loop match)' 'des+auto' $(if ($r.out -match 'group DES' -and $r.out -match 'group AUTO') { 'des+auto' } else { 'wrong' }) $r.out
+$r = Route 'the designer looped' 'r3' $root
+Record 'route: substrings do not match (designer, looped)' 'silent' $(if ([string]::IsNullOrWhiteSpace($r.out)) { 'silent' } else { 'matched' }) $r.out
+$r = Sub 'r1' 'general-purpose'
+Record 'subagent: gets SAFE plus the session active groups as JSON context' 'safe+active' $(if ($r.code -eq 0 -and $r.out -match 'group SAFE' -and $r.out -match 'group DES' -and $r.out -match 'group OBS' -and $r.out -match '"hookEventName":"SubagentStart"') { 'safe+active' } else { 'wrong' }) $r.out
+$r = Sub 'r-fresh' 'Explore'
+Record 'subagent: with no routes yet, SAFE alone' 'safe-only' $(if ($r.out -match 'group SAFE' -and $r.out -notmatch 'group DES') { 'safe-only' } else { 'wrong' }) $r.out
+$e = Entry $root 'r1' 'compact'
+Record 'entry: compaction clears the session routes' 'cleared' $(if (-not (Test-Path -LiteralPath (Join-Path $env:DF_MARKER_DIR 'r1.routes'))) { 'cleared' } else { 'kept' }) $e.out
+$r = Route 'commit it' 'r1' $root
+Record 'route: after compaction the group is injected again' 'vcs-again' $(if ($r.out -match 'group VCS') { 'vcs-again' } else { 'silent' }) $r.out
 
 # ------------------------------------------------------------------ summary
 $passed = @($results | Where-Object pass).Count

@@ -12,7 +12,8 @@ honest about what is actually enforced on the disk.
 law.json (+ <brain>/law.overlay.json) --> tools/law/build-law.ps1 --> LAW.md (kit) / <brain>/LAW.md
                                                     ^
 claims.json ------------> tools/doctor/doctor.ps1 --+-- claims | survey | could-not-look --> <brain>/state/
-hooks/hooks.json --------> guard.ps1 / fence.ps1 / agent.ps1 / entry.ps1 --> allow | deny | ask | rewrite | advise, + log
+hooks/hooks.json --------> guard.ps1 / fence.ps1 / agent.ps1 --> allow | deny | ask | rewrite | advise, + log
+                           route.ps1 / subagent.ps1 / entry.ps1 --> LAW.md rows by group, per session, into context
 commands/adopt.md -------> tools/adopt.ps1 --> <root>/CLAUDE.md, <root>/.claude/settings*.json,
                                                <brain>/*, %USERPROFILE%\.claude\design-first.json
 ```
@@ -25,7 +26,7 @@ adopter's private layer), `pluginRoot` and its kind (checkout or cache).
 | domain | purpose | entry point | config | notes |
 |---|---|---|---|---|
 | `.claude-plugin/` | manifest, marketplace | `plugin.json` | — | the repo root is the plugin and its own marketplace |
-| `hooks/` | session guards | `hooks.json` | `<brain>/doctor.config.json`, `<brain>/agent-policy.json` | `lib/` holds the tokeniser, rules and shared helpers; anchors declare mode and verbs; `agent.ps1` rewrites an Agent call's model from the policy and counts spawns per turn in the marker folder |
+| `hooks/` | session guards | `hooks.json` | `<brain>/doctor.config.json`, `<brain>/agent-policy.json` | `lib/` holds the tokeniser, rules and shared helpers; anchors declare mode and verbs; `agent.ps1` rewrites an Agent call's model from the policy and counts spawns per turn in the marker folder; `route.ps1` keeps a per-session route file there and `lib/law-rows.ps1` reads LAW.md for both routers |
 | `tools/law/` | generator | `build-law.ps1` | `law.json` | `validate.ps1`, `render.ps1` dot-sourced; deterministic bytes |
 | `tools/doctor/` | disk checker | `doctor.ps1` | brain config + `claims.json` | `context`, `claims`, `claims-tree`, `claims-exec`, `repos`, `enforcement`, `survey`, `report`, `selftest` |
 | `tools/tests/` | hook self-test | `run.ps1` | `guard-cases.json` | temp repos and a fake pointer; never touches the real one |

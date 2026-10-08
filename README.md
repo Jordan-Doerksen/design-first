@@ -46,16 +46,16 @@ The full text of every rule is in `instructions/` and `workflows/`. The index is
 
 The generator refuses to print a grade above HONOUR unless the mechanism exists in this tree and
 declares the clause's verb. The exact counts are the Summary table at the foot of `LAW.md`, which
-is generated; as of 0.1.2 the kit ships 77 clauses and 12 of them have a mechanism (6 HOOK, 1
+is generated; as of 0.1.4 the kit ships 78 clauses and 13 of them have a mechanism (6 HOOK, 2
 ADVISE, 5 GATE). Most rules are requests. The index says so.
 
 ## What is in the box
 
 | path | holds |
 |---|---|
-| `law.json`, `LAW.md` | the 77 clauses and their generated index |
+| `law.json`, `LAW.md` | the 78 clauses and their generated index |
 | `instructions/`, `workflows/`, `lessons/` | the rule text, one subject per file |
-| `hooks/` | `guard.ps1` (secrets, git history, frozen paths), `fence.ps1` (deletion and weakened assertions), `agent.ps1` (subagent brief contract, model routing, spawn cap), `entry.ps1` (loads your entry path on session start) |
+| `hooks/` | `guard.ps1` (secrets, git history, frozen paths), `fence.ps1` (deletion and weakened assertions), `agent.ps1` (subagent brief contract, model routing, spawn cap), `route.ps1` (the law for the task, per prompt, from the index), `subagent.ps1` (the session's law into every subagent), `entry.ps1` (the personal layer on session start) |
 | `tools/doctor/` | checks claims, surveys repos, smokes the hooks; three bands, three exit codes |
 | `tools/law/` | the generator |
 | `tools/tests/` | 113 hook cases and the Doctor self-test, run under pwsh |

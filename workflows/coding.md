@@ -62,6 +62,36 @@ in sequence. After a fan-out lands, one more pass cross-checks the composition a
 manifest and the full diff (`GATE-05`): each agent proved its own piece, and nothing has proved
 the whole.
 
+## The law arrives by route
+
+### DES-13
+
+**A session is handed the law for its task by route: the generated index rows for each matched
+group, once per session, with the owning file named; the full rule set is never loaded at
+start.**
+
+The mechanism is `hooks/route.ps1` on every prompt and `hooks/subagent.ps1` at every subagent
+start; the tunables are `<brain>/route-policy.json` (the kit template until a brain has one).
+
+**How it routes.** Each prompt is matched, whole-word, against the words the policy lists per law
+group, and the session's working folder can name groups too. A group that becomes active is
+injected once: its rows from `LAW.md`, one clause per line with its grade, then the owning files
+resolved to real paths. Routes stick for the session, because most prompts are follow-ups that
+name nothing ("yes", "make it larger"); a later prompt adds only groups not yet active. The
+entry hook clears the session's routes on compaction so the next prompt re-injects. A subagent
+receives, before its first prompt, the groups active in the session that spawned it plus the
+groups the policy marks always-on (the prohibitions by default).
+
+**What stays at session start.** The entry path (`<brain>/entry.json`) now lists only what
+cannot be routed: the personal layer, who the owner is and how they write. Everything that is a
+clause arrives by route; the full text is one path away in the injected block.
+
+**Why.** Measured on the first instance on 2026-10-08: the entry path was eight files, 1,848
+lines, roughly 35k tokens if read, and a model either spent that before opening the code or
+skimmed and read none of it in particular. A group's rows are 150 to 900 tokens; the whole index
+is about 6k. Routes that stick covered 91% of 1,985 prompts over two weeks; the prompt alone
+covered 34%. `PRIN-01` is the principle; this clause is its first mechanism.
+
 ## Skills before an empty start
 
 ### DES-12

@@ -254,6 +254,19 @@
       "since": "2026-09-22"
     },
     {
+      "id": "DES-13",
+      "group": "DES",
+      "verb": "route-law",
+      "rule": "A session is handed the law for its task by route: the generated index rows for each matched group, once per session, with the owning file named; the full rule set is never loaded at start.",
+      "owner": "kit:workflows/coding.md",
+      "grade": "ADVISE",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/route.ps1#route-law"
+      },
+      "since": "2026-10-08"
+    },
+    {
       "id": "GATE-01",
       "group": "GATE",
       "verb": "interview",

@@ -160,14 +160,14 @@ function Find-RegisteredHook {
 }
 
 function Test-HookSmokeClaim {
-    # Fields: hook (e.g. "guard"), event ("SessionStart" | "PreToolUse"). Reads hooks/hooks.json under
+    # Fields: hook (e.g. "guard"), event (SessionStart | PreToolUse | UserPromptSubmit | SubagentStart). Reads hooks/hooks.json under
     # pluginRoot, substitutes ${CLAUDE_PLUGIN_ROOT}, runs the registered command with synthetic stdin
     # and a 10 s timeout. Pass per event: SessionStart = exit 0 + non-empty stdout;
     # PreToolUse = exit 0 + (empty stdout or parseable JSON).
     param($c, $Context)
     $hook = [string]$c.hook; $event = [string]$c.event
     if ([string]::IsNullOrWhiteSpace($hook)) { return New-ClaimResult $c 'UNKNOWN' "claim has no 'hook'" }
-    if ($event -notin @('SessionStart', 'PreToolUse')) { return New-ClaimResult $c 'UNKNOWN' "'event' must be SessionStart or PreToolUse (got '$event')" }
+    if ($event -notin @('SessionStart', 'PreToolUse', 'UserPromptSubmit', 'SubagentStart')) { return New-ClaimResult $c 'UNKNOWN' "'event' must be SessionStart, PreToolUse, UserPromptSubmit or SubagentStart (got '$event')" }
     $pluginRoot = $Context.pluginRoot
     if ([string]::IsNullOrWhiteSpace($pluginRoot)) { return New-ClaimResult $c 'UNKNOWN' 'no pluginRoot to read hooks.json from' }
     $hooksPath = Join-Path $pluginRoot 'hooks\hooks.json'
@@ -198,6 +198,8 @@ function Test-HookSmokeClaim {
     $stdin = switch ($event) {
         'SessionStart' { [ordered]@{ session_id = 'doctor-smoke'; hook_event_name = 'SessionStart'; source = 'startup'; cwd = $cwd; transcript_path = '' } }
         'PreToolUse'   { [ordered]@{ session_id = 'doctor-smoke'; hook_event_name = 'PreToolUse'; tool_name = 'Bash'; tool_input = [ordered]@{ command = 'echo doctor-smoke' }; cwd = $cwd; transcript_path = '' } }
+        'UserPromptSubmit' { [ordered]@{ session_id = 'doctor-smoke'; hook_event_name = 'UserPromptSubmit'; prompt_id = 'doctor-smoke'; prompt = 'doctor smoke: a build task touching a repo'; cwd = $cwd; transcript_path = '' } }
+        'SubagentStart'    { [ordered]@{ session_id = 'doctor-smoke'; hook_event_name = 'SubagentStart'; agent_id = 'doctor-smoke'; agent_type = 'general-purpose'; cwd = $cwd; transcript_path = '' } }
     }
     $run = Invoke-Process -Exe $resolved.Source -Arguments @($tokens | Select-Object -Skip 1) -StdIn ($stdin | ConvertTo-Json -Compress -Depth 5) `
                           -TimeoutSeconds 10 -WorkDir $cwd -Env @{ CLAUDE_PLUGIN_ROOT = $pluginRoot; DF_POINTER_PATH = (Get-PointerPath) }
@@ -210,10 +212,14 @@ function Test-HookSmokeClaim {
         if ($out.Length -eq 0) { return New-ClaimResult $c 'FAIL' "$hook (SessionStart) exited 0 but printed nothing; the entry path would load silently empty" }
         return New-ClaimResult $c 'PASS' ("{0} (SessionStart) exit 0, {1} char(s) of context" -f $hook, $out.Length)
     }
-    if ($out.Length -eq 0) { return New-ClaimResult $c 'PASS' "$hook (PreToolUse) exit 0, silent allow" }
+    if ($event -eq 'UserPromptSubmit') {
+        # Plain stdout is the carrier; empty is a legal answer (nothing new to route this prompt).
+        return New-ClaimResult $c 'PASS' ("{0} (UserPromptSubmit) exit 0, {1} char(s) of context" -f $hook, $out.Length)
+    }
+    if ($out.Length -eq 0) { return New-ClaimResult $c 'PASS' "$hook ($event) exit 0, silent allow" }
     try { $null = $out | ConvertFrom-Json -ErrorAction Stop } catch {
         $shown = if ($out.Length -gt 120) { $out.Substring(0, 120) + '...' } else { $out }
-        return New-ClaimResult $c 'FAIL' "$hook (PreToolUse) exit 0 but stdout is not JSON: $shown"
+        return New-ClaimResult $c 'FAIL' "$hook ($event) exit 0 but stdout is not JSON: $shown"
     }
-    return New-ClaimResult $c 'PASS' "$hook (PreToolUse) exit 0, JSON reply"
+    return New-ClaimResult $c 'PASS' "$hook ($event) exit 0, JSON reply"
 }

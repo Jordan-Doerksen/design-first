@@ -105,6 +105,11 @@ try {
         }
         else { $lines.Add("design-first: WARNING - brain folder missing: $($ptr.brain). Heartbeat and entry path skipped.") }
 
+        # 3a. compaction: forget this session's routes so the next prompt re-injects its law (DES-13).
+        if ($source -eq 'compact') {
+            $routeFile = Join-Path (Get-DfMarkerDir) ((($sessionId -replace '[^A-Za-z0-9_.-]', '_')) + '.routes')
+            if (Test-Path -LiteralPath $routeFile) { Remove-Item -LiteralPath $routeFile -Force -ErrorAction SilentlyContinue }
+        }
         # 3. housekeeping
         $markerDir = Get-DfMarkerDir
         if (Test-Path -LiteralPath $markerDir) {

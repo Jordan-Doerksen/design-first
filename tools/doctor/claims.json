@@ -93,6 +93,20 @@
       "hook": "agent",
       "event": "PreToolUse",
       "why": "The subagent hook (DES-11) is registered for the Agent tool and must start: run as hooks.json registers it with a harmless synthetic call, exit 0, reply with nothing or JSON. A non-Agent payload must pass through silently."
+    },
+    {
+      "id": "KIT-SMOKE-05",
+      "type": "hook_smoke",
+      "hook": "route",
+      "event": "UserPromptSubmit",
+      "why": "DES-13: the router is registered for every prompt and starts. Run as registered with a synthetic prompt; exit 0. Empty stdout is legal (nothing new to route), so this proves it runs, not what it routes; the hook self-test proves the routing."
+    },
+    {
+      "id": "KIT-SMOKE-06",
+      "type": "hook_smoke",
+      "hook": "subagent",
+      "event": "SubagentStart",
+      "why": "DES-13: the subagent hook is registered for every spawn and starts. Exit 0 and an empty or JSON reply."
     }
   ]
 }

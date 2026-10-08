@@ -66,6 +66,14 @@ rewritten to `haiku` by the hook and the subagent reported its own model id as
 `claude-haiku-5-5`. The routing half is a guarantee on that host; re-run the probe after a host
 upgrade.
 
+**2.6 The law by route (2026-10-08, DES-13).** A UserPromptSubmit hook matches each prompt
+against a per-group word list in `<brain>/route-policy.json` (and the working folder), and injects
+a group once per session as its rows from the generated `LAW.md` with the owning files resolved.
+Routes stick for the session; the entry hook clears them on compaction. A SubagentStart hook
+injects the session's active groups plus always-on groups into every subagent. The entry path
+shrinks to the personal layer. Three owner decisions: personal layer at start and law by route;
+subagents get the session's groups; a new clause DES-13 at ADVISE rather than rewording PRIN-01.
+
 ## Build Timeline
 
 | Chunk | Content | Status |
@@ -81,6 +89,7 @@ upgrade.
 | 9 | Owner migration (adopter zero) | Done 2026-10-07 |
 | 10 | Adopter one, then public | Pending |
 | 11 | Subagent policy hook (agent.ps1), DES-11 rewritten, policy template, 21 hook cases | Done 2026-10-08 |
+| 12 | Law by route: route.ps1, subagent.ps1, lib/law-rows.ps1, DES-13, route-policy template, entry path trimmed, hook_smoke for two more events | Done 2026-10-08 |
 
 ## Change Log
 
@@ -95,3 +104,4 @@ upgrade.
 | 2026-10-07 | entry.ps1 never resolved the `kit:` / `brain:` prefixes that `templates/entry.json` ships; every prefixed entry printed `MISSING: <brain>\kit:...`. Fixed: `kit:` resolves under the pointer's `pluginRoot` (the kit of record; the running plugin root only when the pointer has none), `brain:` under the brain, older forms unchanged. The self-test fixture only used the older forms, so it had never run the shipped format: it now carries both prefixes plus a `brain:` entry that exists only under the kit (114 cases). Found on the first session after migration. | kit fix | hooks, tests |
 | 2026-10-08 | The 2026-10-07 entry.ps1 fix never reached the adopter: Claude Code runs the plugin from `plugins\cache\...\0.1.0`, and `claude plugin update` re-copies only when `plugin.json` `version` changes, so every commit since install stayed in the checkout while the cache ran the old hooks and the old Doctor (COULD-NOT-LOOK on `json_keyed_match`, sixteen phantom worktree secret findings, the entry path MISSING in every session). Two changes: (1) new claim type `tree_equals` (claims-tree.ps1; MANUAL, SPEC 5.2; self-test true/false/unknown cases) so a brain can assert its running plugin copy matches the checkout; (2) the version is now bumped on every change that must reach an installed copy, starting with 0.1.1. The marketplace lists the plugin with a relative `source` (`./`), which the platform docs say loads in place with no cache; on this machine the desktop app copied it anyway, so the kit plans for the copied form. | kit fix | doctor, manifest |
 | 2026-10-08 | DES-11 rewritten (Change Request, owner interview of five questions): a subagent needs a brief with Goal / Files or Area / Done when / Ruled out (search types: Goal and Done when), a model from the brain's role table when the call names none, and a per-turn cap that asks above eight. Mechanism `hooks/agent.ps1` on the Agent tool, anchor `agent-brief` (deny) so the clause prints HOOK; `templates/agent-policy.json` copied to the brain by adopt. Version 0.1.2. | owner decision | hooks, law, templates, adopt |
+| 2026-10-08 | DES-13 added (ADVISE, anchor route-law in hooks/route.ps1): the law for the task arrives per prompt as LAW.md rows by group, once per session, sticky, cleared on compaction; subagent.ps1 gives every subagent the session's groups plus SAFE; templates/entry.json keeps only me.md and voice.md; hook_smoke accepts UserPromptSubmit and SubagentStart. Version 0.1.4. | owner decisions (3) | hooks, law, templates, doctor, tests |

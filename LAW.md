@@ -55,6 +55,7 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | DES-10 | HONOUR | Install with the fail-on-drift verb, never the resolve-fresh verb, and pin the toolchain as well as the dependencies. | `kit:workflows/coding.md` |
 | DES-11 | HOOK | A subagent starts only with a brief that names the goal, the files or area, the done-check and what is ruled out; its model follows the brain's role table unless the call names one; more spawns than the cap in one turn ask the owner. | `kit:workflows/coding.md` |
 | DES-12 | HONOUR | Match the task to an installed skill before building from an empty start, by reading the installed skills directory itself rather than a list in a law file. | `kit:workflows/coding.md` |
+| DES-13 | ADVISE | A session is handed the law for its task by route: the generated index rows for each matched group, once per session, with the owning file named; the full rule set is never loaded at start. | `kit:workflows/coding.md` |
 
 ## GATE - Gates
 
@@ -160,9 +161,9 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 |---|---|
 | DENY | 0 |
 | HOOK | 6 |
-| ADVISE | 1 |
+| ADVISE | 2 |
 | GATE | 5 |
 | BUILDABLE | 0 |
 | OWNER | 3 |
 | HONOUR | 62 |
-| total | 77 |
+| total | 78 |
