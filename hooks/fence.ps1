@@ -67,7 +67,7 @@ function New-GoodhartSoft([string]$what, [string]$file) {
     return (New-DfAdvisory 'fence' @(@{ title = "GOODHART (advisory): $what in $file"; body = $body }))
 }
 
-# anchor: fence-net-deletion  mode: advise  verbs: delete
+# anchor: fence-net-deletion  mode: advise  verbs: delete,simplify
 function New-Fence([string]$what) {
     $body = @"
 FENCE TRIPPED - $what

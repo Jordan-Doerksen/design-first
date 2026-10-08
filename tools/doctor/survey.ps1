@@ -26,16 +26,20 @@ function Get-RepoFindings {
             if ($r.commits -eq 0) {
                 $f += New-Finding 'warn' 'emptyRepo' $r.path ("empty repo, no remote: {0} (0 commits - nothing to back up yet)" -f $r.path)
             } else {
-                $f += New-Finding 'fail' 'noRemote' $r.path ("no remote: {0} ({1} commits exist on this disk only)" -f $r.path, $r.commits)
+                # anchor: survey-no-remote  mode: gate  verbs: remote
+            $f += New-Finding 'fail' 'noRemote' $r.path ("no remote: {0} ({1} commits exist on this disk only)" -f $r.path, $r.commits)
             }
         } elseif (-not $r.ownsRemote) {
+            # anchor: survey-foreign-remote  mode: gate  verbs: report-remote
             $f += New-Finding 'fail' 'foreignRemote' $r.path ("FOREIGN remote: {0} -> {1}. Looks backed up; cannot be pushed." -f $r.path, $r.remote)
         }
         if ($null -ne $r.ahead -and $r.ahead -gt 0) {
+            # anchor: survey-unpushed  mode: gate  verbs: back-up
             $f += New-Finding 'warn' 'unpushed' $r.path ("{0} commits unpushed: {1}" -f $r.ahead, $r.path)
         }
         # git fsck CANNOT see a shallow clone - it honours the boundary. Only the marker file shows it.
         if ($r.shallow) {
+            # anchor: survey-shallow  mode: gate  verbs: unshallow
             $f += New-Finding 'fail' 'shallow' $r.path ("SHALLOW clone: {0} ({1} commits visible). It cannot be pushed to a new remote. Fix: git -C <repo> fetch --unshallow <remote>" -f $r.path, $r.commits)
         }
         if ($r.frozen -and $r.dirty -gt 0) {
@@ -43,6 +47,7 @@ function Get-RepoFindings {
         }
         # Silent and cumulative rather than immediate, so a warn; a frozen tree is not edited to add one.
         if ($r.commits -gt 0 -and -not $r.hasAttrs -and -not $r.frozen) {
+            # anchor: survey-no-gitattributes  mode: gate  verbs: pin-bytes
             $f += New-Finding 'warn' 'noGitattributes' $r.path ("no .gitattributes: {0} - core.autocrlf decides its bytes, not the repo" -f $r.path)
         }
     }

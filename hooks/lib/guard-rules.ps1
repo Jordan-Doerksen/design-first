@@ -205,6 +205,70 @@ function Test-DfPathRuleFile([string]$full, [string[]]$protected, [string]$owner
     return $null
 }
 
+# ============================================================================ (5) manifest before code
+# anchor: no-manifest  mode: advise  verbs: lock,unlock
+# A source write inside a git repository whose root has no DECISIONS.md asks, once per repository
+# per session (DES-02, GATE-04). Docs, config and data files are not source; the brain's
+# sourceExtensions list decides, with a built-in default when there is no brain.
+$script:DfDefaultSourceExtensions = @('.py', '.js', '.ts', '.tsx', '.jsx', '.mjs', '.cjs', '.rs', '.go', '.cs', '.gd', '.ps1', '.sh', '.html', '.css', '.scss', '.vue', '.svelte', '.lua', '.c', '.h', '.cpp', '.java', '.kt', '.swift')
+
+function Get-DfRepoRoot([string]$full) {
+    $dir = Get-DfNearestExistingDir $full
+    if (-not $dir) { return $null }
+    $r = Invoke-DfGit $dir @('rev-parse', '--show-toplevel')
+    if ($r.code -ne 0 -or -not $r.out) { return $null }
+    return (ConvertTo-DfFullPath ([string]($r.out | Select-Object -First 1)))
+}
+
+function Test-DfManifestRule([string]$full, [string[]]$sourceExts, [string]$sessionId, [string]$owner, [string[]]$skipUnder) {
+    if (-not $full) { return }
+    $ext = [IO.Path]::GetExtension($full).ToLowerInvariant()
+    if ($sourceExts -notcontains $ext) { return }
+    foreach ($s in $skipUnder) { if ($s -and (Test-DfUnder $full $s)) { return } }
+    $root = Get-DfRepoRoot $full
+    if (-not $root) { return }
+    $manifest = Get-ChildItem -LiteralPath $root -File -Force -ErrorAction SilentlyContinue | Where-Object { $_.Name -ieq 'DECISIONS.md' } | Select-Object -First 1
+    if ($manifest) { return }
+    $key = 'manifest-' + ([BitConverter]::ToString([Security.Cryptography.SHA1]::HashData([Text.Encoding]::UTF8.GetBytes($root.ToLowerInvariant()))) -replace '-', '').Substring(0, 12)
+    if (-not (Test-DfFirstTime $sessionId $key)) { return }
+    Add-DfAdvisory "no DECISIONS.md in $root" `
+        ("DES-02 / GATE-04: a subsystem is not coded until its decisions are locked in DECISIONS.md, and this repository has none at its root ($root). " +
+         "Interview $owner, write the manifest, then build; or, if this is a toy or a throwaway, say so and carry on. This notice appears once per repository per session.")
+}
+
+# ============================================================================ (6) file size
+# anchor: file-size  mode: advise  verbs: split
+# A write that leaves a source file over the split line asks (DES-03: review at 300, split by
+# 500). The threshold is the brain's splitLines, default 500.
+function Get-DfResultingLineCount([string]$tool, $ti, [string]$full) {
+    try {
+        if ($tool -eq 'Write') { $text = [string]$ti.content }
+        elseif ($tool -eq 'Edit') {
+            if (-not (Test-Path -LiteralPath $full -PathType Leaf)) { return -1 }
+            $text = [IO.File]::ReadAllText($full)
+            $old = [string]$ti.old_string; $new = [string]$ti.new_string
+            if ($old) {
+                $all = $false; if ($ti.PSObject.Properties['replace_all']) { $all = [bool]$ti.replace_all }
+                if ($all) { $text = $text.Replace($old, $new) }
+                else { $i = $text.IndexOf($old); if ($i -ge 0) { $text = $text.Substring(0, $i) + $new + $text.Substring($i + $old.Length) } }
+            }
+        }
+        else { return -1 }
+        if ([string]::IsNullOrEmpty($text)) { return 0 }
+        return ($text.Replace("`r`n", "`n").TrimEnd("`n") -split "`n").Count
+    } catch { return -1 }
+}
+
+function Test-DfSizeRule([string]$tool, $ti, [string]$full, [string[]]$sourceExts, [int]$splitLines) {
+    if (-not $full -or $splitLines -le 0) { return }
+    $ext = [IO.Path]::GetExtension($full).ToLowerInvariant()
+    if ($sourceExts -notcontains $ext) { return }
+    $n = Get-DfResultingLineCount $tool $ti $full
+    if ($n -le $splitLines) { return }
+    Add-DfAdvisory "file would be $n lines (split line $splitLines)" `
+        ("DES-03: this write leaves $full at $n lines; the rule is review at 300, split by $splitLines. Split by domain before adding more, or say why this file is the exception.")
+}
+
 function Test-DfPathRuleShell([string[]]$tokens, $gitCall, [string]$cwd, [string[]]$protected, [string]$owner) {
     if ($protected.Count -eq 0 -or -not $tokens) { return $null }
     $destructive = $false

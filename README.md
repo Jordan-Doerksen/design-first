@@ -46,8 +46,8 @@ The full text of every rule is in `instructions/` and `workflows/`. The index is
 
 The generator refuses to print a grade above HONOUR unless the mechanism exists in this tree and
 declares the clause's verb. The exact counts are the Summary table at the foot of `LAW.md`, which
-is generated; as of 0.1.4 the kit ships 78 clauses and 13 of them have a mechanism (6 HOOK, 2
-ADVISE, 5 GATE). Most rules are requests. The index says so.
+is generated; as of 0.1.5 the kit ships 78 clauses: 24 have a mechanism (7 HOOK, 6 ADVISE, 11 GATE), 13
+more are BUILDABLE with the mechanism specified in DECISIONS.md 2.7. Most rules are requests. The index says so.
 
 ## What is in the box
 

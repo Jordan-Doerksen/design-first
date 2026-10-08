@@ -170,7 +170,7 @@ function Expand-DfConfigPath([string]$p, [string]$root, [string]$brain) {
 # Brain config, or $null when there is no brain (no pointer, no folder, or no config file).
 # Returns @{ protected = full paths; exceptions = full paths; reason = why null }.
 function Read-DfBrainConfig($ptr) {
-    $out = @{ protected = @(); exceptions = @(); present = $false; reason = $null }
+    $out = @{ protected = @(); exceptions = @(); present = $false; reason = $null; splitLines = 0; sourceExtensions = @() }
     if ($null -eq $ptr.pointer) { $out.reason = "no pointer at $($ptr.path)"; return $out }
     if (-not $ptr.brain -or -not (Test-Path -LiteralPath $ptr.brain -PathType Container)) {
         $out.reason = "brain folder missing: $($ptr.brain)"; return $out
@@ -183,6 +183,9 @@ function Read-DfBrainConfig($ptr) {
         foreach ($p in @($cfg.$k)) { $f = Expand-DfConfigPath ([string]$p) $ptr.root $ptr.brain; if ($f) { $out.protected += $f } }
     }
     foreach ($e in @($cfg.secretExceptions)) { $f = Expand-DfConfigPath ([string]$e) $ptr.root $ptr.brain; if ($f) { $out.exceptions += $f } }
+    # Rules 5 and 6 of the guard (DES-02, DES-03): tunables, with built-in defaults when absent.
+    if ($cfg.PSObject.Properties['splitLines']) { $v = 0; if ([int]::TryParse([string]$cfg.splitLines, [ref]$v)) { $out.splitLines = $v } }
+    if ($cfg.PSObject.Properties['sourceExtensions']) { $out.sourceExtensions = @($cfg.sourceExtensions | Where-Object { $_ } | ForEach-Object { ([string]$_).ToLowerInvariant() }) }
     return $out
 }
 

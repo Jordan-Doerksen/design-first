@@ -16,7 +16,9 @@
     "secretExceptions": "repos.ps1 (tracked secret scan) / hooks/guard.ps1 (staging and write rules) - absolute or ${ROOT}-relative file paths",
     "acceptedExceptions": "doctor.ps1 - (path, kind) pairs that are reported but not counted; each needs since and reason",
     "entryPointSnapshots": "doctor.ps1 - live file vs byte snapshot, compared after CRLF->LF",
-    "enforcement": "enforcement.ps1 - fenceLogStaleDays only"
+    "enforcement": "enforcement.ps1 - fenceLogStaleDays only",
+    "splitLines": "hooks/guard.ps1 rule 6 (file-size) - a source write that leaves a file over this many lines asks (DES-03); 0 disables",
+    "sourceExtensions": "hooks/guard.ps1 rules 5 and 6 - which extensions count as source for the manifest and size rules; docs, config and data are not source"
   },
   "surveyStrict": false,
   "maxDepth": 3,
@@ -44,11 +46,50 @@
     "\\.venv\\"
   ],
   "secretExceptions": [],
-  "_acceptedExceptionsExample": { "path": "tools/vendored-thing", "kinds": ["foreignRemote", "shallow"], "since": "2026-01-01", "reason": "Vendored third-party tree. Not my work; nothing of mine is lost if it goes. Kinds: noRemote, foreignRemote, shallow, unpushed, frozenDirty, emptyRepo, noGitattributes, noGitAtAll, trackedSecret." },
+  "_acceptedExceptionsExample": {
+    "path": "tools/vendored-thing",
+    "kinds": [
+      "foreignRemote",
+      "shallow"
+    ],
+    "since": "2026-01-01",
+    "reason": "Vendored third-party tree. Not my work; nothing of mine is lost if it goes. Kinds: noRemote, foreignRemote, shallow, unpushed, frozenDirty, emptyRepo, noGitattributes, noGitAtAll, trackedSecret."
+  },
   "acceptedExceptions": [],
-  "_entryPointSnapshotsExample": { "live": "${ROOT}/CLAUDE.md", "snapshot": "entry-point/CLAUDE.md.snapshot" },
+  "_entryPointSnapshotsExample": {
+    "live": "${ROOT}/CLAUDE.md",
+    "snapshot": "entry-point/CLAUDE.md.snapshot"
+  },
   "entryPointSnapshots": [],
   "enforcement": {
     "fenceLogStaleDays": 30
-  }
+  },
+  "splitLines": 500,
+  "sourceExtensions": [
+    ".py",
+    ".js",
+    ".ts",
+    ".tsx",
+    ".jsx",
+    ".mjs",
+    ".cjs",
+    ".rs",
+    ".go",
+    ".cs",
+    ".gd",
+    ".ps1",
+    ".sh",
+    ".html",
+    ".css",
+    ".scss",
+    ".vue",
+    ".svelte",
+    ".lua",
+    ".c",
+    ".h",
+    ".cpp",
+    ".java",
+    ".kt",
+    ".swift"
+  ]
 }

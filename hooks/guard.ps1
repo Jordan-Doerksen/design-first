@@ -54,6 +54,14 @@ try {
         $full = ConvertTo-DfFullPath $fp $cwd
         if (-not $result) { $result = Test-DfEnvWriteRule $full $cfg.exceptions $owner }
         if (-not $result -and $cfg.present) { $result = Test-DfPathRuleFile $full $cfg.protected $owner }
+        if (-not $result) {
+            # Rules 5 and 6 advise; they never deny. Brain tunables when present, built-in defaults otherwise.
+            $exts  = if ($cfg.sourceExtensions -and @($cfg.sourceExtensions).Count -gt 0) { @($cfg.sourceExtensions) } else { $script:DfDefaultSourceExtensions }
+            $split = if ($cfg.splitLines) { [int]$cfg.splitLines } else { 500 }
+            $skip  = @($ptr.brain) + @(if ($ptr.pointer -and $ptr.pointer.pluginRoot) { [string]$ptr.pointer.pluginRoot })
+            Test-DfManifestRule $full $exts $sessionId $owner $skip
+            Test-DfSizeRule $tool $ti $full $exts $split
+        }
     }
     elseif ($tool -in @('Bash', 'PowerShell')) {
         $cmd = [string]$ti.command

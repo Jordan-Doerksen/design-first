@@ -93,8 +93,12 @@
       "verb": "mechanise",
       "rule": "The next misbehaviour produces a mechanism, not a paragraph; writing the rule harder is the reflex that made adherence worse.",
       "owner": "kit:instructions/principles.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "BUILDABLE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "planned",
+        "ref": "DECISIONS.md#2.7"
+      }
     },
     {
       "id": "PRIN-05",
@@ -111,8 +115,12 @@
       "verb": "ask",
       "rule": "Ask the owner one question at a time, as multiple choice, with the recommended default first.",
       "owner": "kit:instructions/working-with-the-owner.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "HOOK",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/ask.ps1#one-question"
+      }
     },
     {
       "id": "OWN-05",
@@ -147,8 +155,12 @@
       "verb": "design",
       "rule": "Interview, then the decisions manifest, then the architecture map, then build in chunks, then cross-check; every project, no exceptions.",
       "owner": "kit:instructions/design-methodology.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "BUILDABLE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "planned",
+        "ref": "DECISIONS.md#2.7"
+      }
     },
     {
       "id": "DES-02",
@@ -156,8 +168,12 @@
       "verb": "lock",
       "rule": "A subsystem is not coded until its foundational decisions are locked in the manifest; a later change is a Change Request, never drift.",
       "owner": "kit:instructions/design-methodology.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "ADVISE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/guard.ps1#no-manifest"
+      }
     },
     {
       "id": "DES-03",
@@ -165,8 +181,12 @@
       "verb": "split",
       "rule": "Split by domain, and split a file by the size rule in the owning file; a tiny helper stays inline.",
       "owner": "kit:instructions/design-methodology.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "ADVISE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/guard.ps1#file-size"
+      }
     },
     {
       "id": "DES-04",
@@ -201,8 +221,12 @@
       "verb": "document",
       "rule": "Documents are co-equal artifacts, updated before the work is called done; document debt is technical debt.",
       "owner": "kit:workflows/coding.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "BUILDABLE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "planned",
+        "ref": "DECISIONS.md#2.7"
+      }
     },
     {
       "id": "DES-08",
@@ -219,8 +243,12 @@
       "verb": "pin-bytes",
       "rule": "Every repository carries its line-ending attributes file in its first commit; the bytes belong to the repository, not to a machine setting.",
       "owner": "kit:instructions/integrity-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "GATE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "tool",
+        "ref": "tools/doctor/survey.ps1#survey-no-gitattributes"
+      }
     },
     {
       "id": "DES-10",
@@ -228,8 +256,12 @@
       "verb": "install",
       "rule": "Install with the fail-on-drift verb, never the resolve-fresh verb, and pin the toolchain as well as the dependencies.",
       "owner": "kit:workflows/coding.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "GATE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "permission-rule",
+        "ref": "templates/root-settings.json#permissions.ask"
+      }
     },
     {
       "id": "DES-11",
@@ -303,8 +335,12 @@
       "verb": "unlock",
       "rule": "The Programmer hat unlocks only after the interview pass is complete.",
       "owner": "kit:instructions/interview-every-add-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "ADVISE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/guard.ps1#no-manifest"
+      }
     },
     {
       "id": "GATE-05",
@@ -312,8 +348,12 @@
       "verb": "cross-check",
       "rule": "After each chunk, run the cross-check against the manifest, the architecture and the core goal.",
       "owner": "kit:instructions/design-methodology.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "BUILDABLE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "planned",
+        "ref": "DECISIONS.md#2.7"
+      }
     },
     {
       "id": "GATE-06",
@@ -321,8 +361,12 @@
       "verb": "change",
       "rule": "Any change to design, behaviour, config, risk, execution, data flow or dependencies needs a Change Request, and an approved one updates the Change Log.",
       "owner": "kit:instructions/design-methodology.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "BUILDABLE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "planned",
+        "ref": "DECISIONS.md#2.7"
+      }
     },
     {
       "id": "GATE-07",
@@ -330,8 +374,12 @@
       "verb": "finish",
       "rule": "Code that runs is not done; done is the Definition of Done checklist in the owning file.",
       "owner": "kit:instructions/design-methodology.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "BUILDABLE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "planned",
+        "ref": "DECISIONS.md#2.7"
+      }
     },
     {
       "id": "GATE-08",
@@ -392,8 +440,12 @@
       "verb": "simplify",
       "rule": "Before you remove, automate or simplify a thing, list its full function, not only its named one.",
       "owner": "kit:instructions/design-methodology.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "ADVISE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/fence.ps1#fence-net-deletion"
+      }
     },
     {
       "id": "AUTO-01",
@@ -509,8 +561,12 @@
       "verb": "remote",
       "rule": "Every repository has a remote you own.",
       "owner": "kit:instructions/integrity-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "GATE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "tool",
+        "ref": "tools/doctor/survey.ps1#survey-no-remote"
+      }
     },
     {
       "id": "VCS-02",
@@ -518,8 +574,12 @@
       "verb": "report-remote",
       "rule": "A remote you do not own is not a backup, and is reported as a different failure from having none.",
       "owner": "kit:instructions/integrity-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "GATE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "tool",
+        "ref": "tools/doctor/survey.ps1#survey-foreign-remote"
+      }
     },
     {
       "id": "VCS-04",
@@ -527,8 +587,12 @@
       "verb": "back-up",
       "rule": "Committed is not backed up; pushed is.",
       "owner": "kit:instructions/integrity-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "GATE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "tool",
+        "ref": "tools/doctor/survey.ps1#survey-unpushed"
+      }
     },
     {
       "id": "VCS-06",
@@ -593,8 +657,12 @@
       "verb": "unshallow",
       "rule": "A shallow clone cannot be backed up and the standard integrity check cannot see it; unshallow it before trusting it.",
       "owner": "kit:instructions/integrity-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "GATE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "tool",
+        "ref": "tools/doctor/survey.ps1#survey-shallow"
+      }
     },
     {
       "id": "VCS-23",
@@ -602,8 +670,12 @@
       "verb": "claim",
       "rule": "When a law file states a fact about the disk, it gets a claim in the same commit.",
       "owner": "kit:instructions/integrity-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "BUILDABLE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "planned",
+        "ref": "DECISIONS.md#2.7"
+      }
     },
     {
       "id": "OBS-01",
@@ -611,8 +683,12 @@
       "verb": "log",
       "rule": "Every program ships structured, persisted logs; a silent failure is a defect even when the program runs.",
       "owner": "kit:instructions/observability-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "BUILDABLE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "planned",
+        "ref": "DECISIONS.md#2.7"
+      }
     },
     {
       "id": "OBS-02",
@@ -638,8 +714,12 @@
       "verb": "handle-error",
       "rule": "Never hide an error: no swallowed exception, no unreachable handler, no unlogged external failure.",
       "owner": "kit:instructions/observability-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "BUILDABLE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "planned",
+        "ref": "DECISIONS.md#2.7"
+      }
     },
     {
       "id": "OBS-05",
@@ -647,8 +727,12 @@
       "verb": "trap-crash",
       "rule": "Install the process-level crash trap in every program, because a panic or a segfault kills the process before any handler you wrote runs.",
       "owner": "kit:instructions/observability-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "BUILDABLE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "planned",
+        "ref": "DECISIONS.md#2.7"
+      }
     },
     {
       "id": "OBS-06",
@@ -678,8 +762,12 @@
       "verb": "ship-manual",
       "rule": "Every runnable tool ships a logger and a manual with a symptom, meaning and fix table.",
       "owner": "kit:instructions/observability-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "BUILDABLE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "planned",
+        "ref": "DECISIONS.md#2.7"
+      }
     },
     {
       "id": "OBS-09",
@@ -687,8 +775,12 @@
       "verb": "build-watchdog",
       "rule": "Every new game builds its debug watchdog before the first mechanic.",
       "owner": "kit:instructions/observability-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "BUILDABLE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "planned",
+        "ref": "DECISIONS.md#2.7"
+      }
     },
     {
       "id": "OBS-10",
@@ -723,8 +815,12 @@
       "verb": "open-session",
       "rule": "A session on a game repository opens with a state card built from the repository's documents, never from memory, and a disagreement with the real state is raised before any work.",
       "owner": "kit:workflows/coding.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "BUILDABLE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "planned",
+        "ref": "DECISIONS.md#2.7"
+      }
     },
     {
       "id": "GAME-14",

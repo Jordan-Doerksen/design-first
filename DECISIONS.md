@@ -74,6 +74,25 @@ injects the session's active groups plus always-on groups into every subagent. T
 shrinks to the personal layer. Three owner decisions: personal layer at start and law by route;
 subagents get the session's groups; a new clause DES-13 at ADVISE rather than rewording PRIN-01.
 
+**2.7 Planned mechanisms (2026-10-08, the HONOUR triage).** Every clause was triaged with the
+owner: a mechanism that exists is cited; a mechanism that is specified but not shipped prints
+BUILDABLE and points here; a standing ruling prints OWNER; a request stays HONOUR with its reason in
+the owning file. The planned mechanisms, each a Change Request when built:
+- *Repo scan* (new claim type `tree_each`): for every repository under the root that matches a
+  shape, require files or strings. Carries DES-01 (DECISIONS.md and ARCHITECTURE.md present),
+  OBS-01 (a logger), OBS-05 (a crash trap in the entry file), OBS-08 (MANUAL.md), OBS-09 (a game's
+  watchdog), and the brain's game and skin checks.
+- *Regex scan* (claim type `tree_matches_none` / `tree_requires`): OBS-04 swallowed errors; the
+  reduced-motion block; raw colours outside a token file.
+- *Stop hook*: at the end of a turn that changed source, ask for the cross-check (GATE-05), the
+  Change Log row when DECISIONS.md changed (GATE-06), the Definition of Done (GATE-07), and the
+  documents (DES-07).
+- *Ratchet claim*: the HONOUR count in the generated LAW.md may only fall (PRIN-04).
+- *Survey finding* `outsideCategory`: a repository outside a category folder (MAP-04).
+- *Entry hook, game repositories*: print the state card from the repository's documents at
+  session start (GAME-13).
+- *Brain pre-commit hook*: a law file in the diff needs claims.json in the diff (VCS-23).
+
 ## Build Timeline
 
 | Chunk | Content | Status |
@@ -90,6 +109,7 @@ subagents get the session's groups; a new clause DES-13 at ADVISE rather than re
 | 10 | Adopter one, then public | Pending |
 | 11 | Subagent policy hook (agent.ps1), DES-11 rewritten, policy template, 21 hook cases | Done 2026-10-08 |
 | 12 | Law by route: route.ps1, subagent.ps1, lib/law-rows.ps1, DES-13, route-policy template, entry path trimmed, hook_smoke for two more events | Done 2026-10-08 |
+| 13 | HONOUR triage: ask.ps1, guard rules 5 and 6, survey anchors, grades re-derived, planned mechanisms in 2.7 | Done 2026-10-08 |
 
 ## Change Log
 
@@ -105,3 +125,4 @@ subagents get the session's groups; a new clause DES-13 at ADVISE rather than re
 | 2026-10-08 | The 2026-10-07 entry.ps1 fix never reached the adopter: Claude Code runs the plugin from `plugins\cache\...\0.1.0`, and `claude plugin update` re-copies only when `plugin.json` `version` changes, so every commit since install stayed in the checkout while the cache ran the old hooks and the old Doctor (COULD-NOT-LOOK on `json_keyed_match`, sixteen phantom worktree secret findings, the entry path MISSING in every session). Two changes: (1) new claim type `tree_equals` (claims-tree.ps1; MANUAL, SPEC 5.2; self-test true/false/unknown cases) so a brain can assert its running plugin copy matches the checkout; (2) the version is now bumped on every change that must reach an installed copy, starting with 0.1.1. The marketplace lists the plugin with a relative `source` (`./`), which the platform docs say loads in place with no cache; on this machine the desktop app copied it anyway, so the kit plans for the copied form. | kit fix | doctor, manifest |
 | 2026-10-08 | DES-11 rewritten (Change Request, owner interview of five questions): a subagent needs a brief with Goal / Files or Area / Done when / Ruled out (search types: Goal and Done when), a model from the brain's role table when the call names none, and a per-turn cap that asks above eight. Mechanism `hooks/agent.ps1` on the Agent tool, anchor `agent-brief` (deny) so the clause prints HOOK; `templates/agent-policy.json` copied to the brain by adopt. Version 0.1.2. | owner decision | hooks, law, templates, adopt |
 | 2026-10-08 | DES-13 added (ADVISE, anchor route-law in hooks/route.ps1): the law for the task arrives per prompt as LAW.md rows by group, once per session, sticky, cleared on compaction; subagent.ps1 gives every subagent the session's groups plus SAFE; templates/entry.json keeps only me.md and voice.md; hook_smoke accepts UserPromptSubmit and SubagentStart. Version 0.1.4. | owner decisions (3) | hooks, law, templates, doctor, tests |
+| 2026-10-08 | HONOUR triage applied (ten owner passes): OWN-04 HOOK (ask.ps1, one question per call); DES-02 and GATE-04 ADVISE (guard rule 5, source write with no DECISIONS.md); DES-03 ADVISE (guard rule 6, file over splitLines); GATE-13 ADVISE (fence anchor gains simplify); DES-09, VCS-01, VCS-02, VCS-04, VCS-22 GATE by survey anchors; DES-10 GATE by the ask rules (bare installs added); thirteen clauses BUILDABLE pointing at 2.7. Config gains splitLines and sourceExtensions. Version 0.1.5. | owner decisions (10 passes) | hooks, law, doctor, templates, tests |

@@ -97,7 +97,14 @@ Put (Join-Path $repoIgnored '.env') 'TOKEN=ignored'
 
 $repoClean = NewRepo 'repo-clean'
 Put (Join-Path $repoClean 'src\main.py') 'print(1)'
+Put (Join-Path $repoClean 'DECISIONS.md') '# decisions'
 RunGit $repoClean @('add', '-A'); RunGit $repoClean @('commit', '-q', '-m', 'init')
+
+# A repo with source and no manifest: guard rule 5 (DES-02) must ask once per session here.
+$repoNoManifest = NewRepo 'repo-nomanifest'
+Put (Join-Path $repoNoManifest 'src\app.py') 'print(2)'
+Put (Join-Path $repoNoManifest 'notes.md') 'not source'
+RunGit $repoNoManifest @('add', '-A'); RunGit $repoNoManifest @('commit', '-q', '-m', 'init')
 
 $repoTracked = NewRepo 'repo-tracked'
 Put (Join-Path $repoTracked '.env') 'TOKEN=tracked-by-mistake'
@@ -177,7 +184,7 @@ $cases = Get-Content -LiteralPath $casesFile -Raw -Encoding utf8 | ConvertFrom-J
 foreach ($c in $cases) {
     if ($c.PSObject.Properties['_']) { continue }
     if ($Filter -and $c.name -notlike "*$Filter*") { continue }
-    $script = switch ([string]$c.hook) { 'fence' { 'fence.ps1' } 'agent' { 'agent.ps1' } default { 'guard.ps1' } }
+    $script = switch ([string]$c.hook) { 'fence' { 'fence.ps1' } 'agent' { 'agent.ps1' } 'ask' { 'ask.ps1' } default { 'guard.ps1' } }
     $cwd = if ($c.cwd) { Expand $c.cwd } else { $repoClean }
     $session = if ($c.session) { $c.session } else { 's-default' }
     if ($c.PSObject.Properties['stdin']) { $stdin = [string]$c.stdin }
@@ -187,6 +194,10 @@ foreach ($c in $cases) {
             { $_ -in 'Bash', 'PowerShell' } { $ti.command = Expand $c.cmd }
             'NotebookEdit' { $ti.notebook_path = Expand $c.path; $ti.new_source = 'x' }
             'Write' { $ti.file_path = Expand $c.path; $ti.content = if ($null -ne $c.content) { [string]$c.content } else { 'x' } }
+            'AskUserQuestion' {
+                $n = if ($c.n) { [int]$c.n } else { 1 }
+                $ti.questions = @(1..$n | ForEach-Object { @{ question = "q$_"; header = 'h'; options = @(@{ label = 'a'; description = 'a' }, @{ label = 'b'; description = 'b' }) } })
+            }
             'Agent' {
                 $ti.description = 'case'; $ti.prompt = [string]$c.prompt
                 if ($c.type)  { $ti.subagent_type = [string]$c.type }
