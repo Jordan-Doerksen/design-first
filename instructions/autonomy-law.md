@@ -77,14 +77,21 @@ is a Change Request. Adding a story is an owner decision.
 
 ### AUTO-05
 
-**The Reviewer is a separate agent with a read-only tool set, defined in the brain's reviewer
+**The Reviewer is a separate agent with a read-only tool set, defined in the kit's reviewer
 agent file, not as a sentence.**
 
 The Reviewer is not the Builder in a different stance. A green result from the agent that wrote the
 code is not a cross-check. A hat is a stance; this separation is a **permission**, and a permission
 exists as a file. The kit ships the definition at `agents/reviewer.md` with a read-only tool list
-(`Read, Grep, Glob` — no Write, no Edit, no shell); `/adopt` places it in the brain. The tool
-allowlist is what makes this rule enforced rather than written.
+(`Read, Grep, Glob` — no Write, no Edit, no shell). The plugin registers it as the agent
+`design-first:reviewer`. No copy is placed in the brain. The tool allowlist is what makes this
+rule enforced rather than written, and a kit claim checks that line.
+
+**There is one Reviewer file.** Until 2026-10-08 the first instance had two: this one, and an older
+one in the root's own agents folder. They had drifted: the older one gave the three verdicts this
+file defines, and the kit's gave a fourth and had no `BLOCKED`. A second definition of the Reviewer
+is a defect, for the reason in `PRIN-05`. A brain that wants to be sure asserts the other file is
+absent.
 
 The independence comes from a **fresh context**, not a second person: a reviewer in a fresh
 sub-agent context sees only the diff and the criteria it is given, not the reasoning that produced

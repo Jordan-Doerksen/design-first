@@ -61,7 +61,7 @@ more are BUILDABLE with the mechanism specified in DECISIONS.md 2.7. Most rules 
 | `tools/vcs/` | `law-claim.ps1`, a git commit check: a law file in a commit needs a claim or a written reason (install: `tools/MANUAL.md`) |
 | `tools/tests/` | the hook cases, on real hooks and real commits, and the Doctor self-test; run under pwsh |
 | `commands/` | `adopt`, `remove`, and four small working commands |
-| `agents/reviewer.md` | a read-only adversarial reviewer |
+| `agents/reviewer.md` | the Reviewer, registered as `design-first:reviewer`: read-only, three verdicts (PASS, FAIL, BLOCKED), evidence or no pass |
 | `templates/` | the files `adopt` writes into your root and your brain |
 
 Your own layer, called the brain, lives outside this repo: who you are, how you want to be spoken

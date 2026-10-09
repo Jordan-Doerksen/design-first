@@ -804,7 +804,7 @@
     "name": "agent: reviewer full brief -> inherits, advised",
     "hook": "agent",
     "tool": "Agent",
-    "type": "reviewer",
+    "type": "design-first:reviewer",
     "prompt": "Goal: count the files under tools.\nFiles: tools/\nDone when: the count is pasted with the command that produced it.\nRuled out: editing anything.",
     "expect": "advise",
     "contains": "inherits"

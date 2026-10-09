@@ -116,6 +116,21 @@
       "why": "DES-07, GATE-05/06/07: the Stop hook is registered and starts. With no ledger for the smoke session it must exit 0 and print nothing."
     },
     {
+      "id": "KIT-REVIEWER-01",
+      "type": "file_contains",
+      "path": "${KIT}/agents/reviewer.md",
+      "needle": "tools: Read, Grep, Glob
+---",
+      "why": "AUTO-05: the Reviewer has no edit access, and that is a permission, not a sentence. The tool list in this file is what makes it real. If the line changes, a Reviewer can write to the thing it is grading. The needle is the whole line and the line that closes the front matter: without the line end, a list with one more tool on it (Glob, Edit) still held the needle."
+    },
+    {
+      "id": "KIT-REVIEWER-02",
+      "type": "file_not_contains",
+      "path": "${KIT}/agents/reviewer.md",
+      "needle": "PASS WITH",
+      "why": "The law gives the Reviewer three verdicts: PASS, FAIL, BLOCKED (instructions/autonomy-law.md). Until 0.1.16 this file returned a fourth, PASS WITH FINDINGS, and had no BLOCKED, so the kit's own agent broke the kit's own law. A softened pass must not come back."
+    },
+    {
       "id": "KIT-RATCHET-01",
       "type": "ratchet",
       "path": "${KIT}/LAW.md",

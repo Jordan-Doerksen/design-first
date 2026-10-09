@@ -83,7 +83,7 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | AUTO-02 | HONOUR | The loop stops at a manifest change, new scope, taste, a Change Request, a push or merge, a delete or move, a design-gated project, any secret, or anything that weakens a check. | `kit:instructions/autonomy-law.md` |
 | AUTO-03 | HONOUR | The unit of work is a story, not a chunk; the chunk stays the stop boundary. | `kit:instructions/autonomy-law.md` |
 | AUTO-04 | HONOUR | Only the Reviewer's verdict writes the pass mark, never the Builder; a Builder that edits the ledger voids its own attempt. | `kit:instructions/autonomy-law.md` |
-| AUTO-05 | HONOUR | The Reviewer is a separate agent with a read-only tool set, defined in the brain's reviewer agent file, not as a sentence. | `kit:instructions/autonomy-law.md` |
+| AUTO-05 | GATE | The Reviewer is a separate agent with a read-only tool set, defined in the kit's reviewer agent file, not as a sentence. | `kit:instructions/autonomy-law.md` |
 | AUTO-06 | HONOUR | Evidence means the command and its literal output, pasted; a model's claim that something passed is not evidence. | `kit:instructions/autonomy-law.md` |
 | AUTO-07 | HONOUR | A deterministic check sets the pass mark; a model verdict may only add a finding, never clear one. | `kit:instructions/autonomy-law.md` |
 | AUTO-08 | HONOUR | A green verify gate is the floor, not the proof; a green gate with no new probe covering this story's behaviour is a fail. | `kit:instructions/autonomy-law.md` |
@@ -162,8 +162,8 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | DENY | 0 |
 | HOOK | 11 |
 | ADVISE | 7 |
-| GATE | 12 |
+| GATE | 13 |
 | BUILDABLE | 7 |
 | OWNER | 3 |
-| HONOUR | 38 |
+| HONOUR | 37 |
 | total | 78 |

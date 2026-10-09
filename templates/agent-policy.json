@@ -12,7 +12,7 @@
     "general-purpose": "sonnet",
     "claude": "sonnet",
     "Plan": "inherit",
-    "reviewer": "inherit",
+    "design-first:reviewer": "inherit",
     "default": "inherit"
   },
   "cap": {

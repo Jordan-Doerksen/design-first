@@ -487,10 +487,14 @@
       "id": "AUTO-05",
       "group": "AUTO",
       "verb": "define-reviewer",
-      "rule": "The Reviewer is a separate agent with a read-only tool set, defined in the brain's reviewer agent file, not as a sentence.",
+      "rule": "The Reviewer is a separate agent with a read-only tool set, defined in the kit's reviewer agent file, not as a sentence.",
       "owner": "kit:instructions/autonomy-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "GATE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "doctor-claim",
+        "ref": "KIT-REVIEWER-01"
+      }
     },
     {
       "id": "AUTO-06",
