@@ -1,12 +1,17 @@
 # guard.ps1 - design-first PreToolUse guard (Edit | Write | NotebookEdit | Bash | PowerShell).
 #
-# This one refuses. Four rules, in this order, every one of them a cost already paid somewhere:
+# This one refuses. The deny rules, in this order, every one of them a cost already paid somewhere:
 #   1. stage-secret  - git add / git commit -a of a file that looks like a credential.
 #   2. git-history   - gc --prune, reflog expire, force push, remote branch deletion.
 #   3. env-write     - writing a .env that git does not ignore, or that git already tracks.
 #   4. frozen-path   - an edit or destructive command inside a frozen or tombstoned path.
-# Rules 1-3 run with or without a brain. Rule 4 needs the brain's doctor.config.json; without
-# one it is skipped and says so once per session.
+#   7. dirty-tree    - reset --hard, checkout -- <path>, restore, clean -f, stash on a dirty tree (SAFE-06).
+#   8. no-schedule   - a scheduled task, cron, Run key, service or Startup-folder entry (SAFE-08).
+#   9. content-rule  - an edit that adds text a brain content rule bans in its scope (SAFE-02).
+# Rules 1-3 and 7 run with or without a brain. Rule 4 needs the brain's doctor.config.json; without
+# one it is skipped and says so once per session. Rules 8 and 9 run only when the brain turns them
+# on (forbidScheduling, contentRules). Rules 5 and 6 advise and never deny. Rules 7-9 live in
+# lib\guard-owner-rules.ps1.
 #
 # What this hook cannot see (the written residual, self-tested as NOT denied so nobody believes
 # otherwise): command strings nested in another shell (cmd /c "...", pwsh -c "...", bash -c "..."),
@@ -27,6 +32,7 @@ try {
     . (Join-Path $PSScriptRoot 'lib\common.ps1')
     . (Join-Path $PSScriptRoot 'lib\tokenise.ps1')
     . (Join-Path $PSScriptRoot 'lib\guard-rules.ps1')
+    . (Join-Path $PSScriptRoot 'lib\guard-owner-rules.ps1')
     . (Join-Path $PSScriptRoot 'lib\turn-changes.ps1')
 
     $raw = [Console]::In.ReadToEnd()
@@ -49,12 +55,15 @@ try {
         Add-DfAdvisory 'brain config unreadable, path rules skipped' "$($cfg.reason). Inline rules still ran."
     }
     $owner = Get-DfOwnerName $ptr.brain
+    foreach ($p in @($cfg.contentRuleProblems)) { if ($p) { Write-DfLog 'ERROR' 'guard' $p; Add-DfAdvisory 'content rule unreadable, skipped' "$p. The other rules still ran." } }
 
     if ($tool -in @('Edit', 'Write', 'NotebookEdit')) {
         $fp = if ($tool -eq 'NotebookEdit') { [string]$ti.notebook_path } else { [string]$ti.file_path }
         $full = ConvertTo-DfFullPath $fp $cwd
         if (-not $result) { $result = Test-DfEnvWriteRule $full $cfg.exceptions $owner }
         if (-not $result -and $cfg.present) { $result = Test-DfPathRuleFile $full $cfg.protected $owner }
+        if (-not $result -and $cfg.forbidScheduling) { $result = Test-DfScheduleRuleFile $full $owner }
+        if (-not $result -and @($cfg.contentRules).Count -gt 0) { $result = Test-DfContentRuleFile $tool $ti $full $cfg.contentRules $owner }
         if (-not $result) {
             # Rules 5 and 6 advise; they never deny. Brain tunables when present, built-in defaults otherwise.
             $exts  = if ($cfg.sourceExtensions -and @($cfg.sourceExtensions).Count -gt 0) { @($cfg.sourceExtensions) } else { $script:DfDefaultSourceExtensions }
@@ -68,15 +77,28 @@ try {
         $cmd = [string]$ti.command
         if (-not [string]::IsNullOrWhiteSpace($cmd)) {
             $subs = Split-DfCommand $cmd $tool
+            # The folder a sub-command runs in, after any cd before it in the same command line. Only
+            # rule 7 reads it; rules 1-4 keep the tool call's cwd, as their self-tests expect.
+            $runCwd = $cwd
             foreach ($tokens in $subs) {
+                if ($tokens.Count -ge 2 -and $tokens[0] -in @('cd', 'Set-Location', 'sl', 'pushd', 'Push-Location', 'chdir')) {
+                    $to = ConvertTo-DfFullPath ([string]$tokens[$tokens.Count - 1]) $runCwd
+                    if ($to) { $runCwd = $to }
+                }
                 $call = Get-DfGitCall $tokens $cwd
                 if ($call) {
                     if (-not $result) { $result = Test-DfStagingRule $call $cfg.exceptions $owner }
                     if (-not $result) { $result = Test-DfHistoryRule $call $owner }
+                    if (-not $result) {
+                        $dcall = if ($runCwd -ne $cwd) { Get-DfGitCall $tokens $runCwd } else { $call }
+                        $result = Test-DfDirtyTreeRule $dcall $owner
+                    }
                 }
                 if (-not $result -and $cfg.present) { $result = Test-DfPathRuleShell $tokens $call $cwd $cfg.protected $owner }
+                if (-not $result -and $cfg.forbidScheduling) { $result = Test-DfScheduleRuleShell $tokens $owner }
                 if ($result) { break }
             }
+            if (-not $result -and @($cfg.contentRules).Count -gt 0) { $result = Test-DfContentRuleShell $cmd $runCwd $cfg.contentRules $owner }
         }
     }
 

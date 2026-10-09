@@ -164,7 +164,7 @@ try {
             [ordered]@{ live = 'entry-point/eolonly.md';    snapshot = 'entry-point/eolonly.md.snapshot' })
         enforcement = [ordered]@{ fenceLogStaleDays = 30 }
         gitTimeoutSeconds = 20   # dead key: must be reported
-        splitLines = 500; sourceExtensions = @('.py'); stopDocs = @('DECISIONS.md'); stopFromGit = $true   # read by the hooks: must NOT be reported
+        splitLines = 500; sourceExtensions = @('.py'); stopDocs = @('DECISIONS.md'); stopFromGit = $true; forbidScheduling = $false; contentRules = @()   # read by the hooks: must NOT be reported
         lawClaim = [ordered]@{ extraFiles = @(); trailer = 'No-Claim'; minReason = 10 }   # read by the commit check: must NOT be reported
     }
     WJ (Join-Path $brain 'doctor.config.json') $cfg

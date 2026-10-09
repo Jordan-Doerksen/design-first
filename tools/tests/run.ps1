@@ -72,7 +72,11 @@ Put (Join-Path $brain 'doctor.config.json') (@{
     frozenPaths = @('${ROOT}\frozen')
     tombstonedPaths = @((Join-Path $root 'tomb'))
     secretExceptions = @('repo-plain/allowed/.env')
-} | ConvertTo-Json)
+    # Guard rules 8 and 9 (0.1.17). No earlier case runs a scheduling command or edits under trading.
+    forbidScheduling = $true
+    contentRules = @(@{ id = 'SAFE-02'; under = @('${ROOT}\trading'); except = @('${ROOT}\trading\action'); exceptParts = @('tests')
+                        extensions = @('.py'); pattern = '(?i)(?<![A-Za-z0-9])place_?orders?\s*\('; shell = $true; why = 'SAFE-02 fixture: nothing under trading places an order.' })
+} | ConvertTo-Json -Depth 5)
 Put (Join-Path $brain 'me.md') "---`nowner:`n  name: `"Test Owner`"`n---`n# About the owner`n"
 # Entries 4-6 use the kit:/brain: prefixes the shipped templates/entry.json uses. 6 is a file that
 # exists under the kit but not the brain, so a brain: entry resolved against the kit would be caught.

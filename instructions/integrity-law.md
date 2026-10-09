@@ -208,6 +208,14 @@ state — modified, untracked, ahead — and stops. An autonomous loop does not 
 (`AUTO-12`). A sweep that would touch many repositories (adding a `.gitattributes`, say) skips the
 dirty ones and says so, then revisits each as its tree comes clean.
 
+**Mechanism:** guard rule 7 (`hooks/guard.ps1#dirty-tree`) refuses `reset --hard`/`--merge`/`--keep`,
+`checkout -- <path>` (or `-f`, or `.`, or a path that exists), `restore` without `--staged`,
+`clean -f`, `switch --discard-changes` and `stash` while `git status --porcelain` in the command's
+folder is not empty, and `stash drop` / `stash clear` always. It follows a `cd` earlier in the same
+command line. **Cannot see:** nested shells, scripts on disk, aliases, a commit or `add -A` made
+on the agent's own initiative (that part of the rule stays a judgement), and a folder change by
+any route other than `cd`, `Set-Location`, `pushd` or `chdir`.
+
 ---
 
 ## Part 5 — Secrets

@@ -18,7 +18,7 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 |---|---|---|---|
 | SAFE-01 | HOOK | Secrets live in an ignored secrets file and never enter a commit; a leaked token is rotated first and removed second. | `kit:instructions/integrity-law.md` |
 | SAFE-04 | GATE | Show nothing rather than something false: a blank panel beats a wrong number, anything unverified is labelled, and absent is not zero. | `kit:instructions/observability-law.md` |
-| SAFE-06 | OWNER | Never tidy, commit, reset or consolidate a dirty or untracked tree on your own initiative; some are dirty on purpose to protect something that works. | `kit:instructions/integrity-law.md` |
+| SAFE-06 | HOOK | Never tidy, commit, reset or consolidate a dirty or untracked tree on your own initiative; some are dirty on purpose to protect something that works. | `kit:instructions/integrity-law.md` |
 | SAFE-09 | HOOK | A retired but load-bearing folder is never deleted, moved or archived while a live consumer still reads it. | `kit:instructions/integrity-law.md` |
 
 ## PRIN - Principles
@@ -160,10 +160,10 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | grade | count |
 |---|---|
 | DENY | 0 |
-| HOOK | 11 |
+| HOOK | 12 |
 | ADVISE | 7 |
 | GATE | 13 |
 | BUILDABLE | 7 |
-| OWNER | 3 |
+| OWNER | 2 |
 | HONOUR | 37 |
 | total | 78 |

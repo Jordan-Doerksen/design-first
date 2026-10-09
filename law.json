@@ -49,7 +49,11 @@
       "verb": "tidy",
       "rule": "Never tidy, commit, reset or consolidate a dirty or untracked tree on your own initiative; some are dirty on purpose to protect something that works.",
       "owner": "kit:instructions/integrity-law.md",
-      "grade": "OWNER",
+      "grade": "HOOK",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/guard.ps1#dirty-tree"
+      },
       "since": "2026-09-22"
     },
     {

@@ -170,7 +170,8 @@ function Expand-DfConfigPath([string]$p, [string]$root, [string]$brain) {
 # Brain config, or $null when there is no brain (no pointer, no folder, or no config file).
 # Returns @{ protected = full paths; exceptions = full paths; reason = why null }.
 function Read-DfBrainConfig($ptr) {
-    $out = @{ protected = @(); exceptions = @(); present = $false; reason = $null; splitLines = 0; sourceExtensions = @(); stopDocs = @(); stopFromGit = $true }
+    $out = @{ protected = @(); exceptions = @(); present = $false; reason = $null; splitLines = 0; sourceExtensions = @(); stopDocs = @(); stopFromGit = $true
+              forbidScheduling = $false; contentRules = @(); contentRuleProblems = @() }
     if ($null -eq $ptr.pointer) { $out.reason = "no pointer at $($ptr.path)"; return $out }
     if (-not $ptr.brain -or -not (Test-Path -LiteralPath $ptr.brain -PathType Container)) {
         $out.reason = "brain folder missing: $($ptr.brain)"; return $out
@@ -189,6 +190,27 @@ function Read-DfBrainConfig($ptr) {
     if ($cfg.PSObject.Properties['stopDocs']) { $out.stopDocs = @($cfg.stopDocs | Where-Object { $_ } | ForEach-Object { [string]$_ }) }
     # The Stop card reads the turn's changes from git; false goes back to counting Edit and Write calls only.
     if ($cfg.PSObject.Properties['stopFromGit']) { $out.stopFromGit = -not ($cfg.stopFromGit -eq $false -or [string]$cfg.stopFromGit -ieq 'false') }
+    # Guard rules 8 and 9 (guard-owner-rules.ps1). forbidScheduling is opt-in: off unless the brain says true.
+    if ($cfg.PSObject.Properties['forbidScheduling']) { $out.forbidScheduling = ($cfg.forbidScheduling -eq $true -or [string]$cfg.forbidScheduling -ieq 'true') }
+    foreach ($r in @($cfg.contentRules)) {
+        if ($null -eq $r) { continue }
+        try {
+            $id = [string]$r.id
+            if (-not $id -or -not $r.pattern) { throw 'a content rule needs an id and a pattern' }
+            $under = @(@($r.under) | ForEach-Object { Expand-DfConfigPath ([string]$_) $ptr.root $ptr.brain } | Where-Object { $_ })
+            if ($under.Count -eq 0) { throw "content rule $id has no 'under' path that resolves" }
+            $out.contentRules += [pscustomobject]@{
+                id          = $id
+                under       = $under
+                except      = @(@($r.except) | Where-Object { $_ } | ForEach-Object { Expand-DfConfigPath ([string]$_) $ptr.root $ptr.brain } | Where-Object { $_ })
+                exceptParts = @(@($r.exceptParts) | Where-Object { $_ } | ForEach-Object { [string]$_ })
+                extensions  = @(@($r.extensions) | Where-Object { $_ } | ForEach-Object { ([string]$_).ToLowerInvariant() })
+                regex       = [regex]::new([string]$r.pattern)
+                why         = [string]$r.why
+                shell       = ($r.shell -eq $true)
+            }
+        } catch { $out.contentRuleProblems += "contentRules: $($_.Exception.Message)" }
+    }
     return $out
 }
 

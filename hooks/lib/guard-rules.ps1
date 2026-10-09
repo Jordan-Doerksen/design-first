@@ -1,4 +1,4 @@
-# guard-rules.ps1 - the four guard rules, in SPEC 5.4 order. Dot-sourced by guard.ps1.
+# guard-rules.ps1 - guard rules 1-6, in SPEC 5.4 order. Dot-sourced by guard.ps1. Rules 7-9 are in guard-owner-rules.ps1.
 # Each rule returns $null (no opinion) or a deny object from New-DfDeny. Advisories are added to
 # the $script:DfAdvisories list and emitted once by guard.ps1.
 

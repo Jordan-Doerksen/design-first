@@ -1079,5 +1079,200 @@
     "tool": "Edit",
     "path": "${T}/root/ordinary/x.gd",
     "expect": "allow"
+  },
+  {
+    "_": "---- 0.1.17: rule 7 dirty-tree (SAFE-06); repo-plain is dirty (untracked .env), repo-clean is clean ----"
+  },
+  {
+    "name": "dirty tree: git reset --hard -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git reset --hard",
+    "cwd": "${T}\\root\\repo-plain",
+    "expect": "deny",
+    "contains": "SAFE-06"
+  },
+  {
+    "name": "dirty tree: git checkout -- README.md -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git checkout -- README.md",
+    "cwd": "${T}\\root\\repo-plain",
+    "expect": "deny"
+  },
+  {
+    "name": "dirty tree: git clean -fd -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git clean -fd",
+    "cwd": "${T}\\root\\repo-plain",
+    "expect": "deny"
+  },
+  {
+    "name": "dirty tree: git stash -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git stash",
+    "cwd": "${T}\\root\\repo-plain",
+    "expect": "deny"
+  },
+  {
+    "name": "dirty tree: git restore README.md -> denied",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "git restore README.md",
+    "cwd": "${T}\\root\\repo-plain",
+    "expect": "deny"
+  },
+  {
+    "name": "dirty tree via cd: cd <dirty> && git reset --hard -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "cd ${TFWD}/root/repo-plain && git reset --hard",
+    "cwd": "${T}\\root\\repo-clean",
+    "expect": "deny"
+  },
+  {
+    "name": "dirty tree: git restore --staged -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git restore --staged README.md",
+    "cwd": "${T}\\root\\repo-plain",
+    "expect": "allow"
+  },
+  {
+    "name": "dirty tree: git checkout -b feature -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git checkout -b feature",
+    "cwd": "${T}\\root\\repo-plain",
+    "expect": "allow"
+  },
+  {
+    "name": "dirty tree: git clean -n (dry run) -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git clean -n",
+    "cwd": "${T}\\root\\repo-plain",
+    "expect": "allow"
+  },
+  {
+    "name": "clean tree: git reset --hard -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git reset --hard",
+    "cwd": "${T}\\root\\repo-clean",
+    "expect": "allow"
+  },
+  {
+    "name": "git stash drop -> denied even on a clean tree",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git stash drop",
+    "cwd": "${T}\\root\\repo-clean",
+    "expect": "deny"
+  },
+  {
+    "_": "---- 0.1.17: rule 8 no-schedule (SAFE-08); the fixture brain sets forbidScheduling true ----"
+  },
+  {
+    "name": "schedule: schtasks /create -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "schtasks /create /tn x /tr calc.exe /sc daily",
+    "expect": "deny",
+    "contains": "SAFE-08"
+  },
+  {
+    "name": "schedule: Register-ScheduledTask -> denied",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "Register-ScheduledTask -TaskName x -Action $a -Trigger $t",
+    "expect": "deny"
+  },
+  {
+    "name": "schedule: Run key via reg add -> denied",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v x /d c:\\x.exe",
+    "expect": "deny"
+  },
+  {
+    "name": "schedule: Write into a Startup folder -> denied",
+    "hook": "guard",
+    "tool": "Write",
+    "path": "${T}\\Start Menu\\Programs\\Startup\\go.bat",
+    "expect": "deny"
+  },
+  {
+    "name": "schedule: schtasks /query -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "schtasks /query",
+    "expect": "allow"
+  },
+  {
+    "name": "schedule: crontab -l -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "crontab -l",
+    "expect": "allow"
+  },
+  {
+    "_": "---- 0.1.17: rule 9 content-rule (SAFE-02); the fixture brain bans place_order( under root\\trading, except trading\\action and tests folders ----"
+  },
+  {
+    "name": "content: Edit adds place_order( in trading -> denied",
+    "hook": "guard",
+    "tool": "Edit",
+    "path": "${T}\\root\\trading\\desk\\feed.py",
+    "old": "a",
+    "new": "ib.place_order(c, o)",
+    "expect": "deny",
+    "contains": "SAFE-02"
+  },
+  {
+    "name": "content: same edit in the excepted action folder -> allowed",
+    "hook": "guard",
+    "tool": "Edit",
+    "path": "${T}\\root\\trading\\action\\bot.py",
+    "old": "a",
+    "new": "ib.place_order(c, o)",
+    "expect": "allow"
+  },
+  {
+    "name": "content: same edit in a tests folder -> allowed",
+    "hook": "guard",
+    "tool": "Edit",
+    "path": "${T}\\root\\trading\\desk\\tests\\t.py",
+    "old": "a",
+    "new": "assert 'place_order(' not in src",
+    "expect": "allow"
+  },
+  {
+    "name": "content: a harmless edit in trading -> allowed",
+    "hook": "guard",
+    "tool": "Edit",
+    "path": "${T}\\root\\trading\\desk\\feed.py",
+    "old": "a",
+    "new": "read_quotes()",
+    "expect": "allow"
+  },
+  {
+    "name": "content: same text outside trading -> allowed",
+    "hook": "guard",
+    "tool": "Edit",
+    "path": "${T}\\root\\ordinary\\x.py",
+    "old": "a",
+    "new": "ib.place_order(c, o)",
+    "expect": "allow"
+  },
+  {
+    "name": "content: shell command from trading holding place_order( -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "python -c \"ib.place_order(c, o)\"",
+    "cwd": "${T}\\root\\trading\\desk",
+    "expect": "deny"
   }
 ]
