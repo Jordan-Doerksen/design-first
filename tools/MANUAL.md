@@ -198,6 +198,8 @@ Finding kinds for `acceptedExceptions`: `noRemote`, `emptyRepo`, `foreignRemote`
 | `sourceExtensions` | hooks/guard.ps1, hooks/stop.ps1 | Which extensions count as source. Documents, config and data do not. |
 | `stopDocs` | hooks/stop.ps1 | File names that count as documents on the Stop card. A file under `docs/` counts too. |
 | `stopFromGit` | hooks/stop.ps1 | Default true: the Stop card reads the turn's changes from git, so a file a command changed is counted. False: the card counts Edit and Write calls only, as before 0.1.15. |
+| `forbidScheduling` | hooks/guard.ps1 | Default false. True: guard rule 8 refuses a command that creates a scheduled task, a cron entry, a Run key, a service or a Startup-folder entry. |
+| `contentRules` | hooks/guard.ps1 | Default empty. A list of `{ id, under[], except[], exceptParts[], extensions[], pattern, shell, why }`. Guard rule 9 refuses an edit under `under` that adds a match of `pattern`. A rule needs `id`, `pattern` and one `under` path that resolves. |
 
 Keys that are no longer keys and are reported as dead if present: `root`, `stateDir`, `recordsDir`,
 `gitTimeoutSeconds`, `staleStateDays`, `_retiredUnversionedWatchlist`, `enforcement.settingsPath`,
@@ -228,7 +230,10 @@ keyed compare's `requireAll` and missing-collection cases included), a CRLF-vs-L
 that must pass, a stale snapshot, an absent fence log that must be REPORTED and not RED, a schema
 mismatch that must say `MIGRATE`, a repo with two linked worktrees whose tracked secret must be
 reported exactly once (one of them frozen and dirty, which must still trip), and proves exit codes
-0, 1 and 2, the `-Kit` and `-Json` paths and the `Doctor.bat` shim. It never touches your real
+0, 1 and 2, the `-Kit` and `-Json` paths and the `Doctor.bat` shim. The config cases
+(`selftest-config.ps1`, run by the same command) prove that every key in the reader table has a
+default, that a file which sets every key loads, and that a key with no default loads and does not
+throw. It never touches your real
 folders. About a minute. Run it after any change to the Doctor: a check that cannot fail is worse
 than no check.
 

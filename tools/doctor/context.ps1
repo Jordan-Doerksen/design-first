@@ -59,6 +59,7 @@ function Test-Unexpanded {
 
 # Every key names its reader. A key with no reader is dead config, and dead config is how a
 # "fact typed into config" outlives the code that read it. doctor.ps1 reports unknown keys.
+# A key added here needs a default in Get-DefaultConfig too; selftest-config.ps1 fails when one is missing.
 $script:ConfigReaders = [ordered]@{
     schema                     = 'doctor.ps1 (config_schema; mismatch -> MIGRATE)'
     surveyStrict               = 'report.ps1 (verdict: SURVEY fail findings turn RED when true)'
@@ -116,6 +117,8 @@ function Get-DefaultConfig {
         sourceExtensions           = @()
         stopDocs                   = @()
         stopFromGit                = $true
+        forbidScheduling           = $false
+        contentRules               = @()
     }
 }
 
@@ -147,6 +150,12 @@ function Read-DoctorConfig {
                         elseif (-not $ep.Name.StartsWith('_')) { $r.deadKeys += "enforcement.$($ep.Name)" }
                     }
                 }
+            } elseif ($null -eq $cfg.PSObject.Properties[$k]) {
+                # A reader key with no default must still load. Assigning to a property the default
+                # object lacks throws, and a crash here exits 1, which reads as RED. 0.1.17 shipped
+                # two such keys; the self-test now proves the two tables agree, and this keeps the
+                # "never throws" promise if they ever disagree again.
+                $cfg | Add-Member -NotePropertyName $k -NotePropertyValue $prop.Value
             } else {
                 $cfg.$k = $prop.Value
             }

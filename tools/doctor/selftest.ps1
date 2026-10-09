@@ -230,7 +230,7 @@ exit 0
     W (Join-Path $kit 'eq-c\extra.md')    "only here`n"
     # The Doctor itself, copied in, so -Kit resolves ${KIT} to this sandbox and reads its claims.
     $kitDoctor = NewDir (Join-Path $kit 'tools\doctor')
-    Get-ChildItem -LiteralPath $here -Filter '*.ps1' | Where-Object { $_.Name -ne 'selftest.ps1' } | Copy-Item -Destination $kitDoctor
+    Get-ChildItem -LiteralPath $here -Filter '*.ps1' | Where-Object { $_.Name -notlike 'selftest*.ps1' } | Copy-Item -Destination $kitDoctor
     $leakWords = @($first, $slug, 'Zeta'); $leakExt = @('.md', '.json'); $leakAllow = @([ordered]@{ path = 'README.md'; words = @($slug) })
     WJ (Join-Path $kitDoctor 'claims.json') ([ordered]@{ schema = 1; claims = @(
         [ordered]@{ id = 'K-POINTER'; type = 'pointer_valid'; why = 'kit' },
@@ -348,8 +348,7 @@ exit 0
     Assert-Has 'A: restore drill FAIL line' $a.out 'logged FAIL line'
     Assert-Has 'A: restore drill stale' $a.out 'restore drill is'
     Assert-Has 'A: fence log absent is REPORTED as no trips yet' $a.out 'fence log: no trips yet'
-    Assert-Has 'A: dead config key reported' $a.out 'dead config key: gitTimeoutSeconds'
-    foreach ($live in 'splitLines', 'sourceExtensions', 'stopDocs', 'stopFromGit', 'lawClaim', 'categories') { Assert-HasNot "A: $live has a reader outside the Doctor, not a dead key" $a.out "dead config key: $live" }
+    . (Join-Path $here 'selftest-config.ps1')   # the config contract cases: dead and live keys, readers against defaults
     Assert-Has 'A: soft_deny counted against frozenPaths' $a.out 'soft_deny: 2 rule(s), 1 naming a frozen path'
     Assert-Has 'A: registered-but-missing hook' $a.out 'hook REGISTERED BUT MISSING'
     Assert-Has 'A: deny/ask rules read from root settings' $a.out 'root settings: 1 deny, 1 ask'
