@@ -104,7 +104,11 @@ try {
     # tree_rules fixtures: good is compliant (vars only, a reduced-motion block, a commented exception);
     # bad has a raw colour, an animation with no reduced-motion block, and a bare except.
     W (Join-Path $sGood 'styles\tokens.css') ":root { --ink: #0F1720; }`n"
-    W (Join-Path $sGood 'styles\app.css') "h1 { color: var(--ink); animation: in 1s; }`n@media (prefers-reduced-motion: reduce) { h1 { animation: none; } }`n"
+    # The comment on the next line quotes two hex values in prose (a contrast note). A forbid rule
+    # must not count them (0.1.19): a comment is not code. Before 0.1.19 this line made good fall short.
+    # The last line is a raw colour excused by an allowOnLine word that sits INSIDE a comment: the
+    # blanking must not erase the excuse (0.1.19). Before the raw-line check this line made good fall short.
+    W (Join-Path $sGood 'styles\app.css') "/* contrast note: --ink #0F1720 on paper #F6F1E7 reads 14:1 */`nh1 { color: var(--ink); animation: in 1s; }`n@media (prefers-reduced-motion: reduce) { h1 { animation: none; } }`n@media print { h1 { color: #000; } } /* deliberate: print has no tokens */`n"
     W (Join-Path $sGood 'src\git.py') "try:`n    x()`nexcept: pass  # deliberate: the exit code is read below`n"
     W (Join-Path $sBad 'styles\app.css') "h1 { color: #fff; animation: in 1s; }`n"
     $sOld  = New-TestRepo $scan 'old' -Date '2019-06-01T12:00:00+00:00'; W (Join-Path $sOld 'tool.marker') "m`n"

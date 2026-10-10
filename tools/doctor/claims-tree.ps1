@@ -381,6 +381,7 @@ function Test-TreeRulesClaim {
     # One entry per rule, built once per claim: the rule and its file glob. A forbid regex is built at
     # the first file the rule reads, as before, so a bad pattern fails the claim in the same way.
     $plan = @(foreach ($r in $rules) { @{ rule = $r; glob = (ConvertTo-DfGlobRegex $(if ($r.files) { [string]$r.files } else { $defaultFiles })); frx = $null; mrx = $null; lineLocal = $false } })
+    $blockCommentExt = @('.css', '.scss', '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx')
     return Invoke-DfRepoScan $c $Context {
         param($repo, $files)
         # Files outside, rules inside: a file is read once however many rules cover it, and each
@@ -393,7 +394,7 @@ function Test-TreeRulesClaim {
             if ($skip) { continue }
             $text = ''
             try { $text = [IO.File]::ReadAllText($f.full) } catch { continue }
-            $norm = $null; $lines = $null
+            $norm = $null; $lines = $null; $rawLines = $null
             foreach ($k in $apply) {
                 $p = $plan[$k]; $r = $p.rule; $st = $tally[$k]
                 if ($r.forbid) {
@@ -402,14 +403,27 @@ function Test-TreeRulesClaim {
                         $p.lineLocal = Test-DfLineLocalPattern ([string]$r.forbid)
                         if ($p.lineLocal) { $p.mrx = [regex]::new([string]$r.forbid, $multi) }
                     }
-                    if ($null -eq $norm) { $norm = $text.Replace("`r`n", "`n") }
+                    # A comment is not code (0.1.19). Block comments are blanked before a forbid rule
+                    # reads the file, newlines kept so line numbers still point at the right line.
+                    # Found on 2026-10-09: a stylesheet whose header explained its own rule, quoting
+                    # `transform:` and four hex values in prose, was convicted by the rule it obeyed.
+                    # Line comments (`//`, `#`) are NOT blanked: `//` lives inside url(...) in CSS.
+                    if ($null -eq $norm) {
+                        $norm = $text.Replace("`r`n", "`n")
+                        if ($blockCommentExt -contains ([IO.Path]::GetExtension($f.rel).ToLowerInvariant())) { $norm = Remove-DfBlockComments $norm }
+                    }
                     # The whole-text check: no match in the text means no line can match, so the
                     # line loop is skipped. Measured: 7.5 million lines, 53 s line by line, 5.5 s this way.
                     if ($p.lineLocal -and -not $p.mrx.IsMatch($norm)) { continue }
                     if ($null -eq $lines) { $lines = $norm -split "`n" }
                     for ($i = 0; $i -lt $lines.Count; $i++) {
                         if (-not $p.frx.IsMatch($lines[$i])) { continue }
-                        if ($allowRx -and ($allowRx.IsMatch($lines[$i]) -or ($i -gt 0 -and $allowRx.IsMatch($lines[$i - 1])))) { continue }
+                        # allowOnLine reads the RAW line: the reason beside an exception usually IS a
+                        # comment, and the blanking above must not erase the very words that excuse it.
+                        if ($allowRx) {
+                            if ($null -eq $rawLines) { $rawLines = $text.Replace("`r`n", "`n") -split "`n" }
+                            if ($allowRx.IsMatch($rawLines[$i]) -or ($i -gt 0 -and $allowRx.IsMatch($rawLines[$i - 1]))) { continue }
+                        }
                         $st.n++; if ($st.hits.Count -lt 3) { $st.hits += ("{0}:{1}" -f $f.rel, ($i + 1)) }
                     }
                 }
@@ -441,4 +455,13 @@ function Test-TreeRulesClaim {
 # switch the whole-text check off for that rule, and the rule is read line by line, as before.
 function Test-DfLineLocalPattern([string]$pattern) {
     return ($pattern -notmatch '\(\?(?!:)' -and $pattern -cnotmatch '\\[AzZG]')
+}
+
+# Blanks every /* ... */ block comment: each character inside becomes a space and every newline
+# stays, so the text keeps its line count and a hit still reports the right line. Used by forbid
+# rules only; a when/require rule still reads the raw text (a reduced-motion block in a comment
+# never satisfied `require` by accident before, and this keeps that true).
+function Remove-DfBlockComments([string]$text) {
+    $ev = [Text.RegularExpressions.MatchEvaluator]{ param($m) ([regex]::Replace($m.Value, '[^\n]', ' ')) }
+    return [regex]::Replace($text, '/\*.*?\*/', $ev, [Text.RegularExpressions.RegexOptions]::Singleline)
 }
