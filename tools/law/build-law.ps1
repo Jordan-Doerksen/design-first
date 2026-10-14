@@ -81,13 +81,22 @@ if ($Overlay) {
             $id = $p.Name
             if (-not $byId.Contains($id) -or $byId[$id].source -ne 'kit') { Add-Problem $id 'override names an id that is not a kit clause'; continue }
             $target = $byId[$id]
+            $kitGrade = $target.grade; $setEnforced = $false
             foreach ($k in $p.Value.PSObject.Properties) {
                 switch ($k.Name) {
                     'grade'      { $target.grade = [string]$k.Value }
                     'owner'      { $target.owner = [string]$k.Value }
-                    'enforcedBy' { $target.enforcedBy = $(if ($null -ne $k.Value) { [pscustomobject]@{ kind = [string](Get-Prop $k.Value 'kind'); ref = [string](Get-Prop $k.Value 'ref') } } else { $null }) }
+                    'enforcedBy' { $setEnforced = $true; $target.enforcedBy = $(if ($null -ne $k.Value) { [pscustomobject]@{ kind = [string](Get-Prop $k.Value 'kind'); ref = [string](Get-Prop $k.Value 'ref') } } else { $null }) }
                     default      { Add-Problem $id "override key '$($k.Name)' is not one of grade, owner, enforcedBy" }
                 }
+            }
+            # Grades are mechanical (DECISIONS 2.2). An override that lowers a clause to OWNER or
+            # HONOUR while the kit's mechanism still stands would print a grade below the truth;
+            # the mechanism wins and the override is reported. Seen 2026-10-13: five overrides
+            # written when those clauses were HONOUR, after the kit gave them an ADVISE anchor.
+            if ($target.grade -in @('OWNER', 'HONOUR') -and $null -ne $target.enforcedBy -and -not $setEnforced) {
+                Add-Warning $id "override grade $($target.grade) ignored: the kit enforces this clause at $kitGrade ($($target.enforcedBy.kind): $($target.enforcedBy.ref)); remove the override, or set enforcedBy to null in it to drop the mechanism on purpose"
+                $target.grade = $kitGrade
             }
             $target.source = 'overlay'
         }

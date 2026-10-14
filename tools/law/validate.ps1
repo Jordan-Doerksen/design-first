@@ -60,8 +60,10 @@ function Test-RuleValues($c) {
 # plural noun, or any number of two or more digits, fails; a bare single digit keeps its warning.
 function Test-RuleCount($c) {
     $id = $c.id; $r = [string]$c.rule
-    if ($r -match '\b\d+\s+[A-Za-z]+(s|es)\b') { Add-Problem $id "rule carries a count ('$($Matches[0])'); read the catalogue for the current number instead (SKIN-07)" }
-    elseif ($r -match '\b\d{2,}\b') { Add-Problem $id "rule carries a number of two or more digits ('$($Matches[0])'); a count in a law goes stale silently (SKIN-07)" }
+    # The digits of a clause id (OWN-04, VOICE-09) are not a count: the lookbehind skips a number
+    # that follows a group letter and a hyphen. Seen 2026-10-14 on the first instance's overlay.
+    if ($r -match '(?<![A-Z]-)\b\d+\s+[A-Za-z]+(s|es)\b') { Add-Problem $id "rule carries a count ('$($Matches[0])'); read the catalogue for the current number instead (SKIN-07)" }
+    elseif ($r -match '(?<![A-Z]-)\b\d{2,}\b') { Add-Problem $id "rule carries a number of two or more digits ('$($Matches[0])'); a count in a law goes stale silently (SKIN-07)" }
 }
 
 # PRIN-05 (build-law.ps1#state-once): one subject, one file. The "### ID" headings of every law
@@ -73,7 +75,9 @@ function Get-HeadingIndex() {
     if ($null -ne $script:HeadingIndex) { return $script:HeadingIndex }
     $idx = @{}
     $dirs = @('instructions', 'workflows', 'lessons' | ForEach-Object { @{ base = $KitRoot; ns = 'kit'; dir = $_ } })
-    if ($BrainRoot) { $dirs += @{ base = $BrainRoot; ns = 'brain'; dir = 'instructions' }; $dirs += @{ base = $BrainRoot; ns = 'brain'; dir = '.' } }
+    if ($BrainRoot) {
+        foreach ($d in 'instructions', 'workflows', 'projects', '.') { $dirs += @{ base = $BrainRoot; ns = 'brain'; dir = $d } }
+    }
     foreach ($d in $dirs) {
         $full = Join-Path $d.base $d.dir
         if (-not (Test-Path -LiteralPath $full -PathType Container)) { continue }
