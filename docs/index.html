@@ -14,7 +14,7 @@
 
 <header class="top" data-chrome="identity_navigation">
   <a class="home" href="https://jordan-doerksen.github.io/">Home</a>
-  <span class="title"><b>design-first</b> <span class="ver">0.1.27</span></span>
+  <span class="title"><b>design-first</b> <span class="ver">0.1.28</span></span>
   <a class="repo" href="https://github.com/Jordan-Doerksen/design-first">Code</a>
 </header>
 
@@ -40,7 +40,7 @@
 
 <section class="chapter flow" id="flow">
   <h2>The flow</h2>
-  <p class="intro">Six beats. Each one is a real recording from an install on a scratch machine, 2026-10-13, kit 0.1.20. Read down; the terminal keeps pace.</p>
+  <p class="intro">Six beats. Each one is a real recording from an install on a scratch machine, 2026-10-13, kit 0.1.28. Read down; the terminal keeps pace.</p>
 
   <div class="scrolly">
     <div class="steps">
@@ -65,7 +65,7 @@
         <h3><span class="n">2</span>The script writes</h3>
         <p>Every file the kit writes is listed as it is written, with the reason it exists. The brain is the adopter's private layer: who they are, their own rules, their claims. Nothing about the author of the kit goes in it.</p>
         <div class="scene" id="s2" data-kind="term">
-          <p class="scene-h">recorded 2026-10-13 - design-first 0.1.20 - pwsh 7 - a scratch root, machine paths replaced</p>
+          <p class="scene-h">recorded 2026-10-13 - design-first 0.1.28 - pwsh 7 - a scratch root, machine paths replaced</p>
           <pre class="term" data-type><span class="ln"> </span>
 <span class="ln">design-first adopt  [fresh mode]</span>
 <span class="ln">  root        C:\adopter  (git work tree: no)</span>
@@ -86,6 +86,8 @@
 <span class="ln ok">  wrote    C:\adopter\brain\law.overlay.json  - overlay: empty clauses, empty overrides</span>
 <span class="ln ok">  wrote    C:\adopter\brain\lessons.md  - lessons -&gt; clauses</span>
 <span class="ln ok">  wrote    C:\adopter\brain\canonical.md  - one subject, one file</span>
+<span class="ln ok">  wrote    C:\adopter\brain\DECISIONS.md  - the brain&#39;s own manifest (DES-01)</span>
+<span class="ln ok">  wrote    C:\adopter\brain\ARCHITECTURE.md  - the brain&#39;s own map (DES-01)</span>
 <span class="ln ok">  wrote    C:\adopter\brain\claims.json  - claims; BRAIN-POINTER-01</span>
 <span class="ln ok">  wrote    C:\adopter\brain\doctor.config.json  - Doctor config; owners, frozen paths, snapshot pairs filled</span>
 <span class="ln ok">  wrote    C:\adopter\brain\entry.json  - the entry path</span>
@@ -102,7 +104,7 @@
 <span class="ln"> </span>
 <span class="ln hd">law</span>
 <span class="ln ok">  wrote    C:\adopter\brain\LAW.md  - generated from kit law.json + overlay + installed state</span>
-<span class="ln ok">  wrote    C:\adopter\brain\state\installed.json  (20 record(s) merged by path)</span>
+<span class="ln ok">  wrote    C:\adopter\brain\state\installed.json  (22 record(s) merged by path)</span>
 <span class="ln"> </span>
 <span class="ln hd">doctor</span>
 <span class="ln"> </span>
@@ -113,9 +115,8 @@
 <span class="ln">    kit C:\adopter\design-first</span>
 <span class="ln">    1 repositories under root (0 archived, not counted)</span>
 <span class="ln"> </span>
-<span class="ln bad">    CLAIMS  3 pass  1 fail  0 could not look</span>
-<span class="ln bad">      FAIL  SCAN-MANIFEST-01  1 of 1 repositories under C:\adopter fall short: brain: missing DECISIONS.md, missing ARCHITECTURE.md</span>
-<span class="ln">            why: DES-01: every repository carries its decisions manifest and its architecture map. Repositories born before `since` (set it to your adopt date) are reported, not failed; a new one must comply. Add `where` or `exclude` for folders that are not projects.</span>
+<span class="ln bad">    CLAIMS  6 pass  0 fail  0 could not look</span>
+<span class="ln good">      every claim holds</span>
 <span class="ln"> </span>
 <span class="ln">    SURVEY  2 finding(s)  [REPORTED, not counted (surveyStrict false)]</span>
 <span class="ln ok">      [ ok ] hook PreToolUse   agent.ps1  Agent</span>
@@ -131,19 +132,19 @@
 <span class="ln bad">      [WARN] empty repo, no remote: brain (0 commits - nothing to back up yet)</span>
 <span class="ln bad">      [WARN] no git at all: .claude (1 files) - nothing is protecting them</span>
 <span class="ln">      [INFO] no restore drill has been logged (C:\adopter\brain\records\restore-drill.log absent) - nothing has yet proved a backup gives anything back</span>
-<span class="ln">      [INFO] ratchet RATCHET-HONOUR-01: baseline recorded, HONOUR = 44</span>
+<span class="ln">      [INFO] ratchet RATCHET-HONOUR-01: baseline recorded, HONOUR = 28</span>
 <span class="ln"> </span>
-<span class="ln bad">    VERDICT: RED  (exit 1: 1 false claim(s))</span>
+<span class="ln good">    VERDICT: GREEN  (exit 0: nothing needs action)</span>
 <span class="ln"> </span>
 <span class="ln">    State written to C:\adopter\brain\state. Every finding is explained in the kit&#39;s tools\MANUAL.md.</span>
 <span class="ln"> </span>
 <span class="ln"> </span>
 <span class="ln hd">summary</span>
 <span class="ln">  mode             fresh</span>
-<span class="ln">  files written    20</span>
+<span class="ln">  files written    22</span>
 <span class="ln">  pointer          C:\Users\adopter\.claude\design-first.json</span>
 <span class="ln">  brain LAW.md     wrote</span>
-<span class="ln bad">  Doctor exit      1  RED - a claim is false; read the FAIL lines above</span>
+<span class="ln good">  Doctor exit      0  GREEN - every claim holds; SURVEY findings above, if any, are reported and not counted</span>
 <span class="ln"> </span>
 <span class="ln">  next</span>
 <span class="ln">    1. Start a new Claude Code session under C:\adopter; the entry path prints on turn one.</span>
@@ -172,31 +173,27 @@ commands/adopt.md -------&gt; tools/adopt.ps1 --&gt; &lt;root&gt;/CLAUDE.md, &lt
         <h3><span class="n">4</span>Build, guarded</h3>
         <p>While the agent builds, a hook reads every tool call before it runs. A force push is refused. Staging a secrets file is refused. The refusal names the rule, and the rule's grade says HOOK because this is what the grade means.</p>
         <div class="scene" id="s4" data-kind="term">
-          <p class="scene-h">recorded 2026-10-13 - design-first 0.1.20 - hooks/guard.ps1 fed two tool calls on a scratch root</p>
-          <pre class="term" data-type><span class="ln"> </span>
-<span class="ln">$ git push --force origin main</span>
+          <p class="scene-h">recorded 2026-10-13 - design-first 0.1.28 - hooks/guard.ps1 fed two tool calls on a scratch root</p>
+          <pre class="term" data-type><span class="ln">$ git push --force origin main</span>
 <span class="ln">GUARD: deny</span>
 <span class="ln">  BLOCKED - that command destroys git history: --force rewrites published history.</span>
-<span class="ln">  Git&#39;s recovery order is reflog, fsck --lost-found, stash, bundle; these commands remove</span>
-<span class="ln">  exactly what that order depends on, on every branch. If this rewrite is genuinely wanted,</span>
-<span class="ln">  Adopter runs it by hand.</span>
+<span class="ln"> </span>
+<span class="ln">  Git&#39;s recovery order is reflog, fsck --lost-found, stash, bundle; these commands remove exactly what that order depends on, on every branch. If this rewrite is genuinely wanted, the owner runs it by hand.</span>
 <span class="ln"> </span>
 <span class="ln">$ git add .env</span>
 <span class="ln">GUARD: deny</span>
 <span class="ln bad">  BLOCKED - this command stages a file that looks like a credential: .env</span>
-<span class="ln bad">  Secrets live in a gitignored .env, always; a token is never committed. If this one has</span>
-<span class="ln">  leaked, rotate it first and assume it is already public. If this file is a deliberate</span>
-<span class="ln">  exception, Adopter registers it in secretExceptions in the brain&#39;s doctor.config.json</span>
-<span class="ln">  before it is staged; an exception is recorded, never assumed.</span>
+<span class="ln"> </span>
+<span class="ln bad">  Secrets live in a gitignored .env, always; a token is never committed. If this one has leaked, rotate it first and assume it is already public. If this file is a deliberate exception, the owner registers it in secretExceptions in the brain&#39;s doctor.config.json before it is staged; an exception is recorded, never assumed.</span>
 <span class="ln"> </span></pre>
         </div>
       </article>
 
       <article class="step" data-scene="s5">
         <h3><span class="n">5</span>The Doctor looks</h3>
-        <p>The Doctor reads the disk, not the documents. On this fresh install it is RED: the new brain has no manifest yet, and the claim that every repository carries one is false. A blank panel beats a wrong number, so it says so.</p>
+        <p>The Doctor reads the disk, not the documents. On this fresh install every claim holds, and the survey still names what nothing has proved yet: a brain with no remote, no restore drill logged. The first recording of this beat was RED, because the new brain had no manifest; the kit now writes one, and the recording was taken again.</p>
         <div class="scene" id="s5" data-kind="term">
-          <p class="scene-h">recorded 2026-10-13 - design-first 0.1.20 - pwsh 7 - a scratch root, machine paths replaced</p>
+          <p class="scene-h">recorded 2026-10-13 - design-first 0.1.28 - pwsh 7 - a scratch root, machine paths replaced</p>
           <pre class="term" data-type><span class="ln"> </span>
 <span class="ln">  DOCTOR</span>
 <span class="ln">  ------</span>
@@ -205,9 +202,8 @@ commands/adopt.md -------&gt; tools/adopt.ps1 --&gt; &lt;root&gt;/CLAUDE.md, &lt
 <span class="ln">  kit C:\adopter\design-first</span>
 <span class="ln">  1 repositories under root (0 archived, not counted)</span>
 <span class="ln"> </span>
-<span class="ln bad">  CLAIMS  3 pass  1 fail  0 could not look</span>
-<span class="ln bad">    FAIL  SCAN-MANIFEST-01  1 of 1 repositories under C:\adopter fall short: brain: missing DECISIONS.md, missing ARCHITECTURE.md</span>
-<span class="ln">          why: DES-01: every repository carries its decisions manifest and its architecture map. Repositories born before `since` (set it to your adopt date) are reported, not failed; a new one must comply. Add `where` or `exclude` for folders that are not projects.</span>
+<span class="ln bad">  CLAIMS  6 pass  0 fail  0 could not look</span>
+<span class="ln good">    every claim holds</span>
 <span class="ln"> </span>
 <span class="ln">  SURVEY  2 finding(s)  [REPORTED, not counted (surveyStrict false)]</span>
 <span class="ln ok">    [ ok ] hook PreToolUse   agent.ps1  Agent</span>
@@ -224,7 +220,7 @@ commands/adopt.md -------&gt; tools/adopt.ps1 --&gt; &lt;root&gt;/CLAUDE.md, &lt
 <span class="ln bad">    [WARN] no git at all: .claude (1 files) - nothing is protecting them</span>
 <span class="ln">    [INFO] no restore drill has been logged (C:\adopter\brain\records\restore-drill.log absent) - nothing has yet proved a backup gives anything back</span>
 <span class="ln"> </span>
-<span class="ln bad">  VERDICT: RED  (exit 1: 1 false claim(s))</span>
+<span class="ln good">  VERDICT: GREEN  (exit 0: nothing needs action)</span>
 <span class="ln"> </span>
 <span class="ln">  State written to C:\adopter\brain\state. Every finding is explained in the kit&#39;s tools\MANUAL.md.</span>
 <span class="ln"> </span></pre>
@@ -235,14 +231,14 @@ commands/adopt.md -------&gt; tools/adopt.ps1 --&gt; &lt;root&gt;/CLAUDE.md, &lt
         <h3><span class="n">6</span>Green means checked</h3>
         <p>The kit runs the same Doctor on itself. GREEN is printed only from a genuine pass of every claim; a check that could not look never reports green. The state is written to disk, and every finding has a row in the manual.</p>
         <div class="scene" id="s6" data-kind="term">
-          <p class="scene-h">recorded 2026-10-13 - design-first 0.1.20 - the kit checking itself (doctor.ps1 -Kit)</p>
+          <p class="scene-h">recorded 2026-10-13 - design-first 0.1.28 - the kit checking itself (doctor.ps1 -Kit)</p>
           <pre class="term" data-type><span class="ln">  DOCTOR</span>
 <span class="ln">  ------</span>
 <span class="ln">  mode kit   root C:\adopter\design-first</span>
 <span class="ln">  brain (none)</span>
 <span class="ln">  kit C:\adopter\design-first</span>
 <span class="ln">  1 repositories under root (0 archived, not counted)</span>
-<span class="ln bad">  CLAIMS  12 pass  0 fail  0 could not look</span>
+<span class="ln bad">  CLAIMS  15 pass  0 fail  0 could not look</span>
 <span class="ln good">    every claim holds</span>
 <span class="ln">  SURVEY  0 finding(s)  [REPORTED, not counted (surveyStrict false)]</span>
 <span class="ln ok">    [ ok ] hook PreToolUse   agent.ps1  Agent</span>
@@ -254,7 +250,6 @@ commands/adopt.md -------&gt; tools/adopt.ps1 --&gt; &lt;root&gt;/CLAUDE.md, &lt
 <span class="ln ok">    [ ok ] hook SubagentStart subagent.ps1  </span>
 <span class="ln ok">    [ ok ] hook UserPromptSubmit route.ps1  </span>
 <span class="ln">    fence log: 0 trips</span>
-<span class="ln">    [INFO] no restore drill has been logged (C:\adopter\design-first\records\restore-drill.log absent) - nothing has yet proved a backup gives anything back</span>
 <span class="ln good">    nothing needs action</span>
 <span class="ln good">  VERDICT: GREEN  (exit 0: nothing needs action)</span>
 <span class="ln">  State written to C:\adopter\design-first\state. Every finding is explained in the kit&#39;s tools\MANUAL.md.</span>
@@ -532,7 +527,7 @@ claude plugin install design-first@design-first
 
 <footer class="foot">
   <a href="https://jordan-doerksen.github.io/">Home</a>
-  <span>Generated from design-first 0.1.27 by <code>docs/build.ps1</code>. Recordings 2026-10-13 on 0.1.20.</span>
+  <span>Generated from design-first 0.1.28 by <code>docs/build.ps1</code>. Recordings 2026-10-13 on 0.1.28.</span>
 </footer>
 
 <script src="page.js"></script>

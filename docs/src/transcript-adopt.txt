@@ -1,4 +1,4 @@
-# recorded 2026-10-13 - design-first 0.1.20 - pwsh 7 - a scratch root, machine paths replaced
+# recorded 2026-10-13 - design-first 0.1.28 - pwsh 7 - a scratch root, machine paths replaced
 
 design-first adopt  [fresh mode]
   root        C:\adopter  (git work tree: no)
@@ -19,6 +19,8 @@ files
   wrote    C:\adopter\brain\law.overlay.json  - overlay: empty clauses, empty overrides
   wrote    C:\adopter\brain\lessons.md  - lessons -> clauses
   wrote    C:\adopter\brain\canonical.md  - one subject, one file
+  wrote    C:\adopter\brain\DECISIONS.md  - the brain's own manifest (DES-01)
+  wrote    C:\adopter\brain\ARCHITECTURE.md  - the brain's own map (DES-01)
   wrote    C:\adopter\brain\claims.json  - claims; BRAIN-POINTER-01
   wrote    C:\adopter\brain\doctor.config.json  - Doctor config; owners, frozen paths, snapshot pairs filled
   wrote    C:\adopter\brain\entry.json  - the entry path
@@ -35,7 +37,7 @@ files
 
 law
   wrote    C:\adopter\brain\LAW.md  - generated from kit law.json + overlay + installed state
-  wrote    C:\adopter\brain\state\installed.json  (20 record(s) merged by path)
+  wrote    C:\adopter\brain\state\installed.json  (22 record(s) merged by path)
 
 doctor
   
@@ -46,9 +48,8 @@ doctor
     kit C:\adopter\design-first
     1 repositories under root (0 archived, not counted)
   
-    CLAIMS  3 pass  1 fail  0 could not look
-      FAIL  SCAN-MANIFEST-01  1 of 1 repositories under C:\adopter fall short: brain: missing DECISIONS.md, missing ARCHITECTURE.md
-            why: DES-01: every repository carries its decisions manifest and its architecture map. Repositories born before `since` (set it to your adopt date) are reported, not failed; a new one must comply. Add `where` or `exclude` for folders that are not projects.
+    CLAIMS  6 pass  0 fail  0 could not look
+      every claim holds
   
     SURVEY  2 finding(s)  [REPORTED, not counted (surveyStrict false)]
       [ ok ] hook PreToolUse   agent.ps1  Agent
@@ -64,19 +65,19 @@ doctor
       [WARN] empty repo, no remote: brain (0 commits - nothing to back up yet)
       [WARN] no git at all: .claude (1 files) - nothing is protecting them
       [INFO] no restore drill has been logged (C:\adopter\brain\records\restore-drill.log absent) - nothing has yet proved a backup gives anything back
-      [INFO] ratchet RATCHET-HONOUR-01: baseline recorded, HONOUR = 44
+      [INFO] ratchet RATCHET-HONOUR-01: baseline recorded, HONOUR = 28
   
-    VERDICT: RED  (exit 1: 1 false claim(s))
+    VERDICT: GREEN  (exit 0: nothing needs action)
   
     State written to C:\adopter\brain\state. Every finding is explained in the kit's tools\MANUAL.md.
   
 
 summary
   mode             fresh
-  files written    20
+  files written    22
   pointer          C:\Users\adopter\.claude\design-first.json
   brain LAW.md     wrote
-  Doctor exit      1  RED - a claim is false; read the FAIL lines above
+  Doctor exit      0  GREEN - every claim holds; SURVEY findings above, if any, are reported and not counted
 
   next
     1. Start a new Claude Code session under C:\adopter; the entry path prints on turn one.

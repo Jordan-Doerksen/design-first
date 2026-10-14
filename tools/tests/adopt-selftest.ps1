@@ -66,6 +66,8 @@ try {
     $r = Run $adopt $common $ptr1 $markers
     Check 'fresh: adopt exits 0' ($r.code -eq 0) $r.out
     Check 'fresh: reports fresh mode' ($r.out -like '*[fresh mode]*') $r.out
+    Check 'fresh: the brain carries its own DECISIONS.md and ARCHITECTURE.md (DES-01)' ((Test-Path -LiteralPath (Join-Path $brain 'DECISIONS.md')) -and (Test-Path -LiteralPath (Join-Path $brain 'ARCHITECTURE.md')))
+    Check 'fresh: the brain manifest is filled, not a template' (((Get-Content -LiteralPath (Join-Path $brain 'DECISIONS.md') -Raw) -notmatch '\{\{') -and ((Get-Content -LiteralPath (Join-Path $brain 'DECISIONS.md') -Raw) -like '*Test Owner*'))
     $expected = @('CLAUDE.md', '.claude\settings.json') | ForEach-Object { Join-Path $root $_ }
     $expected += @('me.md', 'voice.md', 'prohibitions.md', 'law.overlay.json', 'claims.json', 'doctor.config.json', 'entry.json', 'lessons.md', 'canonical.md', 'Doctor.bat', 'LAW.md',
                    'instructions\README.md', 'entry-point\CLAUDE.md.snapshot', 'entry-point\settings.json.snapshot', 'state\installed.json', '.gitattributes', '.gitignore') | ForEach-Object { Join-Path $brain $_ }
@@ -147,6 +149,18 @@ try {
     Check 'repo: no snapshot pairs and no entry-point folder' (@($cfg3.entryPointSnapshots).Count -eq 0 -and -not (Test-Path -LiteralPath (Join-Path $brain3 'entry-point')))
     Check 'repo: no -BrainIsRepo -> brain3 not a repo, no .gitattributes' (-not (Test-Path -LiteralPath (Join-Path $brain3 '.git')) -and -not (Test-Path -LiteralPath (Join-Path $brain3 '.gitattributes')))
     Check 'repo: Doctor ran and exited 0' ($r4.out -match '(?m)^\s*Doctor exit\s+0\b') $r4.out
+
+    # ---------------------------------------------------------------- 5. the default layout: brain UNDER root, as a repo
+    # The adopt command's recommended answer puts the brain at <root>\brain. The manifest scan then
+    # selects it as a repository under root; before 0.1.28 it had no DECISIONS.md and the first
+    # Doctor run was RED (fix list, chunk 10, row 1). Cases 1 to 4 kept the brain beside root.
+    Write-Host '-- default layout: brain under root, brain is a repo'
+    $root5 = Join-Path $T 'root5'; $brain5 = Join-Path $root5 'brain'; $ptr5 = Join-Path $T 'pointer5.json'
+    New-Item -ItemType Directory -Force -Path $root5 | Out-Null
+    $r5 = Run $adopt @('-Root', $root5, '-Brain', $brain5, '-OwnerName', 'Default Owner', '-BrainIsRepo', '-PluginRoot', $kit) $ptr5 $markers
+    Check 'default: adopt exits 0' ($r5.code -eq 0) $r5.out
+    Check 'default: no SCAN-MANIFEST fail on the first run' ($r5.out -notlike '*FAIL  SCAN-MANIFEST*') $r5.out
+    Check 'default: Doctor ran and exited 0 with the brain under root' ($r5.out -match '(?m)^\s*Doctor exit\s+0\b') $r5.out
 
     # ---------------------------------------------------------------- 5. remove: dry run, then real
     Write-Host '-- remove'

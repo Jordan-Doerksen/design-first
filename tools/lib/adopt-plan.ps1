@@ -75,6 +75,7 @@ function New-DfPlan {
         BRAIN              = $Brain
         PROHIBITIONS       = (Get-DfProhibitionsBlock (Join-Path $Kit 'law.json'))
         MARKETPLACE_SOURCE = (Get-DfMarketplaceSource $Kit $GitHubOwners $OwnerName)
+        DATE               = (Get-Date).ToString('yyyy-MM-dd')
     }
     $plan = [Collections.Generic.List[object]]::new()
     $add = {
@@ -95,6 +96,10 @@ function New-DfPlan {
     & $add (Join-Path $Brain 'law.overlay.json')   (& $copy 'law.overlay.json') 'overlay: empty clauses, empty overrides'
     & $add (Join-Path $Brain 'lessons.md')         (& $fill 'lessons.md')     'lessons -> clauses'
     & $add (Join-Path $Brain 'canonical.md')       (& $fill 'canonical.md')   'one subject, one file'
+    # The brain is a project, and DES-01 applies to it: it carries its own manifest and map, so the
+    # Doctor's manifest scan is not RED on the adopter's first run (fix list, chunk 10, row 1).
+    & $add (Join-Path $Brain 'DECISIONS.md')       (& $fill 'brain-DECISIONS.md')    'the brain''s own manifest (DES-01)'
+    & $add (Join-Path $Brain 'ARCHITECTURE.md')    (& $fill 'brain-ARCHITECTURE.md') 'the brain''s own map (DES-01)'
 
     # brain, Doctor contract
     & $add (Join-Path $Brain 'claims.json')        (& $copy 'claims.json')    'claims; BRAIN-POINTER-01'
