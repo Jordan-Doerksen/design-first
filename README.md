@@ -4,7 +4,7 @@ A working method for building software with coding agents, packaged as a Claude 
 Interview before code. Decisions locked in a manifest. Every rule has an id, one owning file,
 and an enforcement grade that tells the truth about whether a machine will stop you.
 
-Status: V1 in build. Chunks 1 to 5 of 11 are done and verified. Not installable until chunk 7.
+Status: V1, installable. Windows and PowerShell 7 only. The version is in `.claude-plugin/plugin.json`.
 
 ## The method, on one page
 
