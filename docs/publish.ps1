@@ -37,9 +37,33 @@ if (@($reg.projects | Where-Object { $_.slug -eq 'design-first' }).Count -gt 0) 
         url = '/tools/design-first/'; repo = 'https://github.com/Jordan-Doerksen/design-first'; featured = $false
         spec = "v$($plugin.version) · MIT · WINDOWS"
     }
-    $reg.projects += [pscustomobject] $entry
-    $json = $reg | ConvertTo-Json -Depth 8
-    [IO.File]::WriteAllText($regPath, ($json -replace "`r`n", "`n") + "`n", [Text.UTF8Encoding]::new($false))
-    Write-Output 'registry: added design-first (tools, full); read the diff before committing'
+    # The entry is inserted as text at the end of the "projects" array, in the file's own indent and
+    # line endings. Workaround: ConvertTo-Json rewrote the whole file in its own layout (one run
+    # produced a 2,045-line diff for a 12-line change), so the file is never round-tripped.
+    $nl = if ($raw.Contains("`r`n")) { "`r`n" } else { "`n" }
+    $unit = if ($raw -match "`n( +)`"categories`"") { $Matches[1] } else { '  ' }
+    $i2 = $unit * 2; $i3 = $unit * 3
+    $lines = [Collections.Generic.List[string]]::new()
+    $lines.Add("$i2{")
+    $keys = @($entry.Keys)
+    for ($k = 0; $k -lt $keys.Count; $k++) {
+        $key = $keys[$k]; $v = $entry[$key]
+        $val = if ($v -is [string]) { '"' + ($v -replace '\\', '\\' -replace '"', '\"') + '"' }
+               elseif ($v -is [bool]) { if ($v) { 'true' } else { 'false' } }
+               else { '[' + (($v | ForEach-Object { '"' + $_ + '"' }) -join ', ') + ']' }
+        $comma = if ($k -lt $keys.Count - 1) { ',' } else { '' }
+        $lines.Add("$i3`"$key`": $val$comma")
+    }
+    $lines.Add("$i2}")
+    $block = ($lines -join $nl)
+    # The projects array closes with the last "]" before the final "}" of the document.
+    $closeDoc = $raw.LastIndexOf('}')
+    $closeArr = $raw.LastIndexOf(']', $closeDoc)
+    if ($closeArr -lt 0) { throw 'registry.json: could not find the end of the projects array' }
+    $before = $raw.Substring(0, $closeArr).TrimEnd()
+    $after  = $raw.Substring($closeArr)
+    $new = $before + ',' + $nl + $block + $nl + $unit + $after.TrimStart()
+    [IO.File]::WriteAllText($regPath, $new, [Text.UTF8Encoding]::new($false))
+    Write-Output 'registry: added design-first (tools, full) as a text insert; read the diff before committing'
 }
 Write-Output "done. In the site checkout: git -C `"$Site`" status"
