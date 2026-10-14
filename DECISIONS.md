@@ -137,6 +137,33 @@ the owning file. The planned mechanisms, each a Change Request when built:
   adopter has it. A brain that installs it re-grades the clause in its overlay (anchor
   `law-claim`) and proves the shim with two claims. Open: install and remove through `adopt`.
 
+**2.8 The HONOUR audit (2026-10-13, CR-2026-10-13-HONOUR).** The owner read the generated page,
+which printed 37 rules enforced by nothing, and ruled: a rule nothing fires is not a rule. Every
+HONOUR clause was triaged again, one verdict each, no relabels: a mechanism that exists or is
+small gets built and the generator grades it; a clause only a reader can judge becomes ADVISE
+through a real per-action injection; a clause the loop runner enforces prints BUILDABLE and points
+here; nothing was cut. Target: HONOUR 0, the ratchet then holds it. Shipped in chunks:
+- *advise-by-role* (`hooks/subagent.ps1#advise-by-role`, 0.1.22): when a subagent starts, the
+  hook reads every clause whose `enforcedBy` names this anchor, from the kit's `law.json` and the
+  brain's overlay, and injects them after the law groups with one instruction per role. The
+  Reviewer's report gains an `ADVISE` section that names each id as `holds` or as a finding with a
+  place; an id not looked at is `BLOCKED`. A Builder is told the Reviewer will name them. Carries
+  18 clauses at ADVISE. The route hook's group rows stay the per-session half.
+- *skills* (`hooks/route.ps1#skills`, 0.1.22): the prompt is matched, whole words of five letters
+  or more, against the name and description of every `SKILL.md` under `root\.claude\skills` and the
+  profile's `.claude\skills`; a match is named once per session with its path. Carries DES-12.
+- *stop-done* carries GAME-12 from 0.1.22: the Stop hook already was the inner gate; the clause
+  had never claimed it.
+- *The loop runner* (planned; the owner's harness loop, outside the kit): the stop list (AUTO-02),
+  the deterministic pass mark (AUTO-07), the new-probe rule (AUTO-08), one process per story
+  (AUTO-10) and the start conditions (AUTO-12) are its behaviour. They print BUILDABLE until the
+  runner ships in the kit or the brain overlay re-grades them against a shipped copy.
+- *Chunks 1 to 4* (planned, this CR): an interview marker checked by the Stop hook (GATE-01), a
+  design-gate guard rule and gate-cleared claim (GATE-08, GATE-09), a ledger lock and no-push-in-loop
+  guard rules (AUTO-04, AUTO-11), a non-canonical guard rule (MAP-01, needs a machine-readable
+  column in the brain's canonical.md), three generator and commit-message checks (PRIN-05, SKIN-07,
+  VOICE-05), a `file_fresh` claim type with tombstone and figure templates (VCS-06, VCS-12, DISP-07).
+
 ## Chapter 3 — The page (chunk 10, 2026-10-13)
 
 The public page for the kit. Owner decisions from the interview on 2026-10-13, one question at a time.
@@ -260,3 +287,4 @@ per profile, the guard does not see nested shells. The page states them before t
 | 2026-10-09 | A comment is not code (0.1.19). Measured on the first instance before building: `RULES-SKIN-03` and `RULES-SKIN-04` convicted `trading\desk-field-guide`, a stylesheet whose header explained its own rule in prose (four hex values in a contrast note, `transform:` quoted in the sentence that forbids it); 7 hits, all inside comments. Fix: `tree_rules` blanks every `/* ... */` block comment before a `forbid` rule reads a .css, .scss, .js, .mjs, .cjs, .ts, .tsx or .jsx file, newlines kept so a hit still names its line; `when`/`require` rules read the raw text as before. Found on the first run after: three `catch (e) { /* reason */ }` blocks in `games\starfall` became empty once blanked, and the `allowOnLine` excuse would have been blanked with them, so the excuse is now read from the raw line. Two fixtures in the self-test fail without each fix. Measured after, from this checkout against the brain: 72 claims pass, 1 fails (KIT-SYNC-01, the cache still at 0.1.18 until Claude Code re-copies). Self-tests 148, 252, 46, zero failures. Line comments (`//`, `#`) are not blanked: `//` lives inside `url(...)`. |
 | 2026-10-13 | Chunk 10 opened: adopter one installs. The README status line still read "not installable until chunk 7" from 0.1.0; replaced with the current state and a pointer to the manifest for the version (0.1.20). No code change. |
 | 2026-10-13 | The page (Chapter 3), 0.1.21. Research pass: GitHub, Hacker News and Exa; Reddit is not configured on the build machine. Owner rejected palettes and frameworks and asked for composition; chose scrollycoding with one explorable. Built: docs/build.ps1 renders docs/index.html from the template, law.json, hooks.json, claims.json, the commands, the README sections and four recorded runs (adopt, Doctor on the fresh brain, the guard refusing a force push and a secrets stage, the kit Doctor on itself). Verified in the browser at 1366 and 375 wide: no element wider than the viewport, scenes inline without JS, typing off under reduced motion. Claim KIT-DOCS-01 (generated_matches) added; KIT-LEAK-01 now scans .html, .css and .js, with the public slug allowed in the four docs files that carry a link. Found by the recorded run and left open for the owner: a fresh adopt ends RED on SCAN-MANIFEST-01 because the kit writes no manifest into the new brain (fix list, chunk 10). The page stays unpublished until the public flip; the owner's site serves it, this repo gets no Pages. |
+| 2026-10-13 | HONOUR audit, chunks 0 and A (0.1.22, DECISIONS 2.8). Measured before: 37 HONOUR of 78. GAME-12 to HOOK on the existing stop-done anchor (verb added). Five loop-runner clauses to BUILDABLE, ref 2.8. Eighteen reader-judged clauses to ADVISE on the new subagent.ps1 advise-by-role anchor; DES-12 to ADVISE on the new route.ps1 skills anchor. The reviewer agent gains the ADVISE report section. Five hook cases added (two subagent, three route). Measured after: HOOK 13, GATE 13, ADVISE 26, BUILDABLE 12, OWNER 2, HONOUR 12. The ratchet records the fall. The page regenerated and prints the new count. |

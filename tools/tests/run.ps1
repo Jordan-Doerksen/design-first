@@ -319,6 +319,21 @@ $r = Sub 'r1' 'general-purpose'
 Record 'subagent: gets SAFE plus the session active groups as JSON context' 'safe+active' $(if ($r.code -eq 0 -and $r.out -match 'group SAFE' -and $r.out -match 'group DES' -and $r.out -match 'group OBS' -and $r.out -match '"hookEventName":"SubagentStart"') { 'safe+active' } else { 'wrong' }) $r.out
 $r = Sub 'r-fresh' 'Explore'
 Record 'subagent: with no routes yet, SAFE alone' 'safe-only' $(if ($r.out -match 'group SAFE' -and $r.out -notmatch 'group DES') { 'safe-only' } else { 'wrong' }) $r.out
+# advise-by-role (CR-2026-10-13-HONOUR): the ADVISE clauses ride with the role that judges them
+$r = Sub 'r1' 'design-first:reviewer'
+Record 'subagent: the Reviewer gets the ADVISE clauses with the report instruction' 'advised' $(if ($r.out -match 'ADVISE clauses' -and $r.out -match 'OWN-06 \(deliver\)' -and $r.out -match 'You are the Reviewer') { 'advised' } else { 'wrong' }) $r.out
+$r = Sub 'r1' 'general-purpose'
+Record 'subagent: a Builder gets the same clauses, told the Reviewer names them' 'advised' $(if ($r.out -match 'ADVISE clauses' -and $r.out -match 'GAME-14 \(cite\)' -and $r.out -match 'the Reviewer names each one' -and $r.out -notmatch 'You are the Reviewer') { 'advised' } else { 'wrong' }) $r.out
+# skills (DES-12): a prompt that shares a word with an installed skill names the skill, once
+$skillDir = Join-Path $root '.claude\skills\sandbox-skill'
+New-Item -ItemType Directory -Force -Path $skillDir | Out-Null
+Set-Content -LiteralPath (Join-Path $skillDir 'SKILL.md') -Value "---`nname: sandbox-skill`ndescription: Build a pitchsite for a local business the house way.`n---`nbody" -Encoding utf8
+$r = Route 'make a pitchsite for the cafe' 'r4' $root
+Record 'route: a prompt sharing a word with a skill names it, with its path' 'named' $(if ($r.out -match 'design-first skills \(DES-12\)' -and $r.out -match 'sandbox-skill: Build a pitchsite' -and $r.out -match 'SKILL\.md') { 'named' } else { 'silent' }) $r.out
+$r = Route 'another pitchsite please' 'r4' $root
+Record 'route: the same skill is not named twice in a session' 'silent' $(if ($r.out -notmatch 'sandbox-skill') { 'silent' } else { 'again' }) $r.out
+$r = Route 'the pitches' 'r5' $root
+Record 'route: a substring (pitches) does not match the skill' 'silent' $(if ($r.out -notmatch 'sandbox-skill') { 'silent' } else { 'matched' }) $r.out
 $e = Entry $root 'r1' 'compact'
 Record 'entry: compaction clears the session routes' 'cleared' $(if (-not (Test-Path -LiteralPath (Join-Path $env:DF_MARKER_DIR 'r1.routes'))) { 'cleared' } else { 'kept' }) $e.out
 $r = Route 'commit it' 'r1' $root

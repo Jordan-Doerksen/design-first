@@ -22,7 +22,7 @@
 # cross-check passed is a claim (AUTO-06); the deterministic checks are the Doctor and the gate.
 # What the disk reading cannot see is written at the top of lib\turn-changes.ps1.
 #
-# anchor: stop-done  mode: deny  verbs: document,cross-check,change,finish
+# anchor: stop-done  mode: deny  verbs: document,cross-check,change,finish,gate-change
 
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 [Console]::InputEncoding  = [Text.UTF8Encoding]::new($false)

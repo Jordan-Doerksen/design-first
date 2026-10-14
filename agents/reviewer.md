@@ -84,7 +84,13 @@ GAPS:
   - <criterion or defect>  ->  what is missing or what breaks, and where you looked
 NOT CHECKED:
   - <what you could not see from the files alone, and why>
+ADVISE:
+  - <clause id>  ->  holds | finding: <what breaks, file:line>
 ```
+
+The `ADVISE` section lists every clause the design-first subagent hook handed you under
+"ADVISE clauses" (`hooks/subagent.ps1#advise-by-role`). Each id gets `holds` or a finding with a
+place. An id you did not look at makes the verdict `BLOCKED`; it never silently passes.
 
 Any line under `GAPS` makes the verdict `FAIL` or `BLOCKED`. With no gap, a green gate on this
 tree, and evidence for every criterion, the verdict is `PASS`.

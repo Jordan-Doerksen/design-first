@@ -132,8 +132,12 @@
       "verb": "decide",
       "rule": "Do not ask the owner an implementation question they have no way to answer; when one answer is defensible, choose it, record why, and make it a config value so it stays reversible.",
       "owner": "kit:instructions/working-with-the-owner.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "ADVISE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/subagent.ps1#advise-by-role"
+      }
     },
     {
       "id": "OWN-06",
@@ -141,8 +145,12 @@
       "verb": "deliver",
       "rule": "Deliver what was asked, then stop; offer an addition in one line and do not build it first.",
       "owner": "kit:instructions/working-with-the-owner.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "ADVISE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/subagent.ps1#advise-by-role"
+      }
     },
     {
       "id": "OWN-07",
@@ -150,8 +158,12 @@
       "verb": "expose-action",
       "rule": "When the project has a UI, anything the operator must run is a button in the app, not a script on the disk.",
       "owner": "kit:instructions/working-with-the-owner.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "ADVISE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/subagent.ps1#advise-by-role"
+      }
     },
     {
       "id": "DES-01",
@@ -198,8 +210,12 @@
       "verb": "configure",
       "rule": "Every tunable value lives in a config file, never in logic; changing behaviour never requires changing code.",
       "owner": "kit:instructions/design-methodology.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "ADVISE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/subagent.ps1#advise-by-role"
+      }
     },
     {
       "id": "DES-05",
@@ -207,8 +223,12 @@
       "verb": "slice",
       "rule": "Build the smallest slice that works, then show the owner; never over-engineer the slice and never skip the design.",
       "owner": "kit:workflows/coding.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "ADVISE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/subagent.ps1#advise-by-role"
+      }
     },
     {
       "id": "DES-06",
@@ -216,8 +236,12 @@
       "verb": "scope-edit",
       "rule": "During a chunk, edit only that chunk's files; no unrelated refactor.",
       "owner": "kit:instructions/design-methodology.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "ADVISE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/subagent.ps1#advise-by-role"
+      }
     },
     {
       "id": "DES-07",
@@ -238,8 +262,12 @@
       "verb": "annotate",
       "rule": "Every workaround carries an inline note saying what failed and why this is the fix, because an unexplained correction gets cleaned up and the defect returns.",
       "owner": "kit:lessons/lessons.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "ADVISE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/subagent.ps1#advise-by-role"
+      }
     },
     {
       "id": "DES-09",
@@ -286,8 +314,12 @@
       "verb": "match-skill",
       "rule": "Match the task to an installed skill before building from an empty start, by reading the installed skills directory itself rather than a list in a law file.",
       "owner": "kit:workflows/coding.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "ADVISE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/route.ps1#skills"
+      }
     },
     {
       "id": "DES-13",
@@ -317,8 +349,12 @@
       "verb": "confirm",
       "rule": "Silence is not approval; full approval with nothing to cut is said out loud.",
       "owner": "kit:instructions/interview-every-add-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "ADVISE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/subagent.ps1#advise-by-role"
+      }
     },
     {
       "id": "GATE-03",
@@ -409,8 +445,12 @@
       "verb": "diagnose",
       "rule": "When a tool fails later, check the spec first; a failure the spec did not predict is a spec failure, not only a code failure.",
       "owner": "kit:workflows/design-gate.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "ADVISE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/subagent.ps1#advise-by-role"
+      }
     },
     {
       "id": "GATE-11",
@@ -457,8 +497,12 @@
       "verb": "decide-scope",
       "rule": "A design decision is the owner's and an execution decision is the agent's; if it is not clearly execution, it is design.",
       "owner": "kit:instructions/autonomy-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "ADVISE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/subagent.ps1#advise-by-role"
+      }
     },
     {
       "id": "AUTO-02",
@@ -466,8 +510,12 @@
       "verb": "stop",
       "rule": "The loop stops at a manifest change, new scope, taste, a Change Request, a push or merge, a delete or move, a design-gated project, any secret, or anything that weakens a check.",
       "owner": "kit:instructions/autonomy-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "BUILDABLE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "planned",
+        "ref": "DECISIONS.md#2.8"
+      }
     },
     {
       "id": "AUTO-03",
@@ -475,8 +523,12 @@
       "verb": "size-work",
       "rule": "The unit of work is a story, not a chunk; the chunk stays the stop boundary.",
       "owner": "kit:instructions/autonomy-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "ADVISE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/subagent.ps1#advise-by-role"
+      }
     },
     {
       "id": "AUTO-04",
@@ -506,8 +558,12 @@
       "verb": "evidence",
       "rule": "Evidence means the command and its literal output, pasted; a model's claim that something passed is not evidence.",
       "owner": "kit:instructions/autonomy-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "ADVISE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/subagent.ps1#advise-by-role"
+      }
     },
     {
       "id": "AUTO-07",
@@ -515,8 +571,12 @@
       "verb": "verdict",
       "rule": "A deterministic check sets the pass mark; a model verdict may only add a finding, never clear one.",
       "owner": "kit:instructions/autonomy-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "BUILDABLE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "planned",
+        "ref": "DECISIONS.md#2.8"
+      }
     },
     {
       "id": "AUTO-08",
@@ -524,8 +584,12 @@
       "verb": "prove",
       "rule": "A green verify gate is the floor, not the proof; a green gate with no new probe covering this story's behaviour is a fail.",
       "owner": "kit:instructions/autonomy-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "BUILDABLE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "planned",
+        "ref": "DECISIONS.md#2.8"
+      }
     },
     {
       "id": "AUTO-09",
@@ -542,8 +606,12 @@
       "verb": "reset-context",
       "rule": "Each story starts a fresh context; state lives on the disk, not in the context, and a reset beats a compaction.",
       "owner": "kit:instructions/autonomy-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "BUILDABLE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "planned",
+        "ref": "DECISIONS.md#2.8"
+      }
     },
     {
       "id": "AUTO-11",
@@ -560,8 +628,12 @@
       "verb": "start-loop",
       "rule": "No verify gate, no loop; nor on a design-gated project, a chunk with open questions, or a dirty tree.",
       "owner": "kit:instructions/autonomy-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "BUILDABLE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "planned",
+        "ref": "DECISIONS.md#2.8"
+      }
     },
     {
       "id": "VCS-01",
@@ -704,8 +776,12 @@
       "verb": "shape-log",
       "rule": "Logs carry the same keys in every language, and severity is a number on the OpenTelemetry model, not a house spelling.",
       "owner": "kit:instructions/observability-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "ADVISE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/subagent.ps1#advise-by-role"
+      }
     },
     {
       "id": "OBS-03",
@@ -713,8 +789,12 @@
       "verb": "log-negative",
       "rule": "Log the negative space: the critical lines say what did not happen.",
       "owner": "kit:instructions/observability-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "ADVISE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/subagent.ps1#advise-by-role"
+      }
     },
     {
       "id": "OBS-04",
@@ -748,8 +828,12 @@
       "verb": "aggregate",
       "rule": "Every check returns a code and a reason on the Nagios contract, UNKNOWN wins aggregation, and a panel renders OK only from a genuine OK.",
       "owner": "kit:instructions/observability-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "ADVISE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/subagent.ps1#advise-by-role"
+      }
     },
     {
       "id": "OBS-07",
@@ -796,8 +880,12 @@
       "verb": "locate-log",
       "rule": "A shipped tool logs to the per-user application data directory, never beside the executable.",
       "owner": "kit:instructions/observability-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "ADVISE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/subagent.ps1#advise-by-role"
+      }
     },
     {
       "id": "GAME-11",
@@ -805,8 +893,12 @@
       "verb": "wear-hat",
       "rule": "State the hat you wear and wear one at a time; the Programmer hat stays locked until an owner-approved spec exists.",
       "owner": "kit:workflows/coding.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "ADVISE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/subagent.ps1#advise-by-role"
+      }
     },
     {
       "id": "GAME-12",
@@ -814,8 +906,12 @@
       "verb": "gate-change",
       "rule": "The inner gate runs after every small verifiable change (verify, stop, show what changed and what it proves, wait), the outer gate runs at every chunk boundary, and only a trivial, reversible, owner-requested single-file edit is exempt.",
       "owner": "kit:workflows/coding.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "HOOK",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/stop.ps1#stop-done"
+      }
     },
     {
       "id": "GAME-13",
@@ -836,8 +932,12 @@
       "verb": "cite",
       "rule": "Cite the pattern or do not claim one; a pattern the cited reference does not contain is labelled as from memory, not from the reference.",
       "owner": "kit:workflows/coding.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "ADVISE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/subagent.ps1#advise-by-role"
+      }
     },
     {
       "id": "DISP-07",

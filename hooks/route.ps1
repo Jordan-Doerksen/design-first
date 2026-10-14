@@ -15,10 +15,52 @@
 # Failure policy: an internal error prints nothing law-shaped, logs an ERROR line and says so.
 #
 # anchor: route-law  mode: advise  verbs: route-law
+#
+# skills (DES-12, CR-2026-10-13-HONOUR): the same prompt is matched against the installed skills,
+# read from the skills directories themselves (root\.claude\skills and the profile's), never from
+# a list in a law file. A skill whose name or description shares a whole word with the typed text
+# is named once per session, with its path, so the task meets the skill before a build from nothing.
+#
+# anchor: skills  mode: advise  verbs: match-skill
 
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 [Console]::InputEncoding  = [Text.UTF8Encoding]::new($false)
 $ErrorActionPreference = 'Stop'
+
+function Get-DfSkillMatches([string]$prompt, [string]$root, [string]$sessionId) {
+    $stop = @('about','after','again','build','change','check','could','every','first','their','there','these','thing','think','those','under','where','which','while','would','should','please','start','write','update','maybe','really','right','something')
+    $words = @([regex]::Matches($prompt.ToLowerInvariant(), '[a-z][a-z-]{4,}') | ForEach-Object { $_.Value } | Where-Object { $stop -notcontains $_ } | Select-Object -Unique)
+    if ($words.Count -eq 0) { return @() }
+    $dirs = @()
+    if ($root) { $dirs += (Join-Path $root '.claude\skills') }
+    if ($env:USERPROFILE) { $dirs += (Join-Path $env:USERPROFILE '.claude\skills') }
+    $seenFile = Get-DfSessionFile $sessionId '.skills'
+    $seen = @(); if (Test-Path -LiteralPath $seenFile -PathType Leaf) { $seen = @(Get-Content -LiteralPath $seenFile -Encoding utf8) }
+    $hits = [Collections.Generic.List[object]]::new()
+    foreach ($d in $dirs) {
+        if (-not (Test-Path -LiteralPath $d -PathType Container)) { continue }
+        foreach ($skill in (Get-ChildItem -LiteralPath $d -Directory | Sort-Object Name)) {
+            $md = Join-Path $skill.FullName 'SKILL.md'
+            if (-not (Test-Path -LiteralPath $md -PathType Leaf)) { continue }
+            if ($seen -contains $skill.Name) { continue }
+            $head = @(Get-Content -LiteralPath $md -TotalCount 40 -Encoding utf8)
+            $name = $skill.Name; $desc = ''
+            foreach ($l in $head) {
+                if ($l -match '^name:\s*(.+)$') { $name = $Matches[1].Trim() }
+                elseif ($l -match '^description:\s*(.+)$') { $desc = $Matches[1].Trim() }
+            }
+            $hay = (($name -replace '[-_]', ' ') + ' ' + $desc).ToLowerInvariant()
+            $matched = @($words | Where-Object { $hay -match ('(?<![a-z])' + [regex]::Escape($_) + '(?![a-z])') })
+            if ($matched.Count -eq 0) { continue }
+            $short = if ($desc.Length -gt 140) { $desc.Substring(0, 140).TrimEnd() + '...' } else { $desc }
+            $hits.Add([pscustomobject]@{ name = $skill.Name; desc = $short; path = $md; words = $matched })
+            if ($hits.Count -ge 5) { break }
+        }
+        if ($hits.Count -ge 5) { break }
+    }
+    foreach ($h in $hits) { Add-DfTextLine $seenFile $h.name }
+    return @($hits)
+}
 
 try {
     . (Join-Path $PSScriptRoot 'lib\common.ps1')
@@ -69,7 +111,16 @@ try {
     $matched = Get-DfMatchedGroups $policy $prompt $cwd $ptr.root
     $active  = Read-DfActiveRoutes $sessionId
     $new = @($matched | Where-Object { $active -notcontains $_ })
-    if ($new.Count -eq 0) { exit 0 }
+
+    # skills (DES-12): named once per session each, after the law rows when there are any.
+    $skillLines = [Collections.Generic.List[string]]::new()
+    foreach ($h in (Get-DfSkillMatches $prompt $ptr.root $sessionId)) {
+        $skillLines.Add(("  - {0}: {1}  ({2})" -f $h.name, $h.desc, $h.path))
+    }
+    if ($new.Count -eq 0) {
+        if ($skillLines.Count -gt 0) { Write-Output ("design-first skills (DES-12): the task may match an installed skill; read it before building from nothing.`n" + ($skillLines -join "`n")) }
+        exit 0
+    }
 
     $law = Get-DfLawPath $ptr $kitRoot
     $groups = Read-DfLawGroups $law
@@ -88,6 +139,10 @@ try {
         $src = if ($pol.fromBrain) { $pol.source } else { "$($pol.source) (kit template; no brain route-policy.json)" }
         [void]$out.AppendLine(("design-first route: {0} now active this session (policy {1}); index {2}." -f ($injected -join ', '), $src, $law))
         if ($deferred.Count -gt 0) { [void]$out.AppendLine(("Not injected yet, over the size cap: {0}. Mention the topic again, or open the index." -f ($deferred -join ', '))) }
+        if ($skillLines.Count -gt 0) {
+            $skillText = "design-first skills (DES-12): the task may match an installed skill; read it before building from nothing.`n" + ($skillLines -join "`n")
+            if (($out.Length + $skillText.Length + 2) -le $maxChars) { [void]$out.AppendLine(); [void]$out.AppendLine($skillText) }
+        }
         Write-Output $out.ToString().TrimEnd()
     }
 }
