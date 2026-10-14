@@ -1,0 +1,31 @@
+# recorded 2026-10-13 - design-first 0.1.20 - pwsh 7 - a scratch root, machine paths replaced
+
+  DOCTOR
+  ------
+  mode brain   root C:\adopter
+  brain C:\adopter\brain
+  kit C:\adopter\design-first
+  1 repositories under root (0 archived, not counted)
+
+  CLAIMS  3 pass  1 fail  0 could not look
+    FAIL  SCAN-MANIFEST-01  1 of 1 repositories under C:\adopter fall short: brain: missing DECISIONS.md, missing ARCHITECTURE.md
+          why: DES-01: every repository carries its decisions manifest and its architecture map. Repositories born before `since` (set it to your adopt date) are reported, not failed; a new one must comply. Add `where` or `exclude` for folders that are not projects.
+
+  SURVEY  2 finding(s)  [REPORTED, not counted (surveyStrict false)]
+    [ ok ] hook PreToolUse   agent.ps1  Agent
+    [ ok ] hook PreToolUse   ask.ps1  AskUserQuestion
+    [ ok ] hook PreToolUse   fence.ps1  Edit|Write|Bash|PowerShell
+    [ ok ] hook PreToolUse   guard.ps1  Edit|Write|NotebookEdit|Bash|PowerShell
+    [ ok ] hook SessionStart entry.ps1  clear,compact,resume,startup
+    [ ok ] hook Stop         stop.ps1  
+    [ ok ] hook SubagentStart subagent.ps1  
+    [ ok ] hook UserPromptSubmit route.ps1  
+    root settings: 4 deny, 22 ask rule(s) in 1 file(s)
+    fence log: 0 trips
+    [WARN] empty repo, no remote: brain (0 commits - nothing to back up yet)
+    [WARN] no git at all: .claude (1 files) - nothing is protecting them
+    [INFO] no restore drill has been logged (C:\adopter\brain\records\restore-drill.log absent) - nothing has yet proved a backup gives anything back
+
+  VERDICT: RED  (exit 1: 1 false claim(s))
+
+  State written to C:\adopter\brain\state. Every finding is explained in the kit's tools\MANUAL.md.

@@ -4,7 +4,7 @@
 |---|---|
 | Project | design-first |
 | Started | 2026-10-06 |
-| Last Updated | 2026-10-06 |
+| Last Updated | 2026-10-13 |
 | Status | V1 installed by adopter zero (in place); adopter one and public flip pending |
 
 This is the public manifest. It records decisions about the kit itself. It contains nothing about
@@ -137,6 +137,67 @@ the owning file. The planned mechanisms, each a Change Request when built:
   adopter has it. A brain that installs it re-grades the clause in its overlay (anchor
   `law-claim`) and proves the shim with two claims. Open: install and remove through `adopt`.
 
+## Chapter 3 — The page (chunk 10, 2026-10-13)
+
+The public page for the kit. Owner decisions from the interview on 2026-10-13, one question at a time.
+
+**3.1 Home.** Source in `docs/` of this repo. The published copy lives on the owner's one site, at
+`tools/design-first/`, put there by `docs/publish.ps1`, and registered in that site's
+`data/registry.json`. This repo gets no GitHub Pages of its own (owner rule: one live site, a code
+repo behind every page). Offered: own Pages (breaks the one-site rule); site-only (the parts list
+would be typed, not generated). **Change Rule:** moving the published copy is a one-line edit in
+`publish.ps1`; giving this repo its own Pages is a Change Request.
+
+**3.2 Composition.** Research pass first (GitHub, Hacker News, Exa; Reddit is not configured on
+the build machine). Rejected: every docs framework and "terminal hero" block, because they are the
+generic shape. Chosen: scrollycoding (the mechanic behind Code Hike and scrollama, both MIT) with
+one explorable moment inside it (Waveforms, MIT). The bible's generation contract (WEB-11):
+
+```json
+{
+  "site_type": "method explainer",
+  "dominant_idea": "A rule is only a rule when something on the disk can stop you; the page shows what stops you, step by step.",
+  "primary_patterns": ["interactive_explainer", "editorial_rhythm", "motion_choreography"],
+  "narrative_sequence": ["promise", "the flow (six beats, pinned stage)", "the parts (typographic index)", "the grade dial", "limits", "install and license"],
+  "persistent_clusters": ["identity_navigation (Home, title)", "orientation_progress (chapter rail)", "primary_action (install)"],
+  "card_policy": "none; the parts are a typographic index, the clauses a table that reflows",
+  "responsive_transformations": ["below 960px the pinned stage sits inline under its step", "the chapter rail becomes a top strip", "the clause table reflows to one column per row"],
+  "reduced_motion_equivalent": "every stage state rendered static in document order; no typing, no swap"
+}
+```
+
+Case studies read, with their risks: Contra Project Cost Calculator (one step at a time hides total
+effort, so the chapter rail shows progress), A Spacecraft for All (spectacle can hide the
+narrative, so the stage never moves while the reader is on a step), Clear Street (oversized claims
+need nearby substantiation, so every count on the page is generated).
+
+**3.3 Nothing on the page is typed.** `docs/build.ps1` renders `docs/index.html` from
+`docs/src/template.html` and the kit's own files: `law.json` (groups, grades, clauses, mechanisms),
+`hooks/hooks.json` (events, matchers), `tools/doctor/claims.json` (claim types), `commands/*.md`
+(names, descriptions), `.claude-plugin/plugin.json` (version). The terminal transcript is a
+recording of a real `adopt.ps1` and `doctor.ps1` run on a scratch root, stored in `docs/src/`
+with the date and kit version, machine paths replaced by `C:\adopter`. A `generated_matches` claim
+(`DOCS-01`) makes a hand edit of `index.html` RED. **Change Rule:** a new fact on the page is a new
+input to `build.ps1`, never a sentence in the template.
+
+**3.4 Skin.** Its own token file, `docs/page.css` `:root`. Light page, one dark object: the stage.
+No framework, no build tool, no dependency; the step observer is an IntersectionObserver in
+`docs/page.js`. The page survives JavaScript off: every stage state is in the HTML after its step
+in document order; the script only pins and swaps. **Change Rule:** a dependency is a Change Request.
+
+**3.5 Motion.** The stage swaps when a step reaches the middle of the viewport (orient, causality).
+Typing runs only inside the stage, only after its step is reached, once. Under
+`prefers-reduced-motion` nothing moves and nothing types. No ambient loop. The chapter rail marks
+the current beat (confirm). **Change Rule:** any motion with no job in WEB-06 is removed.
+
+**3.6 The explorable.** The grade dial: a list of every clause; pick one and the page shows its
+grade, the mechanism that enforces it and the verb that mechanism uses, from `law.json`
+`enforcedBy`. One control, keyboard-complete, every state linkable by clause id. The honest
+sentence beside it is generated: how many clauses nothing enforces.
+
+**3.7 Limits on the page, verbatim from the README.** Windows and PowerShell 7 only, one adopter
+per profile, the guard does not see nested shells. The page states them before the install block.
+
 ## Build Timeline
 
 | Chunk | Content | Status |
@@ -198,3 +259,4 @@ the owning file. The planned mechanisms, each a Change Request when built:
 | 2026-10-09 | The Doctor crashed in config load on every brain that set `forbidScheduling` or `contentRules`. 0.1.17 put both keys in the reader table (`$script:ConfigReaders`, context.ps1) and gave neither a default in `Get-DefaultConfig`. `Read-DoctorConfig` assigns each value from the file onto the default object, and an assignment to a property that object does not have throws. The run stopped at doctor.ps1 line 88 with exit 1, which the shim prints as RED, when the truth was could-not-look; the comment on the function said it never throws. Measured on the first instance, whose config sets both keys: no verdict from 0.1.17. Should a test have caught it: the Doctor self-test does, because its fixture sets both keys, and run A fails on the 0.1.17 commit. The 0.1.17 row records the hook checks only, so the Doctor self-test was not run for that version, or its result was not read. The hook self-test cannot catch it: the hooks read the config through `hooks/lib/common.ps1`, never through the Doctor. Changes: (1) both keys get a default, `$false` and an empty list, which is what the hooks already assume. (2) A live key with no default is added to the config object and no longer thrown on, so the comment is true for this fault. (3) New case file `tools/doctor/selftest-config.ps1`, dot-sourced by selftest.ps1: every reader key has a default and every default key has a reader; a file that sets every live key loads with no dead key; both switches read as set, and as off when absent; a planted live key with no default loads. Proven RED first: against the 0.1.17 context.ps1 in a scratch copy, eight of the new cases fail and one names the two keys. (4) MANUAL gains the two config rows 0.1.17 did not write; ARCHITECTURE names all three self-tests. Decisions taken without an interview, each reversible: the guarded assignment in (2), because one answer is defensible; the case file, because selftest.ps1 was at the split line (it is at 499 now, and the two dead-key lines of run A moved with the cases). Not done: an unhandled exception anywhere else in doctor.ps1 still exits 1 and reads as RED; a top-level trap that turns a crash into exit 2 changes the verdict contract, so it is a Change Request. `templates/doctor.config.json` does not carry the two keys; an adopter adds them by hand. Nothing checks that the three self-tests ran before a version is bumped. Doctor self-test 148. Version 0.1.18. | kit fix | doctor, tests, docs |
 | 2026-10-09 | A comment is not code (0.1.19). Measured on the first instance before building: `RULES-SKIN-03` and `RULES-SKIN-04` convicted `trading\desk-field-guide`, a stylesheet whose header explained its own rule in prose (four hex values in a contrast note, `transform:` quoted in the sentence that forbids it); 7 hits, all inside comments. Fix: `tree_rules` blanks every `/* ... */` block comment before a `forbid` rule reads a .css, .scss, .js, .mjs, .cjs, .ts, .tsx or .jsx file, newlines kept so a hit still names its line; `when`/`require` rules read the raw text as before. Found on the first run after: three `catch (e) { /* reason */ }` blocks in `games\starfall` became empty once blanked, and the `allowOnLine` excuse would have been blanked with them, so the excuse is now read from the raw line. Two fixtures in the self-test fail without each fix. Measured after, from this checkout against the brain: 72 claims pass, 1 fails (KIT-SYNC-01, the cache still at 0.1.18 until Claude Code re-copies). Self-tests 148, 252, 46, zero failures. Line comments (`//`, `#`) are not blanked: `//` lives inside `url(...)`. |
 | 2026-10-13 | Chunk 10 opened: adopter one installs. The README status line still read "not installable until chunk 7" from 0.1.0; replaced with the current state and a pointer to the manifest for the version (0.1.20). No code change. |
+| 2026-10-13 | The page (Chapter 3), 0.1.21. Research pass: GitHub, Hacker News and Exa; Reddit is not configured on the build machine. Owner rejected palettes and frameworks and asked for composition; chose scrollycoding with one explorable. Built: docs/build.ps1 renders docs/index.html from the template, law.json, hooks.json, claims.json, the commands, the README sections and four recorded runs (adopt, Doctor on the fresh brain, the guard refusing a force push and a secrets stage, the kit Doctor on itself). Verified in the browser at 1366 and 375 wide: no element wider than the viewport, scenes inline without JS, typing off under reduced motion. Claim KIT-DOCS-01 (generated_matches) added; KIT-LEAK-01 now scans .html, .css and .js, with the public slug allowed in the four docs files that carry a link. Found by the recorded run and left open for the owner: a fresh adopt ends RED on SCAN-MANIFEST-01 because the kit writes no manifest into the new brain (fix list, chunk 10). The page stays unpublished until the public flip; the owner's site serves it, this repo gets no Pages. |

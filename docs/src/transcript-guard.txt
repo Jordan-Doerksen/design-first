@@ -1,0 +1,16 @@
+# recorded 2026-10-13 - design-first 0.1.20 - hooks/guard.ps1 fed two tool calls on a scratch root
+
+$ git push --force origin main
+GUARD: deny
+  BLOCKED - that command destroys git history: --force rewrites published history.
+  Git's recovery order is reflog, fsck --lost-found, stash, bundle; these commands remove
+  exactly what that order depends on, on every branch. If this rewrite is genuinely wanted,
+  Adopter runs it by hand.
+
+$ git add .env
+GUARD: deny
+  BLOCKED - this command stages a file that looks like a credential: .env
+  Secrets live in a gitignored .env, always; a token is never committed. If this one has
+  leaked, rotate it first and assume it is already public. If this file is a deliberate
+  exception, Adopter registers it in secretExceptions in the brain's doctor.config.json
+  before it is staged; an exception is recorded, never assumed.

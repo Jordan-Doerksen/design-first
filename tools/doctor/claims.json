@@ -11,6 +11,14 @@
       "why": "Kit LAW.md is GENERATED from law.json (C5). A hand edit to LAW.md drifts the grades away from the mechanisms that justify them; this claim makes that drift a RED run instead of a quiet lie. Compared as bytes after CRLF->LF only."
     },
     {
+      "id": "KIT-DOCS-01",
+      "type": "generated_matches",
+      "generator": "docs/build.ps1",
+      "source": "docs/src/template.html",
+      "output": "docs/index.html",
+      "why": "DECISIONS 3.3: nothing on the public page is typed. docs/index.html is rendered from the template and the kit's own files (law.json, hooks.json, this file, the commands, the README sections, four recorded runs). A hand edit of index.html is a count or a sentence nobody generated; this claim makes it a RED run. Compared as bytes after CRLF->LF only."
+    },
+    {
       "id": "KIT-LEAK-01",
       "type": "tree_free_of",
       "root": "${KIT}",
@@ -31,7 +39,10 @@
         ".json",
         ".ps1",
         ".bat",
-        ".txt"
+        ".txt",
+        ".html",
+        ".css",
+        ".js"
       ],
       "exclude": [
         "LICENSE",
@@ -61,6 +72,32 @@
           "path": "tools/doctor/selftest.ps1",
           "words": [
             "Jordan-Doerksen"
+          ]
+        },
+        {
+          "path": "docs/build.ps1",
+          "words": [
+            "Jordan-Doerksen"
+          ]
+        },
+        {
+          "path": "docs/publish.ps1",
+          "words": [
+            "Jordan-Doerksen",
+            "jordan-doerksen"
+          ]
+        },
+        {
+          "path": "docs/src/template.html",
+          "words": [
+            "jordan-doerksen"
+          ]
+        },
+        {
+          "path": "docs/index.html",
+          "words": [
+            "Jordan-Doerksen",
+            "jordan-doerksen"
           ]
         }
       ],

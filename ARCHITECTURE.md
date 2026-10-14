@@ -36,6 +36,7 @@ adopter's private layer), `pluginRoot` and its kind (checkout or cache).
 | `agents/` | read-only reviewer | `reviewer.md` | — | |
 | `templates/` | root and brain files | — | — | copied or filled by `adopt.ps1`, never edited in place |
 | `instructions/`, `workflows/`, `lessons/` | the rule text | `LAW.md` | — | one subject per file; every clause has a `### ID` heading in its owner |
+| `docs/` | the public page | `build.ps1` | `src/template.html`, `src/transcript-*.txt` | `index.html` is generated from the kit's own files (DECISIONS 3.3); `publish.ps1` copies the output to the owner's site; `page.css`, `page.js` are hand-written |
 
 ## Key design decisions
 

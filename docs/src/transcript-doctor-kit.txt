@@ -1,0 +1,23 @@
+# recorded 2026-10-13 - design-first 0.1.20 - the kit checking itself (doctor.ps1 -Kit)
+  DOCTOR
+  ------
+  mode kit   root C:\adopter\design-first
+  brain (none)
+  kit C:\adopter\design-first
+  1 repositories under root (0 archived, not counted)
+  CLAIMS  12 pass  0 fail  0 could not look
+    every claim holds
+  SURVEY  0 finding(s)  [REPORTED, not counted (surveyStrict false)]
+    [ ok ] hook PreToolUse   agent.ps1  Agent
+    [ ok ] hook PreToolUse   ask.ps1  AskUserQuestion
+    [ ok ] hook PreToolUse   fence.ps1  Edit|Write|Bash|PowerShell
+    [ ok ] hook PreToolUse   guard.ps1  Edit|Write|NotebookEdit|Bash|PowerShell
+    [ ok ] hook SessionStart entry.ps1  clear,compact,resume,startup
+    [ ok ] hook Stop         stop.ps1  
+    [ ok ] hook SubagentStart subagent.ps1  
+    [ ok ] hook UserPromptSubmit route.ps1  
+    fence log: 0 trips
+    [INFO] no restore drill has been logged (C:\adopter\design-first\records\restore-drill.log absent) - nothing has yet proved a backup gives anything back
+    nothing needs action
+  VERDICT: GREEN  (exit 0: nothing needs action)
+  State written to C:\adopter\design-first\state. Every finding is explained in the kit's tools\MANUAL.md.
