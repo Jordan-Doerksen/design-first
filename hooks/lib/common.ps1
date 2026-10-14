@@ -170,7 +170,7 @@ function Expand-DfConfigPath([string]$p, [string]$root, [string]$brain) {
 # Brain config, or $null when there is no brain (no pointer, no folder, or no config file).
 # Returns @{ protected = full paths; exceptions = full paths; reason = why null }.
 function Read-DfBrainConfig($ptr) {
-    $out = @{ protected = @(); exceptions = @(); present = $false; reason = $null; splitLines = 0; sourceExtensions = @(); stopDocs = @(); stopFromGit = $true
+    $out = @{ protected = @(); tombstoned = @(); exceptions = @(); present = $false; reason = $null; splitLines = 0; sourceExtensions = @(); stopDocs = @(); stopFromGit = $true
               forbidScheduling = $false; contentRules = @(); contentRuleProblems = @()
               loopBranchPrefix = 'harness/'; loopLedgerGlobs = @('docs/specs/*.tasks.json', 'specs/*.tasks.json') }
     if ($null -eq $ptr.pointer) { $out.reason = "no pointer at $($ptr.path)"; return $out }
@@ -184,6 +184,10 @@ function Read-DfBrainConfig($ptr) {
     foreach ($k in 'frozenPaths', 'tombstonedPaths') {
         foreach ($p in @($cfg.$k)) { $f = Expand-DfConfigPath ([string]$p) $ptr.root $ptr.brain; if ($f) { $out.protected += $f } }
     }
+    # The tombstoned list on its own: the one file the path rule lets through under a tombstoned
+    # folder is its TOMBSTONE.md (VCS-12), which is the protection's own record.
+    $out.tombstoned = @()
+    foreach ($p in @($cfg.tombstonedPaths)) { $f = Expand-DfConfigPath ([string]$p) $ptr.root $ptr.brain; if ($f) { $out.tombstoned += $f } }
     foreach ($e in @($cfg.secretExceptions)) { $f = Expand-DfConfigPath ([string]$e) $ptr.root $ptr.brain; if ($f) { $out.exceptions += $f } }
     # Rules 5 and 6 of the guard (DES-02, DES-03): tunables, with built-in defaults when absent.
     if ($cfg.PSObject.Properties['splitLines']) { $v = 0; if ([int]::TryParse([string]$cfg.splitLines, [ref]$v)) { $out.splitLines = $v } }

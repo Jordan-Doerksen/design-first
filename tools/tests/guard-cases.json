@@ -116,6 +116,30 @@
     "expect": "deny"
   },
   {
+    "name": "Write TOMBSTONE.md directly inside a tombstoned path -> allowed (VCS-12, the record itself)",
+    "hook": "guard",
+    "tool": "Write",
+    "path": "${T}\\root\\tomb\\TOMBSTONE.md",
+    "content": "status: retired\nconsumers: one\nremove: the owner\n",
+    "expect": "allow"
+  },
+  {
+    "name": "Write TOMBSTONE.md one folder down inside a tombstoned path -> denied",
+    "hook": "guard",
+    "tool": "Write",
+    "path": "${T}\\root\\tomb\\sub\\TOMBSTONE.md",
+    "content": "status: retired\n",
+    "expect": "deny"
+  },
+  {
+    "name": "Write TOMBSTONE.md inside a FROZEN path -> denied (frozen gets no tombstone)",
+    "hook": "guard",
+    "tool": "Write",
+    "path": "${T}\\root\\frozen\\TOMBSTONE.md",
+    "content": "status: retired\n",
+    "expect": "deny"
+  },
+  {
     "name": "Edit an ordinary project file",
     "hook": "guard",
     "tool": "Edit",

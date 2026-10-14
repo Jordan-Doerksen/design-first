@@ -63,7 +63,7 @@ try {
         $fp = if ($tool -eq 'NotebookEdit') { [string]$ti.notebook_path } else { [string]$ti.file_path }
         $full = ConvertTo-DfFullPath $fp $cwd
         if (-not $result) { $result = Test-DfEnvWriteRule $full $cfg.exceptions $owner }
-        if (-not $result -and $cfg.present) { $result = Test-DfPathRuleFile $full $cfg.protected $owner }
+        if (-not $result -and $cfg.present) { $result = Test-DfPathRuleFile $full $cfg.protected $owner $cfg.tombstoned }
         if (-not $result -and $cfg.forbidScheduling) { $result = Test-DfScheduleRuleFile $full $owner }
         if (-not $result -and @($cfg.contentRules).Count -gt 0) { $result = Test-DfContentRuleFile $tool $ti $full $cfg.contentRules $owner }
         # Brain tunables when present, built-in defaults otherwise (rules 5, 6 and 10 share them).

@@ -201,11 +201,17 @@ function New-DfFrozenDeny([string]$what, [string]$root, [string]$owner) {
     return (New-DfDeny 'guard' "protected path ($what)" $reason)
 }
 
-function Test-DfPathRuleFile([string]$full, [string[]]$protected, [string]$owner) {
+function Test-DfPathRuleFile([string]$full, [string[]]$protected, [string]$owner, [string[]]$tombstoned = @()) {
     if (-not $full -or $protected.Count -eq 0) { return $null }
     $hit = Test-DfProtected $full $protected
-    if ($hit) { return (New-DfFrozenDeny $full $hit $owner) }
-    return $null
+    if (-not $hit) { return $null }
+    # VCS-12: TOMBSTONE.md directly inside a tombstoned folder is the record the tombstone claim
+    # reads; it is the one write the rule allows there. A frozen folder gets no such file.
+    if ((Split-Path -Leaf $full) -ieq 'TOMBSTONE.md') {
+        $parent = (Split-Path -Parent $full).TrimEnd('\')
+        foreach ($t in $tombstoned) { if ($t -and $parent -ieq $t.TrimEnd('\')) { return $null } }
+    }
+    return (New-DfFrozenDeny $full $hit $owner)
 }
 
 # ============================================================================ (5) manifest before code
