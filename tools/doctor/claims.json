@@ -19,6 +19,25 @@
       "why": "DECISIONS 3.3: nothing on the public page is typed. docs/index.html is rendered from the template and the kit's own files (law.json, hooks.json, this file, the commands, the README sections, four recorded runs). A hand edit of index.html is a count or a sentence nobody generated; this claim makes it a RED run. Compared as bytes after CRLF->LF only."
     },
     {
+      "id": "KIT-RESTORE-01",
+      "type": "file_fresh",
+      "path": "${KIT}/records/restore-drill.log",
+      "maxDays": 90,
+      "why": "VCS-06: a backup is not a backup until it is proven by a logged restore drill. The drill clones the remote into a fresh folder, compares HEAD and the tracked file count with the working copy, and appends one dated line here. A missing log, or a last line older than maxDays, is a RED run: the kit's remote is then a hope, not a backup."
+    },
+    {
+      "id": "KIT-TOMBSTONE-01",
+      "type": "config_paths_each",
+      "configKey": "tombstonedPaths",
+      "file": "TOMBSTONE.md",
+      "contains": [
+        "status:",
+        "consumers:",
+        "remove:"
+      ],
+      "why": "VCS-12: a retired but load-bearing folder gets a tombstone naming its status, its remaining consumers, and who may remove it. Every path under tombstonedPaths must hold TOMBSTONE.md with those three lines; a listed folder with no tombstone is a folder someone will delete. The kit lists none, so this passes with that said out loud; the brain template carries the same claim for the adopter's own list."
+    },
+    {
       "id": "KIT-LEAK-01",
       "type": "tree_free_of",
       "root": "${KIT}",

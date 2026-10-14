@@ -21,6 +21,26 @@
       "why": "PRIN-04: the HONOUR count in this brain's generated LAW.md may only fall. The first run records the baseline in state/ratchets.json. A rise turns the run RED: give the new rule a mechanism, give it the grade it really has (a standing ruling is OWNER), or sign the raise by adding accepted: { value, since, reason } to this claim; a signed raise works once."
     },
     {
+      "id": "RESTORE-01",
+      "type": "file_fresh",
+      "path": "${BRAIN}/records/restore-drill.log",
+      "maxDays": 90,
+      "graceFromInstall": true,
+      "why": "VCS-06: a backup is not a backup until it is proven by a logged restore drill. Clone your brain's remote into a fresh folder, compare HEAD and the file count with the working copy, append one dated line to this log. No log, or a last line older than maxDays, is a RED run. graceFromInstall: the first drill is due maxDays after adopt, read from the write time of state/installed.json."
+    },
+    {
+      "id": "TOMBSTONE-01",
+      "type": "config_paths_each",
+      "configKey": "tombstonedPaths",
+      "file": "TOMBSTONE.md",
+      "contains": [
+        "status:",
+        "consumers:",
+        "remove:"
+      ],
+      "why": "VCS-12: every folder listed under tombstonedPaths in doctor.config.json holds a TOMBSTONE.md with status:, consumers: and remove: lines. A retired folder with no tombstone is a folder someone will delete while something still reads it. An empty list passes and says so."
+    },
+    {
       "id": "SCAN-MANIFEST-01",
       "type": "tree_each",
       "root": "${ROOT}",

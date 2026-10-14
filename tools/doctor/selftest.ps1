@@ -150,6 +150,15 @@ try {
     $old = (Get-Date).ToUniversalTime().AddDays(-20).ToString('yyyy-MM-ddTHH:mm:ssZ'); $new = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
     W (Join-Path $fakeHome '.claude\hooks-old.log') "$old ERROR guard old failure`nbanner line without a date`n"
     W (Join-Path $fakeHome '.claude\hooks-new.log') "$old ERROR guard old failure`n$new ERROR guard fresh failure`n"
+    # file_fresh fixtures (VCS-06): a drill logged today, one logged 20 days ago, one log with no dated line
+    W (Join-Path $brain 'records\restore-fresh.log') "banner`n$old restore-drill PASS old`n$new restore-drill PASS fresh`n"
+    W (Join-Path $brain 'records\restore-stale.log') "$old restore-drill PASS old`n"
+    W (Join-Path $brain 'records\restore-undated.log') "no date here`n"
+    W (Join-Path $brain 'state\installed.json') "{ `"schema`": 1, `"files`": [] }`n"   # adopt date for graceFromInstall
+    # config_paths_each fixtures (VCS-12): a tombstoned folder with a full tombstone, one with a thin one, one with none
+    W (Join-Path $root 'tomb-ok\TOMBSTONE.md') "status: retired`nconsumers: the desk reads it`nremove: the owner, after the desk moves`n"
+    W (Join-Path $root 'tomb-thin\TOMBSTONE.md') "status: retired`n"
+    NewDir (Join-Path $root 'tomb-none') | Out-Null
 
     $cfg = [ordered]@{
         schema = 1; surveyStrict = $false; maxDepth = 3
@@ -254,6 +263,10 @@ exit 0
         [ordered]@{ id = 'T-CONTAINS';    type = 'file_contains';      path = '${ROOT}/CLAUDE.md'; needle = 'prohibitions'; why = 't' },
         [ordered]@{ id = 'T-NOTCONTAINS'; type = 'file_not_contains';  path = '${ROOT}/CLAUDE.md'; needle = 'forbidden thing'; why = 't' },
         [ordered]@{ id = 'T-LOG';         type = 'log_window_free_of'; path = '%USERPROFILE%\.claude\hooks-old.log'; needle = 'ERROR'; days = 7; why = 't' },
+        [ordered]@{ id = 'T-FRESH';       type = 'file_fresh';         path = '${BRAIN}/records/restore-fresh.log'; maxDays = 7; why = 't' },
+        [ordered]@{ id = 'T-FRESH-GRACE'; type = 'file_fresh';         path = '${BRAIN}/records/none-yet.log'; maxDays = 7; graceFromInstall = $true; why = 't' },
+        [ordered]@{ id = 'T-TOMB-NONE';   type = 'config_paths_each';  configKey = 'tombstonedPaths'; file = 'TOMBSTONE.md'; contains = @('status:', 'consumers:', 'remove:'); why = 't' },
+        [ordered]@{ id = 'T-TOMB-OK';     type = 'config_paths_each';  paths = @('${ROOT}/tomb-ok'); file = 'TOMBSTONE.md'; contains = @('status:', 'consumers:', 'remove:'); why = 't' },
         [ordered]@{ id = 'T-REMOTE';      type = 'remote_is';          path = '${ROOT}/ownedrepo'; remote = 'origin'; pattern = 'github\.com/test-owner/'; why = 't' },
         [ordered]@{ id = 'T-JSON';        type = 'json_subset_equal';  path = '${ROOT}/.claude/settings.json'; subset = $subsetOk; why = 't' },
         [ordered]@{ id = 'T-KEYED';       type = 'json_keyed_match';   path = 'vectors-a.json'; other = '${BRAIN}/vectors-b.json'; collection = 'vectors.cases'; key = 'id'; why = 't' },
@@ -280,6 +293,11 @@ exit 0
         [ordered]@{ id = 'F-CONTAINS';    type = 'file_contains';      path = '${ROOT}/CLAUDE.md'; needle = 'unicorns'; why = 'f' },
         [ordered]@{ id = 'F-NOTCONTAINS'; type = 'file_not_contains';  path = '${ROOT}/CLAUDE.md'; needle = 'prohibitions'; why = 'f' },
         [ordered]@{ id = 'F-LOG';         type = 'log_window_free_of'; path = '%USERPROFILE%\.claude\hooks-new.log'; needle = 'ERROR'; days = 7; why = 'f' },
+        [ordered]@{ id = 'F-FRESH-STALE'; type = 'file_fresh';         path = '${BRAIN}/records/restore-stale.log'; maxDays = 7; why = 'f' },
+        [ordered]@{ id = 'F-FRESH-NONE';  type = 'file_fresh';         path = '${BRAIN}/records/restore-never.log'; maxDays = 7; why = 'f' },
+        [ordered]@{ id = 'F-FRESH-UNDATED'; type = 'file_fresh';       path = '${BRAIN}/records/restore-undated.log'; maxDays = 7; why = 'f' },
+        [ordered]@{ id = 'F-TOMB-THIN';   type = 'config_paths_each';  paths = @('${ROOT}/tomb-ok', '${ROOT}/tomb-thin'); file = 'TOMBSTONE.md'; contains = @('status:', 'consumers:', 'remove:'); why = 'f' },
+        [ordered]@{ id = 'F-TOMB-NONE';   type = 'config_paths_each';  paths = @('${ROOT}/tomb-none'); file = 'TOMBSTONE.md'; contains = @('status:'); why = 'f' },
         [ordered]@{ id = 'F-REMOTE';      type = 'remote_is';          path = '${ROOT}/foreign'; remote = 'origin'; pattern = 'github\.com/test-owner/'; why = 'f' },
         [ordered]@{ id = 'F-JSON';        type = 'json_subset_equal';  path = '${ROOT}/.claude/settings.json'; subset = $subsetBad; why = 'f' },
         [ordered]@{ id = 'F-KEYED';       type = 'json_keyed_match';   path = 'vectors-a.json'; other = 'vectors-c.json'; collection = 'vectors.cases'; key = 'id'; why = 'f' },
@@ -305,6 +323,8 @@ exit 0
     $unknownClaims = @(
         [ordered]@{ id = 'U-GEN';      type = 'generated_matches'; generator = 'tools/law/build-law.ps1'; source = '${KIT}/law-fail.json'; output = '${KIT}/LAW.md'; why = 'u' },
         [ordered]@{ id = 'U-CONTAINS'; type = 'file_contains';     path = '${BRAIN}/missing.md'; needle = 'x'; why = 'u' },
+        [ordered]@{ id = 'U-FRESH';    type = 'file_fresh';        path = '${BRAIN}/records/restore-fresh.log'; maxDays = 0; why = 'u' },
+        [ordered]@{ id = 'U-TOMB';     type = 'config_paths_each'; configKey = 'noSuchKey'; file = 'TOMBSTONE.md'; contains = @('status:'); why = 'u' },
         [ordered]@{ id = 'U-KEYED';    type = 'json_keyed_match';  path = 'vectors-a.json'; other = 'vectors-b.json'; collection = 'vectors.nope'; key = 'id'; why = 'u' },
         [ordered]@{ id = 'U-SMOKE';    type = 'hook_smoke';        hook = 'unregistered'; event = 'PreToolUse'; why = 'u' },
         [ordered]@{ id = 'U-TREEEQ';   type = 'tree_equals';       path = '${KIT}/eq-a'; other = '${KIT}/eq-d'; why = 'u' },
@@ -356,7 +376,7 @@ exit 0
     Assert-Has 'A: soft_deny counted against frozenPaths' $a.out 'soft_deny: 2 rule(s), 1 naming a frozen path'
     Assert-Has 'A: registered-but-missing hook' $a.out 'hook REGISTERED BUT MISSING'
     Assert-Has 'A: deny/ask rules read from root settings' $a.out 'root settings: 1 deny, 1 ask'
-    Assert-Has 'A: every true claim holds (emptyOk: nothing selected is a pass that says so)' $a.out 'CLAIMS  24 pass  0 fail  0 could not look'
+    Assert-Has 'A: every true claim holds (emptyOk: nothing selected is a pass that says so)' $a.out 'CLAIMS  28 pass  0 fail  0 could not look'
     Assert-HasNot 'A: no COULD-NOT-LOOK band' $a.out 'COULD-NOT-LOOK'
     Assert-Has 'A: ratchet with no record says the baseline was recorded' $a.out 'ratchet T-RATCHET-NEW: baseline recorded, HONOUR = 26'
     Assert-Has 'A: ratchet reads the row under its heading, and reports a fall' $a.out 'ratchet T-RATCHET-FALL: HONOUR fell from 30 to 26'
@@ -401,6 +421,11 @@ exit 0
     Assert-Has 'C: tree_rules counts a bare except' $c.out 'bare-except: src/app.py:4'
     Assert-Has 'C: tree_rules without allowOnLine counts the commented exception' $c.out 'F-RULES-NOALLOW  1 of 1'
     Assert-HasNot 'C: tree_rules does not touch the token file' $c.out 'tokens.css'
+    Assert-Has 'C: file_fresh names a stale drill with its age' $c.out 'F-FRESH-STALE  last dated line'
+    Assert-Has 'C: file_fresh with no log is a fail, not unknown (nothing proved)' $c.out 'F-FRESH-NONE  no file at'
+    Assert-Has 'C: file_fresh with no dated line is a fail' $c.out 'F-FRESH-UNDATED  no dated line'
+    Assert-Has 'C: config_paths_each names the thin tombstone and the missing line' $c.out "F-TOMB-THIN  tomb-thin: TOMBSTONE.md lacks 'consumers:'"
+    Assert-Has 'C: config_paths_each names the folder with no tombstone' $c.out 'F-TOMB-NONE  tomb-none: missing TOMBSTONE.md'
     Assert-Has 'C: SessionStart silent hook is a fail' $c.out 'printed nothing'
     Assert-Has 'C: PreToolUse non-JSON is a fail' $c.out 'stdout is not JSON'
     Assert-HasNot 'C: no COULD-NOT-LOOK from false claims' $c.out 'COULD-NOT-LOOK'
@@ -417,6 +442,8 @@ exit 0
     Assert-Has 'D: band printed' $d.out 'COULD-NOT-LOOK'
     Assert-Has 'D: generator exit 1 is could-not-look, not RED' $d.out 'U-GEN  generator exited 1'
     Assert-Has 'D: missing file for file_contains is unknown' $d.out '????  U-CONTAINS'
+    Assert-Has 'D: file_fresh with maxDays 0 is unknown' $d.out "????  U-FRESH  'maxDays' must be a positive integer"
+    Assert-Has 'D: config_paths_each with an absent config key is unknown' $d.out "????  U-TOMB  config key 'noSuchKey'"
     Assert-Has 'D: json_keyed_match with a missing collection path is unknown' $d.out "????  U-KEYED  collection 'vectors.nope' not found in"
     Assert-Has 'D: unregistered hook is unknown' $d.out '????  U-SMOKE'
     Assert-Has 'D: tree_equals with a missing folder is unknown' $d.out '????  U-TREEEQ  folder missing'

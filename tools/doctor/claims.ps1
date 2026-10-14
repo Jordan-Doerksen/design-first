@@ -9,6 +9,7 @@
 # claims-ratchet.ps1, loaded by doctor.ps1 with the other claim files.
 
 . (Join-Path $PSScriptRoot 'claims-keyed.ps1')
+. (Join-Path $PSScriptRoot 'claims-fresh.ps1')   # file_fresh, config_paths_each (CR-2026-10-13-HONOUR)
 
 function New-ClaimResult {
     param($Claim, [string] $Status, [string] $Detail)
@@ -67,6 +68,8 @@ function Invoke-OneClaim {
         'path_absent'        { return Test-PathClaim $c $Context $false }
         'file_contains'      { return Test-FileContainsClaim $c $Context $true }
         'file_not_contains'  { return Test-FileContainsClaim $c $Context $false }
+        'file_fresh'         { return Test-FileFreshClaim $c $Context }
+        'config_paths_each'  { return Test-ConfigPathsEachClaim $c $Context }
         'log_window_free_of' { return Test-LogWindowClaim $c $Context }
         'remote_is'          { return Test-RemoteIsClaim $c $Context }
         'json_subset_equal'  { return Test-JsonSubsetClaim $c $Context }

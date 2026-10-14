@@ -272,3 +272,15 @@ text may not carry a count, a number followed by a plural noun (`94 repositories
 nor any number of two or more digits. A bare single digit still warns, so a threshold is seen
 before it is accepted. The scope is the rule text and the generated `LAW.md`; prose in an owning
 file may cite a measurement with its date, because a sentence with a date is a record, not a law.
+
+## The restore drill and the tombstone, as claims (0.1.26, CR-2026-10-13-HONOUR)
+
+VCS-06 is enforced by the Doctor claim type `file_fresh` (kit claim `KIT-RESTORE-01`, brain
+template `RESTORE-01`): `records/restore-drill.log` must exist and its last dated line must be
+younger than `maxDays`. The drill itself is four commands: clone the remote into a fresh folder,
+compare HEAD with the working copy, count the tracked files, append one dated line. The kit ran
+its own on 2026-10-13 and the line is in the log.
+
+VCS-12 is enforced by the claim type `config_paths_each` (kit claim `KIT-TOMBSTONE-01`, brain
+template `TOMBSTONE-01`): every path under `tombstonedPaths` in `doctor.config.json` holds a
+`TOMBSTONE.md` with `status:`, `consumers:` and `remove:` lines. An empty list passes and says so.

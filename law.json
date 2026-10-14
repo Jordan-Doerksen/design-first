@@ -704,8 +704,12 @@
       "verb": "restore",
       "rule": "A backup is not a backup until it is proven by a logged restore drill.",
       "owner": "kit:instructions/integrity-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "GATE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "doctor-claim",
+        "ref": "KIT-RESTORE-01"
+      }
     },
     {
       "id": "VCS-07",
@@ -726,8 +730,12 @@
       "verb": "tombstone",
       "rule": "A retired but load-bearing folder gets a tombstone naming its status, its remaining consumers, and who may remove it.",
       "owner": "kit:instructions/integrity-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "GATE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "doctor-claim",
+        "ref": "KIT-TOMBSTONE-01"
+      }
     },
     {
       "id": "VCS-14",
@@ -969,8 +977,12 @@
       "verb": "measure-claim",
       "rule": "A change that makes a claim ships the thing that measures the claim in the same commit, the build prints it, the drawing and the check read the same function, and a figure that cannot be regenerated does not ship.",
       "owner": "kit:instructions/observability-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "GATE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "doctor-claim",
+        "ref": "KIT-DOCS-01"
+      }
     },
     {
       "id": "SKIN-07",

@@ -67,6 +67,8 @@ brain-relative (kit-relative under `-Kit`). A path with an unexpandable variable
 | `path_exists` | `path` | present | missing | unexpanded variable |
 | `path_absent` | `path` | absent | present | unexpanded variable |
 | `file_contains` | `path`, `needle` | literal substring found anywhere in the file | absent | file missing |
+| `file_fresh` | `path`, `maxDays`, `graceFromInstall?` | the last line that starts with an ISO date is at most `maxDays` old; with `graceFromInstall` a missing file passes until `maxDays` after the write time of `state/installed.json` | file missing (past the grace), no dated line, or the last dated line is older | `maxDays` not a positive integer |
+| `config_paths_each` | `configKey` or `paths[]`, `file`, `contains[]` | every listed folder holds `file` with every string in `contains`; an empty list passes and says so | a folder missing the file, or the file missing a string | the config key absent, or no list given |
 | `file_not_contains` | `path`, `needle` | absent | present | file missing |
 | `log_window_free_of` | `path`, `needle`, `days` | no line that starts with an ISO date/timestamp within `days` contains `needle`. No log file at all is a PASS, said in the detail. | such a line exists | `days` not a positive integer |
 | `remote_is` | `path`, `remote` (default `origin`), `pattern` (regex) | `git remote get-url` matches | no such remote, or no match | folder missing, not a work tree |

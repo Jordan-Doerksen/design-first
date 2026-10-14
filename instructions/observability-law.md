@@ -201,3 +201,10 @@ the two that made it worse (five crossings → eight). The count prints in the b
 A subsystem is not done until it logs what it does and does not do, it has no silent failure path,
 and its bug plan exists. A new silent path — a bare `print()` on a critical verdict, an
 `except: pass`, an unlogged external failure — is a regression and gets a Change Request.
+
+## A figure that cannot be regenerated does not ship (0.1.26, CR-2026-10-13-HONOUR)
+
+DISP-07 is enforced by a `generated_matches` claim per page that prints a figure: the kit's own
+page carries `KIT-DOCS-01`, which renders `docs/index.html` from its inputs and compares the bytes,
+so a count typed by hand is a RED run. An adopter adds the same claim for each of their generated
+pages: `generator`, `source`, `output`; the Doctor runs the generator into a temp file and compares.

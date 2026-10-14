@@ -99,9 +99,9 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | VCS-01 | GATE | Every repository has a remote you own. | `kit:instructions/integrity-law.md` |
 | VCS-02 | GATE | A remote you do not own is not a backup, and is reported as a different failure from having none. | `kit:instructions/integrity-law.md` |
 | VCS-04 | GATE | Committed is not backed up; pushed is. | `kit:instructions/integrity-law.md` |
-| VCS-06 | HONOUR | A backup is not a backup until it is proven by a logged restore drill. | `kit:instructions/integrity-law.md` |
+| VCS-06 | GATE | A backup is not a backup until it is proven by a logged restore drill. | `kit:instructions/integrity-law.md` |
 | VCS-07 | HOOK | No secret in a tracked file; a deliberate exception is registered, never silent. | `kit:instructions/integrity-law.md` |
-| VCS-12 | HONOUR | A retired but load-bearing folder gets a tombstone naming its status, its remaining consumers, and who may remove it. | `kit:instructions/integrity-law.md` |
+| VCS-12 | GATE | A retired but load-bearing folder gets a tombstone naming its status, its remaining consumers, and who may remove it. | `kit:instructions/integrity-law.md` |
 | VCS-14 | HOOK | A frozen reference stays byte-clean; a dirty frozen tree is a failure. | `kit:instructions/integrity-law.md` |
 | VCS-15 | GATE | A claim about the state of the disk is generated, never typed. | `kit:instructions/integrity-law.md` |
 | VCS-22 | GATE | A shallow clone cannot be backed up and the standard integrity check cannot see it; unshallow it before trusting it. | `kit:instructions/integrity-law.md` |
@@ -135,7 +135,7 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 
 | id | grade | rule | owner |
 |---|---|---|---|
-| DISP-07 | HONOUR | A change that makes a claim ships the thing that measures the claim in the same commit, the build prints it, the drawing and the check read the same function, and a figure that cannot be regenerated does not ship. | `kit:instructions/observability-law.md` |
+| DISP-07 | GATE | A change that makes a claim ships the thing that measures the claim in the same commit, the build prints it, the drawing and the check read the same function, and a figure that cannot be regenerated does not ship. | `kit:instructions/observability-law.md` |
 
 ## SKIN - Skins
 
@@ -162,8 +162,8 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | DENY | 0 |
 | HOOK | 19 |
 | ADVISE | 26 |
-| GATE | 16 |
+| GATE | 19 |
 | BUILDABLE | 12 |
 | OWNER | 2 |
-| HONOUR | 3 |
+| HONOUR | 0 |
 | total | 78 |
