@@ -334,6 +334,8 @@ function Sub([string]$session, [string]$type) {
 }
 $r = Route 'please build the new feature and commit it' 'r1' $root
 Record 'route: a build+commit prompt injects DES and VCS rows' 'des+vcs' $(if ($r.code -eq 0 -and $r.out -match 'group DES' -and $r.out -match 'group VCS' -and $r.out -match 'DES-01 \[') { 'des+vcs' } else { 'wrong' }) $r.out
+$r = Route 'interview me on this addition' 'r1g' $root
+Record 'route: an interview prompt injects the GATE group with GATE-14 (CR-2026-10-14-REVIEW)' 'gate-14' $(if ($r.code -eq 0 -and $r.out -match 'group GATE' -and $r.out -match 'GATE-14 \[ADVISE\]') { 'gate-14' } else { 'wrong' }) $r.out
 Record 'route: rows name the owning file as a real path' 'resolved' $(if ($r.out -match 'full text: ' -and $r.out -notmatch 'kit:instructions') { 'resolved' } else { 'unresolved' }) $r.out
 Record 'route: the active set is recorded for the session' 'recorded' $(if ((Test-Path -LiteralPath (Join-Path $env:DF_MARKER_DIR 'r1.routes')) -and ((Get-Content (Join-Path $env:DF_MARKER_DIR 'r1.routes')) -contains 'DES')) { 'recorded' } else { 'missing' }) ''
 $r = Route 'yes please' 'r1' $root

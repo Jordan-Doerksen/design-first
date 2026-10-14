@@ -121,3 +121,16 @@ session's interview marker (`<markers>/<session>.asked`, by `hooks/ask.ps1`). Wh
 source in a repository whose `.git` was created since the prompt, and the session has no marker,
 the Stop card carries the interview line for that repository and refuses the stop once. The hook
 cannot grade the interview; it can see that none happened before a new repository got code.
+
+### GATE-14
+
+**A decision about appearance, motion or feel is asked only after more than one real option is rendered side by side on one page; the question that follows is one question, with the recommended option first.**
+
+Added 2026-10-14 (CR-2026-10-14-REVIEW), from an outside reader of the kit. The interview works
+for logic; for taste it gets a better answer when the owner looks at real options than when he
+reads them described. So a taste call is a decision (the pass above says so) and it gets its own
+step: the agent renders the candidates on one static page, side by side, in the repository's
+scratch or docs folder, opens it, and only then asks the one question. The chosen option is named
+in `DECISIONS.md` by its label on that page. A text-only taste question is a finding for the
+Reviewer, not a refusal: the mechanism is `hooks/subagent.ps1#advise-by-role`, which hands this
+clause to every subagent and makes the Reviewer name it as holding or as a finding.

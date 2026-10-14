@@ -53,4 +53,35 @@ Record 'card: a folder under games that is no repository gets none, and no error
 WriteCardPolicy ([pscustomobject]@{ groups = @() })
 $e = Entry $game 'card7' 'startup'
 Record 'card: stateCard.groups empty switches the card off' 'none' $(if ($e.out -notlike '*state card*') { 'none' } else { 'card' }) $e.out
+# ------------------------------------------------------------------ DES-14 (CR-2026-10-14-REVIEW): any repository with a hand-off, and the next prompt
+# The folder `tools` is mapped to no group. Three repositories under it: one with a hand-off whose
+# `## Next session` holds a fenced prompt, one with a hand-off and no such section, one with none.
+$ho = NewRepo 'tools\repo-ho'
+Put (Join-Path $ho 'docs\HANDOFF.md') "# Hand-off`n`n## Current state`nThe parser is built.`n`n## Next`nWire the parser to the page.`n`n## Next session`n`nOpen with:`n`n```````n Wire the parser to the page. Start from docs\HANDOFF.md, chunk 3.`n```````n"
+Put (Join-Path $ho 'a.js') 'let c = 1;'; RunGit $ho @('add', '-A'); RunGit $ho @('commit', '-q', '-m', 'init')
+$hoLong = NewRepo 'tools\repo-ho-long'
+Put (Join-Path $hoLong 'HANDOFF.md') ("# Hand-off`n`n## Next session`n`n" + ('word ' * 200) + "`n")
+Put (Join-Path $hoLong 'a.js') 'let d = 1;'; RunGit $hoLong @('add', '-A'); RunGit $hoLong @('commit', '-q', '-m', 'init')
+$noHo = NewRepo 'tools\repo-noho'
+Put (Join-Path $noHo 'a.js') 'let e = 1;'; RunGit $noHo @('add', '-A'); RunGit $noHo @('commit', '-q', '-m', 'init')
+
+WriteCardPolicy ([pscustomobject]@{ staleCommits = 2 })
+$e = Entry $ho 'card8' 'startup'
+Record 'card: switch absent -> a hand-off repository outside a card group gets none (unchanged default)' 'none' $(if ($e.out -notlike '*state card*') { 'none' } else { 'card' }) $e.out
+WriteCardPolicy ([pscustomobject]@{ staleCommits = 2; anyRepoWithHandoff = $false })
+$e = Entry $ho 'card9' 'startup'
+Record 'card: switch false -> none' 'none' $(if ($e.out -notlike '*state card*') { 'none' } else { 'card' }) $e.out
+WriteCardPolicy ([pscustomobject]@{ staleCommits = 2; anyRepoWithHandoff = $true })
+$e = Entry $ho 'card10' 'startup'
+Record 'card: switch on -> a hand-off repository outside a card group gets the card, tagged DES-14' 'card' $(if ($e.code -eq 0 -and $e.out -like '*state card for tools\repo-ho (DES-14)*') { 'card' } else { 'none' }) $e.out
+Record 'card: the next prompt is read from the fenced block under Next session' 'prompt' $(if ($e.out -like '*next prompt  Wire the parser to the page. Start from docs\HANDOFF.md, chunk 3.*') { 'prompt' } else { 'wrong' }) $e.out
+Record 'card: the Next heading still reads next, not the Next session section' 'next' $(if ($e.out -like '*next         Wire the parser to the page.*' -and $e.out -notlike '*next         Open with*') { 'next' } else { 'wrong' }) $e.out
+$e = Entry $noHo 'card11' 'startup'
+Record 'card: switch on, no hand-off -> none' 'none' $(if ($e.out -notlike '*state card*') { 'none' } else { 'card' }) $e.out
+$e = Entry $game 'card12' 'startup'
+Record 'card: a game repository keeps its GAME-13 tag with the switch on' 'card' $(if ($e.out -like '*state card for games\repo-game (GAME-13)*') { 'card' } else { 'none' }) $e.out
+Record 'card: a hand-off without Next session says so, never invents a prompt' 'none-line' $(if ($e.out -like '*next prompt  none; the agent writes its own*') { 'none-line' } else { 'wrong' }) $e.out
+$e = Entry $hoLong 'card13' 'startup'
+$npLine = @($e.out -split "`n" | Where-Object { $_ -like '*next prompt  *' })
+Record 'card: an over-long next prompt is cut to lineChars' 'cut' $(if ($npLine.Count -eq 1 -and $npLine[0].Trim().EndsWith('...') -and $npLine[0].Length -le 240) { 'cut' } else { 'wrong' }) $e.out
 Remove-Item -LiteralPath $policyPath -Force

@@ -241,6 +241,8 @@ exit 0
     W (Join-Path $kit 'eq-c\notes.md')    "line one`nline two (edited)`n"
     W (Join-Path $kit 'eq-c\sub\x.json')  "{ `"a`": 1 }`n"
     W (Join-Path $kit 'eq-c\extra.md')    "only here`n"
+    . (Join-Path $here 'selftest-snapshot.ps1')   # snapshot_diff + snapshot.ps1 cases (CR-2026-10-14-REVIEW)
+    New-SnapshotFixture   # selftest-snapshot.ps1: the snap tree, its snapshot by the real writer, then the changes
     # The Doctor itself, copied in, so -Kit resolves ${KIT} to this sandbox and reads its claims.
     $kitDoctor = NewDir (Join-Path $kit 'tools\doctor')
     Get-ChildItem -LiteralPath $here -Filter '*.ps1' | Where-Object { $_.Name -notlike 'selftest*.ps1' } | Copy-Item -Destination $kitDoctor
@@ -286,7 +288,7 @@ exit 0
         [ordered]@{ id = 'T-SMOKE-START'; type = 'hook_smoke';         hook = 'good-entry'; event = 'SessionStart'; why = 't' },
         [ordered]@{ id = 'T-POINTER';     type = 'pointer_valid';      why = 't' },
         [ordered]@{ id = 'T-SCHEMA';      type = 'config_schema';      path = 'doctor.config.json'; expected = 1; why = 't' }
-    )
+    ) + $snapTrue
     $falseClaims = @(
         [ordered]@{ id = 'F-PATH';        type = 'path_exists';        path = '${BRAIN}/nope.md'; why = 'f' },
         [ordered]@{ id = 'F-ABSENT';      type = 'path_absent';        path = 'me.md'; why = 'f' },
@@ -319,7 +321,7 @@ exit 0
         [ordered]@{ id = 'F-SMOKE-GONE';  type = 'hook_smoke';         hook = 'gone-guard'; event = 'PreToolUse'; why = 'f' },
         [ordered]@{ id = 'F-SMOKE-START'; type = 'hook_smoke';         hook = 'bad-entry'; event = 'SessionStart'; why = 'f' },
         [ordered]@{ id = 'F-SCHEMA';      type = 'config_schema';      path = 'config-old.json'; expected = 1; why = 'f' }
-    )
+    ) + $snapFalse
     $unknownClaims = @(
         [ordered]@{ id = 'U-GEN';      type = 'generated_matches'; generator = 'tools/law/build-law.ps1'; source = '${KIT}/law-fail.json'; output = '${KIT}/LAW.md'; why = 'u' },
         [ordered]@{ id = 'U-CONTAINS'; type = 'file_contains';     path = '${BRAIN}/missing.md'; needle = 'x'; why = 'u' },
@@ -335,7 +337,7 @@ exit 0
         [ordered]@{ id = 'U-RATCHET-HEAD';   type = 'ratchet';     path = 'law-count.md'; row = 'HONOUR'; heading = 'Missing'; why = 'u' },
         [ordered]@{ id = 'U-RATCHET-REASON'; type = 'ratchet';     path = 'law-count.md'; row = 'HONOUR'; accepted = [ordered]@{ value = 26; since = '2026-10-01' }; why = 'u' },
         [ordered]@{ id = 'U-TYPE';     type = 'bogus_type';        why = 'u' }
-    )
+    ) + $snapUnknown
     WJ (Join-Path $brain 'claims.json')         ([ordered]@{ schema = 1; claims = $trueClaims })
     WJ (Join-Path $brain 'claims-false.json')   ([ordered]@{ schema = 1; claims = $falseClaims })
     WJ (Join-Path $brain 'claims-unknown.json') ([ordered]@{ schema = 1; claims = $unknownClaims })
@@ -376,7 +378,7 @@ exit 0
     Assert-Has 'A: soft_deny counted against frozenPaths' $a.out 'soft_deny: 2 rule(s), 1 naming a frozen path'
     Assert-Has 'A: registered-but-missing hook' $a.out 'hook REGISTERED BUT MISSING'
     Assert-Has 'A: deny/ask rules read from root settings' $a.out 'root settings: 1 deny, 1 ask'
-    Assert-Has 'A: every true claim holds (emptyOk: nothing selected is a pass that says so)' $a.out 'CLAIMS  28 pass  0 fail  0 could not look'
+    Assert-Has 'A: every true claim holds (emptyOk: nothing selected is a pass that says so)' $a.out 'CLAIMS  30 pass  0 fail  0 could not look'
     Assert-HasNot 'A: no COULD-NOT-LOOK band' $a.out 'COULD-NOT-LOOK'
     Assert-Has 'A: ratchet with no record says the baseline was recorded' $a.out 'ratchet T-RATCHET-NEW: baseline recorded, HONOUR = 26'
     Assert-Has 'A: ratchet reads the row under its heading, and reports a fall' $a.out 'ratchet T-RATCHET-FALL: HONOUR fell from 30 to 26'
@@ -455,6 +457,7 @@ exit 0
     Assert-Has 'D: ratchet with an unsigned accepted entry is unknown' $d.out '????  U-RATCHET-REASON  accepted has no reason'
     Assert-Has 'D: unknown type is unknown' $d.out "unknown claim type 'bogus_type'"
     Assert-HasNot 'D: never GREEN' $d.out 'GREEN'
+    Assert-SnapshotRuns $a $c $d   # selftest-snapshot.ps1
 
     # ================================================================ run E: -Kit -Json against the sandbox kit, bad pointer
     Write-Host '  Run E: -Kit -Json with a pointer naming a missing brain' -ForegroundColor Cyan

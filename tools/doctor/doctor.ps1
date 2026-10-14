@@ -30,7 +30,7 @@ param(
 $ErrorActionPreference = 'Stop'
 try { [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false) } catch { }
 $here = $PSScriptRoot
-foreach ($f in 'context', 'repos', 'enforcement', 'survey', 'claims', 'claims-tree', 'claims-exec', 'claims-ratchet', 'report') {
+foreach ($f in 'context', 'repos', 'enforcement', 'survey', 'claims', 'claims-tree', 'claims-exec', 'claims-ratchet', 'claims-snapshot', 'report') {
     . (Join-Path $here "$f.ps1")
 }
 

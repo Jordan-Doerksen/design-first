@@ -258,3 +258,24 @@ repository the shim is installed in: the subject line is 72 characters or fewer,
 not past tense (Added, Fixed, Updated and their kind), and it is not a bare placeholder (Update,
 WIP, changes). A merge or a revert is exempt. "Specific" is not graded; a person reads that.
 Tunables: `commitMessage` in the brain's `doctor.config.json`.
+
+### DES-14
+
+**A session on any repository that carries a hand-off opens with a state card, and the hand-off ends with the opening prompt for the next session.**
+
+Added 2026-10-14 (CR-2026-10-14-REVIEW), from an outside reader of the kit: on a feature split
+across sessions, each session should end by writing what it built and the exact prompt for the
+next chat, so the next one does not start blind. Half of that was already here. `HANDOFF.md` is
+in the deliverable (DES-07, above), and the state card reads it at session start, but only inside
+a game repository (GAME-13). This clause widens both halves. **The card:** with
+`stateCard.anyRepoWithHandoff` on in the brain's `route-policy.json`, any git repository under the
+root that holds `HANDOFF.md` or `docs\HANDOFF.md` gets the card, whatever folder it sits in; the
+kit template ships the switch off, so an update changes nothing until the owner turns it on.
+**The prompt:** `HANDOFF.md` ends with a section headed `## Next session` holding one paragraph or
+one fenced block, the exact opening prompt for the next session, rewritten at every chunk end and
+at the end of an autonomous loop (`instructions/autonomy-law.md`). The card prints it as
+`next prompt`, cut to `lineChars`; a hand-off without the section gets
+`next prompt  none; the agent writes its own`. The prompt is written by the session that knows the
+state, never invented by the one that reads it. Mechanism: `hooks/entry.ps1#state-card`, the same
+hook that carries GAME-13; the self-test covers the switch on, off and absent, the section present,
+absent and over-long.

@@ -339,6 +339,19 @@
       "since": "2026-10-08"
     },
     {
+      "id": "DES-14",
+      "group": "DES",
+      "verb": "open-session",
+      "rule": "A session on any repository that carries a hand-off opens with a state card, and the hand-off ends with the opening prompt for the next session.",
+      "owner": "kit:workflows/coding.md",
+      "grade": "ADVISE",
+      "since": "2026-10-14",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/entry.ps1#state-card"
+      }
+    },
+    {
       "id": "GATE-01",
       "group": "GATE",
       "verb": "interview",
@@ -505,6 +518,19 @@
       "enforcedBy": {
         "kind": "hook",
         "ref": "hooks/fence.ps1#fence-net-deletion"
+      }
+    },
+    {
+      "id": "GATE-14",
+      "group": "GATE",
+      "verb": "taste",
+      "rule": "A decision about appearance, motion or feel is asked only after more than one real option is rendered side by side on one page; the question that follows is one question, with the recommended option first.",
+      "owner": "kit:instructions/interview-every-add-law.md",
+      "grade": "ADVISE",
+      "since": "2026-10-14",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/subagent.ps1#advise-by-role"
       }
     },
     {

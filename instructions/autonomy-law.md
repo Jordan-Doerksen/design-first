@@ -224,3 +224,7 @@ refused, and an Edit or Write to the story ledger (`loopLedgerGlobs`, default
 commits freely. The harness writes the pass mark with its own process, never through a tool
 call, so the rule binds only an agent reaching for the ledger. Off the loop branch, neither rule
 fires.
+
+**The loop's last write to `HANDOFF.md` ends with `## Next session` (DES-14, 2026-10-14):** the
+exact opening prompt for the session that picks the branch up, under the state card the loop
+already writes. The state card hook prints it at that session's start.

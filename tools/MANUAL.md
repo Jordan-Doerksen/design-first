@@ -78,11 +78,26 @@ brain-relative (kit-relative under `-Kit`). A path with an unexpandable variable
 | `tree_free_of` | `root`, `words[]`, `extensions[]`, `exclude[]`, `allow[]` of `{ path, words[] }` | no whole-word, case-insensitive hit in any scanned file | hits (file:line "word", first 12) | root missing, no words, no extensions |
 | `tree_equals` | `path`, `other`, `exclude[]`, `extensions[]?` | every file under `path` exists under `other` with the same bytes or the same text after CRLF->LF, and nothing under `other` is missing from `path`; the same folder on both sides is a PASS | a file differs or exists on one side only (first 12 named) | either folder missing, or nothing left to compare after `exclude` and `extensions` |
 | `tree_each` | `root`, `require[]` of `{file}` / `{glob}` / `{glob, pattern}`, `depth?` (2), `where?` `{anyOf[]}`, `exclude[]?`, `since?` (ISO date), `accepted[]?` of `{path, reason, since}`, `emptyOk?` (true: nothing selected is a PASS that says so; for a template claim on a root that may hold no matching repository yet) | every selected git repository under `root` meets every requirement; a repository whose first commit predates `since` is reported, never failed (the ratchet); accepted repositories are reported | a selected, non-grandfathered, non-accepted repository falls short (first 12 named with what is missing) | root missing, nothing selected, no `require`, an accepted entry without a reason, or `since` not a date |
+| `snapshot_diff` | `root`, `snapshot` (the file `tools/doctor/snapshot.ps1` wrote), `expected[]` of `{path, change}` / `{glob, change}` with change `added` / `removed` / `modified`, `exclude[]?`, `maxDays?` | the differences between the snapshot and the tree now are exactly the expected ones: every expected entry matched a difference and every difference matched an entry; an empty `expected` means nothing may change | a difference nothing expected, or an expected change that did not happen (first 12 named with their kind) | root missing; snapshot missing, not JSON or not schema 1; `expected` absent or an entry malformed; `maxDays` not a positive integer; the snapshot older than `maxDays` |
 | `tree_rules` | same selection fields as `tree_each` (`root`, `depth?`, `where?`, `exclude[]?`, `since?`, `accepted[]?`), plus `files?` (glob, '\|'-joined), `except[]?` (globs never read), `allowOnLine?` (regex), `rules[]` of `{id, forbid, files?}` or `{id, when, require, files?}` | no selected repository has a hit: a `forbid` line (unless that line or the one above matches `allowOnLine`), or a file matching `when` that lacks `require` | a repository has hits (rule, file:line, first three, then a count); the ratchet and accepted entries apply as for `tree_each` | no rules, a rule without id or shape, or the `tree_each` UNKNOWN cases |
 | `ratchet` | `path` (a markdown file), `row` (first-cell text of the table row), `heading?` (default `Summary`), `accepted?` `{ value, since, reason }` | the integer in that row is at or under the value recorded on the last run in `state\ratchets.json`; with no record yet the baseline is recorded and an INFO line says so; a rise passes once when an unused `accepted` entry covers it | the count rose and no unused `accepted` entry covers it; the record does not move, so a re-run stays RED | file missing, heading or row not found, the cell is not an integer, `accepted` without `value`, `since` or `reason`, or `ratchets.json` unreadable |
 | `hook_smoke` | `hook`, `event` (`SessionStart`, `PreToolUse`, `UserPromptSubmit`, `SubagentStart` or `Stop`) | hook runs as registered in `hooks.json` with synthetic stdin, exit 0; SessionStart also needs non-empty stdout; PreToolUse, SubagentStart and Stop need empty stdout or JSON; UserPromptSubmit may print anything or nothing | exits non-zero, times out (10 s), prints nothing (SessionStart), prints non-JSON (PreToolUse), script missing, interpreter not on PATH | `hooks.json` missing/unparseable, hook not registered for that event |
 | `pointer_valid` | - | pointer parses and `root`, `brain`, `pluginRoot` all exist | otherwise (the detail says which) | - |
 | `config_schema` | `path`, `expected` | `schema` equals `expected` | mismatch or no `schema` field: detail starts `MIGRATE:` | file missing or not JSON |
+
+`snapshot_diff` details (CR-2026-10-14-REVIEW): the before/after check for a refactor. Write the
+before-state, add the claim, make the change, run the Doctor, and remove the claim (or take a new
+snapshot) once the change is accepted. The claim never re-baselines itself, and `maxDays` turns a
+forgotten one into COULD-NOT-LOOK instead of a green that means nothing.
+
+```
+pwsh -NoProfile -File <pluginRoot>	ools\doctor\snapshot.ps1 -Root <folder> -Out <file.json> [-Exclude a,b/c]
+```
+
+The writer walks `Root` with the claim's own rule (`.git` and every `Exclude` path skipped) and
+writes `{ schema: 1, root, taken, exclude, files: [{ path, size, sha256 }] }`, paths sorted, forward
+slashes, lower case. It exits 1 when `Root` is not a folder or `Out` cannot be written, and prints
+one line either way. Where to keep the snapshot is the repository's call; the kit never commits one.
 
 `tree_free_of` details: `exclude` entries are paths relative to `root` (a file or a folder); the `.git`
 folder is always skipped. `allow` is span-based: a permitted word's match span suppresses every

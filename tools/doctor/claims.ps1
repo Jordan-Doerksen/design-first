@@ -6,7 +6,8 @@
 # The dispatcher and the simple types live here; tree_free_of is in claims-tree.ps1, the two
 # process-spawning types (generated_matches, hook_smoke) are in claims-exec.ps1, and the two-file
 # keyed compare (json_keyed_match) is in claims-keyed.ps1, dot-sourced below. The ratchet type is in
-# claims-ratchet.ps1, loaded by doctor.ps1 with the other claim files.
+# claims-ratchet.ps1, and the before/after compare (snapshot_diff) in claims-snapshot.ps1, both loaded
+# by doctor.ps1 with the other claim files.
 
 . (Join-Path $PSScriptRoot 'claims-keyed.ps1')
 . (Join-Path $PSScriptRoot 'claims-fresh.ps1')   # file_fresh, config_paths_each (CR-2026-10-13-HONOUR)
@@ -83,6 +84,7 @@ function Invoke-OneClaim {
         'hook_smoke'         { return Test-HookSmokeClaim $c $Context }
         'pointer_valid'      { return Test-PointerValidClaim $c $Context }
         'config_schema'      { return Test-ConfigSchemaClaim $c $Context }
+        'snapshot_diff'      { return Test-SnapshotDiffClaim $c $Context }   # claims-snapshot.ps1 (CR-2026-10-14-REVIEW)
         default              { return New-ClaimResult $c 'UNKNOWN' "unknown claim type '$($c.type)'" }
     }
 }

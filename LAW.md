@@ -56,6 +56,7 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | DES-11 | HOOK | A subagent starts only with a brief that names the goal, the files or area, the done-check and what is ruled out; its model follows the brain's role table unless the call names one; more spawns than the cap in one turn ask the owner. | `kit:workflows/coding.md` |
 | DES-12 | ADVISE | Match the task to an installed skill before building from an empty start, by reading the installed skills directory itself rather than a list in a law file. | `kit:workflows/coding.md` |
 | DES-13 | ADVISE | A session is handed the law for its task by route: the generated index rows for each matched group, once per session, with the owning file named; the full rule set is never loaded at start. | `kit:workflows/coding.md` |
+| DES-14 | ADVISE | A session on any repository that carries a hand-off opens with a state card, and the hand-off ends with the opening prompt for the next session. | `kit:workflows/coding.md` |
 
 ## GATE - Gates
 
@@ -74,6 +75,7 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | GATE-11 | HOOK | An edit that removes or neuters an assertion in a measuring file is stopped or questioned; fix the code, not the measure. | `kit:instructions/design-methodology.md` |
 | GATE-12 | ADVISE | Before removing anything you did not put there, answer the fence question: what it prevents, what breaks, and what evidence you checked. | `kit:instructions/design-methodology.md` |
 | GATE-13 | ADVISE | Before you remove, automate or simplify a thing, list its full function, not only its named one. | `kit:instructions/design-methodology.md` |
+| GATE-14 | ADVISE | A decision about appearance, motion or feel is asked only after more than one real option is rendered side by side on one page; the question that follows is one question, with the recommended option first. | `kit:instructions/interview-every-add-law.md` |
 
 ## AUTO - Autonomy
 
@@ -161,9 +163,9 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 |---|---|
 | DENY | 0 |
 | HOOK | 19 |
-| ADVISE | 26 |
+| ADVISE | 28 |
 | GATE | 19 |
 | BUILDABLE | 12 |
 | OWNER | 2 |
 | HONOUR | 0 |
-| total | 78 |
+| total | 80 |

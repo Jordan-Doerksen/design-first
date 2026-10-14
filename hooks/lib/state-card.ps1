@@ -1,4 +1,5 @@
-# state-card.ps1 - the state card a session gets when it starts inside a game repository (GAME-13).
+# state-card.ps1 - the state card a session gets when it starts inside a game repository (GAME-13),
+# or, with stateCard.anyRepoWithHandoff on, inside any repository that carries a hand-off (DES-14).
 # Dot-sourced by entry.ps1 after common.ps1 and law-rows.ps1. Never run directly.
 #
 # GAME-13: a session on a game repository opens with a state card built from the repository's
@@ -11,7 +12,13 @@
 # under root to law groups (`folders`); `stateCard.groups` (default: GAME) names the groups whose
 # folders get a card. A session that starts at the root, or in a folder mapped to no such group,
 # gets none. Tunables under `stateCard`: groups, staleCommits, lineChars, maxChars, closedWords (the
-# status words that mean a timeline row or a question is closed).
+# status words that mean a timeline row or a question is closed), anyRepoWithHandoff (DES-14,
+# CR-2026-10-14-REVIEW: a repository in a folder mapped to no card group still gets a card when it
+# holds HANDOFF.md or docs\HANDOFF.md; default false so an update changes nothing for an adopter).
+#
+# The hand-off's `## Next session` section is the opening prompt for the next session (DES-14). The
+# card prints its first paragraph or first fenced block, cut to lineChars; a hand-off without the
+# section gets one line saying so. It is never invented.
 #
 # Measured on the first instance before this was written (27 game repositories): a manifest in 26,
 # 12 of them under docs\; a hand-off in 17, all under docs\; "Core Goal", "Build Timeline" and
@@ -25,11 +32,12 @@
 # anchor: state-card  mode: advise  verbs: open-session
 
 function Get-DfStateCardConfig($policy) {
-    $c = @{ groups = @('GAME'); staleCommits = 10; lineChars = 220; maxChars = 2400
+    $c = @{ groups = @('GAME'); staleCommits = 10; lineChars = 220; maxChars = 2400; anyRepoWithHandoff = $false
             closedWords = @('done', 'shipped', 'built', 'complete', 'completed', 'closed', 'resolved', 'answered', 'live', 'merged', 'released', 'published', 'verified', 'skipped', 'cut', 'dropped', 'retired') }
     $sc = if ($policy -and $policy.PSObject.Properties['stateCard']) { $policy.stateCard } else { $null }
     if ($null -eq $sc) { return $c }
     if ($sc.PSObject.Properties['groups']) { $c.groups = @($sc.groups | Where-Object { $_ } | ForEach-Object { [string]$_ }) }
+    if ($sc.PSObject.Properties['anyRepoWithHandoff']) { $c.anyRepoWithHandoff = ([string]$sc.anyRepoWithHandoff -eq 'True') }
     if ($sc.PSObject.Properties['closedWords'] -and @($sc.closedWords).Count -gt 0) { $c.closedWords = @($sc.closedWords | Where-Object { $_ } | ForEach-Object { [string]$_ }) }
     foreach ($k in 'staleCommits', 'lineChars', 'maxChars') {
         if ($sc.PSObject.Properties[$k]) { $v = 0; if ([int]::TryParse([string]$sc.$k, [ref]$v) -and $v -gt 0) { $c[$k] = $v } }
@@ -51,6 +59,19 @@ function Get-DfCardRepo([string]$cwd, $ptr, $policy, $cfg) {
     if ($r.code -ne 0 -or -not $r.out) { return $null }
     $repo = ConvertTo-DfFullPath ([string](@($r.out)[0]))
     if (-not (Test-DfUnder $repo (Join-Path $ptr.root $top)) -or $repo.Equals((Join-Path $ptr.root $top), [StringComparison]::OrdinalIgnoreCase)) { return $null }
+    return $repo
+}
+
+# DES-14: the repository a card is built for when the group path above said no, or $null: cwd is
+# inside a git repository under root (not root itself) that holds a hand-off. Only consulted when
+# stateCard.anyRepoWithHandoff is on.
+function Get-DfHandoffRepo([string]$cwd, $ptr) {
+    if (-not $cwd -or -not $ptr.root -or -not (Test-DfUnder $cwd $ptr.root)) { return $null }
+    $r = Invoke-DfGit $cwd @('rev-parse', '--show-toplevel')
+    if ($r.code -ne 0 -or -not $r.out) { return $null }
+    $repo = ConvertTo-DfFullPath ([string](@($r.out)[0]))
+    if (-not (Test-DfUnder $repo $ptr.root) -or $repo.Equals($ptr.root, [StringComparison]::OrdinalIgnoreCase)) { return $null }
+    if (-not (Find-DfCardDoc $repo 'HANDOFF.md')) { return $null }
     return $repo
 }
 
@@ -117,14 +138,14 @@ function Get-DfDocAge([string]$repo, [string]$rel) {
 }
 
 # The card for one repository, as lines. Every part is optional; a missing part is named.
-function Get-DfStateCard([string]$repo, $ptr, $cfg) {
+function Get-DfStateCard([string]$repo, $ptr, $cfg, [string]$why = 'GAME-13') {
     $n = [int]$cfg.lineChars
     # A status cell is closed when it carries one of the closed words as a whole word, or a tick
     # mark (U+2705, U+2714; built from code points so this file stays ASCII).
     $closedRx = '(?i)\b(' + ((@($cfg.closedWords) | ForEach-Object { [regex]::Escape($_) }) -join '|') + ')\b|' + [char]0x2705 + '|' + [char]0x2714
     $out = [Collections.Generic.List[string]]::new()
     $name = if ($ptr.root -and (Test-DfUnder $repo $ptr.root)) { $repo.Substring($ptr.root.Length).TrimStart('\') } else { $repo }
-    $out.Add("design-first: state card for $name (GAME-13). Built from the repository's documents and from git, not from memory. Post it before any work; where it disagrees with what you find, say so first.")
+    $out.Add("design-first: state card for $name ($why). Built from the repository's documents and from git, not from memory. Post it before any work; where it disagrees with what you find, say so first.")
 
     # git: what is true on the disk
     $b = Invoke-DfGit $repo @('rev-parse', '--abbrev-ref', 'HEAD')
@@ -189,9 +210,18 @@ function Get-DfStateCard([string]$repo, $ptr, $cfg) {
         $out.Add("  hand-off     $ho; $($age.text)$stale")
         $lines = [IO.File]::ReadAllLines((Join-Path $repo $ho))
         $st = Get-DfMdSection $lines @('(?i)^(current\s+)?(state|status)\b', '(?i)^where\b')
-        $nx = Get-DfMdSection $lines @('(?i)^(what(\s+is|.s)\s+)?next\b', '(?i)\bnext\b')
+        $nx = Get-DfMdSection $lines @('(?i)^(what(\s+is|.s)\s+)?next\b(?!\s+session)', '(?i)\bnext\b(?!\s+session)')
+        $ns = Get-DfMdSection $lines @('(?i)^next\s+session\b')
         if ($st) { $t = Get-DfProse $st.body $n; if ($t) { $out.Add("    state        $t") } }
         if ($nx) { $t = Get-DfProse $nx.body $n; if ($t) { $out.Add("    next         $t") } }
+        # DES-14: the next session's opening prompt. A fenced block wins; otherwise the first paragraph.
+        $np = ''
+        if ($ns) {
+            $fence = $false; $fb = [Collections.Generic.List[string]]::new()
+            foreach ($l in $ns.body) { if ($l.Trim() -match '^```') { if ($fence) { break }; $fence = $true; continue }; if ($fence) { $fb.Add($l) } }
+            $np = if ($fb.Count -gt 0) { Format-DfCut ($fb -join ' ') $n } else { Get-DfProse $ns.body $n }
+        }
+        $out.Add("    next prompt  " + $(if ($np) { $np } else { 'none; the agent writes its own' }))
         if (-not $st -and -not $nx) {
             $t = Get-DfProse @($lines | Where-Object { $_ -notmatch '^#{1,6}\s' }) $n
             $out.Add("    opens with   " + $(if ($t) { $t } else { '(empty)' }) + '  (no state or next heading)')
@@ -209,7 +239,9 @@ function Get-DfStateCardLines([string]$cwd, $ptr) {
     $kitRoot = Get-DfKitRoot $ptr
     $pol = Read-DfRoutePolicy $ptr $kitRoot
     $cfg = Get-DfStateCardConfig $pol.policy
+    $why = 'GAME-13'
     $repo = Get-DfCardRepo $cwd $ptr $pol.policy $cfg
+    if (-not $repo -and $cfg.anyRepoWithHandoff) { $repo = Get-DfHandoffRepo $cwd $ptr; $why = 'DES-14' }
     if (-not $repo) { return @() }
-    return (Get-DfStateCard $repo $ptr $cfg)
+    return (Get-DfStateCard $repo $ptr $cfg $why)
 }
