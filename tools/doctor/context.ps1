@@ -86,6 +86,8 @@ $script:ConfigReaders = [ordered]@{
     stopFromGit                = 'hooks/stop.ps1 (true: the turn''s changes are read from git; false: Edit and Write calls only)'
     forbidScheduling           = 'hooks/guard.ps1 (rule 8, no-schedule: true refuses scheduled tasks, cron, Run keys, services, the Startup folder)'
     contentRules               = 'hooks/guard.ps1 (rule 9, content-rule: an edit in scope that adds a match of the pattern is refused)'
+    loopBranchPrefix           = 'hooks/guard.ps1 (rules 11 and 12: a branch with this prefix is the loop branch; default harness/)'
+    loopLedgerGlobs            = 'hooks/guard.ps1 (rule 12, ledger: repository-relative globs of the story ledger refused on the loop branch)'
 }
 
 # Keys the previous Doctor had that are now derived from the pointer or simply dead (SPEC 5.3).
@@ -119,6 +121,8 @@ function Get-DefaultConfig {
         stopFromGit                = $true
         forbidScheduling           = $false
         contentRules               = @()
+        loopBranchPrefix           = 'harness/'
+        loopLedgerGlobs            = @('docs/specs/*.tasks.json', 'specs/*.tasks.json')
     }
 }
 

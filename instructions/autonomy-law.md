@@ -212,3 +212,15 @@ unpushed and the push command is in the report · the run log exists and names w
 
 A deviation from any rule here is an architecture change: file a Change Request (`GATE-06`) naming
 the rule and the reason.
+
+## The loop branch is the fact the guard reads (0.1.24, CR-2026-10-13-HONOUR)
+
+AUTO-11 and AUTO-04 are enforced by guard rules 11 and 12 (`hooks/guard.ps1#loop-no-push`,
+`hooks/guard.ps1#ledger`). Both read one fact, the current branch name, from git: a branch that
+starts with the loop prefix (brain config `loopBranchPrefix`, default `harness/`, the prefix the
+harness loop creates) is the loop branch. On it, `git push`, `git merge` and `git pull` are
+refused, and an Edit or Write to the story ledger (`loopLedgerGlobs`, default
+`docs/specs/*.tasks.json` and `specs/*.tasks.json`) is refused. Commits are not touched: the loop
+commits freely. The harness writes the pass mark with its own process, never through a tool
+call, so the rule binds only an agent reaching for the ledger. Off the loop branch, neither rule
+fires.

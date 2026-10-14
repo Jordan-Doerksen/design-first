@@ -82,14 +82,14 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | AUTO-01 | ADVISE | A design decision is the owner's and an execution decision is the agent's; if it is not clearly execution, it is design. | `kit:instructions/autonomy-law.md` |
 | AUTO-02 | BUILDABLE | The loop stops at a manifest change, new scope, taste, a Change Request, a push or merge, a delete or move, a design-gated project, any secret, or anything that weakens a check. | `kit:instructions/autonomy-law.md` |
 | AUTO-03 | ADVISE | The unit of work is a story, not a chunk; the chunk stays the stop boundary. | `kit:instructions/autonomy-law.md` |
-| AUTO-04 | HONOUR | Only the Reviewer's verdict writes the pass mark, never the Builder; a Builder that edits the ledger voids its own attempt. | `kit:instructions/autonomy-law.md` |
+| AUTO-04 | HOOK | Only the Reviewer's verdict writes the pass mark, never the Builder; a Builder that edits the ledger voids its own attempt. | `kit:instructions/autonomy-law.md` |
 | AUTO-05 | GATE | The Reviewer is a separate agent with a read-only tool set, defined in the kit's reviewer agent file, not as a sentence. | `kit:instructions/autonomy-law.md` |
 | AUTO-06 | ADVISE | Evidence means the command and its literal output, pasted; a model's claim that something passed is not evidence. | `kit:instructions/autonomy-law.md` |
 | AUTO-07 | BUILDABLE | A deterministic check sets the pass mark; a model verdict may only add a finding, never clear one. | `kit:instructions/autonomy-law.md` |
 | AUTO-08 | BUILDABLE | A green verify gate is the floor, not the proof; a green gate with no new probe covering this story's behaviour is a fail. | `kit:instructions/autonomy-law.md` |
 | AUTO-09 | OWNER | Where a story is about feel, motion or appearance, a person is the gate, because a read-only reviewer cannot look at a screen. | `kit:instructions/autonomy-law.md` |
 | AUTO-10 | BUILDABLE | Each story starts a fresh context; state lives on the disk, not in the context, and a reset beats a compaction. | `kit:instructions/autonomy-law.md` |
-| AUTO-11 | HONOUR | The loop works on its own branch and never pushes and never merges; it ends with a state card and the push command for the owner. | `kit:instructions/autonomy-law.md` |
+| AUTO-11 | HOOK | The loop works on its own branch and never pushes and never merges; it ends with a state card and the push command for the owner. | `kit:instructions/autonomy-law.md` |
 | AUTO-12 | BUILDABLE | No verify gate, no loop; nor on a design-gated project, a chunk with open questions, or a dirty tree. | `kit:instructions/autonomy-law.md` |
 
 ## VCS - Integrity
@@ -153,17 +153,17 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 
 | id | grade | rule | owner |
 |---|---|---|---|
-| MAP-01 | HONOUR | Before editing anything that has versions, confirm the canonical copy; do not trust an inventory written inside another file. | `brain:canonical.md` |
+| MAP-01 | HOOK | Before editing anything that has versions, confirm the canonical copy; do not trust an inventory written inside another file. | `brain:canonical.md` |
 
 ## Summary
 
 | grade | count |
 |---|---|
 | DENY | 0 |
-| HOOK | 16 |
+| HOOK | 19 |
 | ADVISE | 26 |
 | GATE | 13 |
 | BUILDABLE | 12 |
 | OWNER | 2 |
-| HONOUR | 9 |
+| HONOUR | 6 |
 | total | 78 |

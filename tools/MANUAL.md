@@ -200,6 +200,8 @@ Finding kinds for `acceptedExceptions`: `noRemote`, `emptyRepo`, `foreignRemote`
 | `stopFromGit` | hooks/stop.ps1 | Default true: the Stop card reads the turn's changes from git, so a file a command changed is counted. False: the card counts Edit and Write calls only, as before 0.1.15. |
 | `forbidScheduling` | hooks/guard.ps1 | Default false. True: guard rule 8 refuses a command that creates a scheduled task, a cron entry, a Run key, a service or a Startup-folder entry. |
 | `contentRules` | hooks/guard.ps1 | Default empty. A list of `{ id, under[], except[], exceptParts[], extensions[], pattern, shell, why }`. Guard rule 9 refuses an edit under `under` that adds a match of `pattern`. A rule needs `id`, `pattern` and one `under` path that resolves. |
+| `loopBranchPrefix` | hooks/guard.ps1 | Default `harness/`. A repository whose current branch starts with it is on the loop branch: guard rule 11 refuses `git push`, `merge` and `pull` there (AUTO-11), rule 12 refuses edits to the story ledger (AUTO-04). |
+| `loopLedgerGlobs` | hooks/guard.ps1 | Default `docs/specs/*.tasks.json`, `specs/*.tasks.json`. Repository-relative globs of the story ledger rule 12 protects on the loop branch. |
 
 Keys that are no longer keys and are reported as dead if present: `root`, `stateDir`, `recordsDir`,
 `gitTimeoutSeconds`, `staleStateDays`, `_retiredUnversionedWatchlist`, `enforcement.settingsPath`,

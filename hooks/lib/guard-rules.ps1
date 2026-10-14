@@ -182,7 +182,10 @@ function Test-DfEnvWriteRule([string]$full, [string[]]$exceptions, [string]$owne
 }
 
 # ============================================================================ (4) path rules
-# anchor: frozen-path  mode: deny  verbs: edit-frozen
+# anchor: frozen-path  mode: deny  verbs: edit-frozen,confirm-canonical
+# MAP-01 rides here (owner decision 2026-10-13): a copy that is not canonical and must not be
+# edited is a frozen path; the brain's frozenPaths list is the machine-readable column of its
+# canonical.md, and this rule refuses the edit.
 $script:DfDestructiveHeads = @('rm', 'rmdir', 'del', 'erase', 'rd', 'ri', 'mv', 'move', 'remove-item', 'move-item', 'rename-item', 'clear-content')
 
 function Test-DfProtected([string]$full, [string[]]$protected) {

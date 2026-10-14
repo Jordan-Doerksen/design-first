@@ -34,6 +34,7 @@ try {
     . (Join-Path $PSScriptRoot 'lib\guard-rules.ps1')
     . (Join-Path $PSScriptRoot 'lib\guard-owner-rules.ps1')
     . (Join-Path $PSScriptRoot 'lib\guard-gate-rules.ps1')
+    . (Join-Path $PSScriptRoot 'lib\guard-loop-rules.ps1')
     . (Join-Path $PSScriptRoot 'lib\turn-changes.ps1')
 
     $raw = [Console]::In.ReadToEnd()
@@ -71,6 +72,8 @@ try {
         $skip  = @($ptr.brain) + @(if ($ptr.pointer -and $ptr.pointer.pluginRoot) { [string]$ptr.pointer.pluginRoot })
         # Rule 10 denies: a source write in a repository whose design gate is declared and not cleared.
         if (-not $result) { $result = Test-DfDesignGateRule $full $exts $owner $skip }
+        # Rule 12 denies: the story ledger on the loop branch.
+        if (-not $result) { $result = Test-DfLedgerRule $full $cfg.loopLedgerGlobs $cfg.loopBranchPrefix $owner }
         if (-not $result) {
             # Rules 5 and 6 advise; they never deny.
             Test-DfManifestRule $full $exts $sessionId $owner $skip
@@ -96,6 +99,8 @@ try {
                     if (-not $result) {
                         $dcall = if ($runCwd -ne $cwd) { Get-DfGitCall $tokens $runCwd } else { $call }
                         $result = Test-DfDirtyTreeRule $dcall $owner
+                        # Rule 11 denies: push, merge, pull on the loop branch.
+                        if (-not $result) { $result = Test-DfLoopPushRule $dcall $cfg.loopBranchPrefix $owner }
                     }
                 }
                 if (-not $result -and $cfg.present) { $result = Test-DfPathRuleShell $tokens $call $cwd $cfg.protected $owner }

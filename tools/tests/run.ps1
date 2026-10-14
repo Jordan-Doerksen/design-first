@@ -134,6 +134,16 @@ Put (Join-Path $repoGatedOpen 'DECISIONS.md') "# decisions`n`nDesign gate: on`n"
 Put (Join-Path $repoGatedOpen 'records\gate-cleared.md') "Findings: 2`n`n- F1 resolved: yes`n- F2 still thinking about it`n"
 RunGit $repoGatedOpen @('add', '-A'); RunGit $repoGatedOpen @('commit', '-q', '-m', 'init')
 
+# Guard rules 11 and 12 (AUTO-11, AUTO-04): a repository on the loop branch, with a story ledger.
+$repoLoop = NewRepo 'repo-loop'
+Put (Join-Path $repoLoop 'src\core.py') 'print(8)'
+Put (Join-Path $repoLoop 'DECISIONS.md') '# decisions'
+Put (Join-Path $repoLoop 'docs\specs\chunk-1.tasks.json') '{"stories":[]}'
+RunGit $repoLoop @('add', '-A'); RunGit $repoLoop @('commit', '-q', '-m', 'init')
+RunGit $repoLoop @('checkout', '-q', '-b', 'harness/chunk-1')
+Put (Join-Path $repoClean 'docs\specs\chunk-1.tasks.json') '{"stories":[]}'
+RunGit $repoClean @('add', '-A'); RunGit $repoClean @('commit', '-q', '-m', 'ledger')
+
 $repoTracked = NewRepo 'repo-tracked'
 Put (Join-Path $repoTracked '.env') 'TOKEN=tracked-by-mistake'
 RunGit $repoTracked @('add', '-A'); RunGit $repoTracked @('commit', '-q', '-m', 'init')

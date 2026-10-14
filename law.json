@@ -548,8 +548,12 @@
       "verb": "write-passes",
       "rule": "Only the Reviewer's verdict writes the pass mark, never the Builder; a Builder that edits the ledger voids its own attempt.",
       "owner": "kit:instructions/autonomy-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "HOOK",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/guard.ps1#ledger"
+      }
     },
     {
       "id": "AUTO-05",
@@ -631,8 +635,12 @@
       "verb": "push",
       "rule": "The loop works on its own branch and never pushes and never merges; it ends with a state card and the push command for the owner.",
       "owner": "kit:instructions/autonomy-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "HOOK",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/guard.ps1#loop-no-push"
+      }
     },
     {
       "id": "AUTO-12",
@@ -984,8 +992,12 @@
       "verb": "confirm-canonical",
       "rule": "Before editing anything that has versions, confirm the canonical copy; do not trust an inventory written inside another file.",
       "owner": "brain:canonical.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "HOOK",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/guard.ps1#frozen-path"
+      }
     }
   ]
 }

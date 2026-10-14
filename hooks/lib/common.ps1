@@ -171,7 +171,8 @@ function Expand-DfConfigPath([string]$p, [string]$root, [string]$brain) {
 # Returns @{ protected = full paths; exceptions = full paths; reason = why null }.
 function Read-DfBrainConfig($ptr) {
     $out = @{ protected = @(); exceptions = @(); present = $false; reason = $null; splitLines = 0; sourceExtensions = @(); stopDocs = @(); stopFromGit = $true
-              forbidScheduling = $false; contentRules = @(); contentRuleProblems = @() }
+              forbidScheduling = $false; contentRules = @(); contentRuleProblems = @()
+              loopBranchPrefix = 'harness/'; loopLedgerGlobs = @('docs/specs/*.tasks.json', 'specs/*.tasks.json') }
     if ($null -eq $ptr.pointer) { $out.reason = "no pointer at $($ptr.path)"; return $out }
     if (-not $ptr.brain -or -not (Test-Path -LiteralPath $ptr.brain -PathType Container)) {
         $out.reason = "brain folder missing: $($ptr.brain)"; return $out
@@ -192,6 +193,9 @@ function Read-DfBrainConfig($ptr) {
     if ($cfg.PSObject.Properties['stopFromGit']) { $out.stopFromGit = -not ($cfg.stopFromGit -eq $false -or [string]$cfg.stopFromGit -ieq 'false') }
     # Guard rules 8 and 9 (guard-owner-rules.ps1). forbidScheduling is opt-in: off unless the brain says true.
     if ($cfg.PSObject.Properties['forbidScheduling']) { $out.forbidScheduling = ($cfg.forbidScheduling -eq $true -or [string]$cfg.forbidScheduling -ieq 'true') }
+    # Guard rules 11 and 12 (guard-loop-rules.ps1): the loop branch name and the story ledger paths.
+    if ($cfg.PSObject.Properties['loopBranchPrefix'] -and -not [string]::IsNullOrWhiteSpace([string]$cfg.loopBranchPrefix)) { $out.loopBranchPrefix = [string]$cfg.loopBranchPrefix }
+    if ($cfg.PSObject.Properties['loopLedgerGlobs']) { $g = @($cfg.loopLedgerGlobs | Where-Object { $_ } | ForEach-Object { [string]$_ }); if ($g.Count -gt 0) { $out.loopLedgerGlobs = $g } }
     foreach ($r in @($cfg.contentRules)) {
         if ($null -eq $r) { continue }
         try {

@@ -998,6 +998,74 @@
     "_": "---- guard rules 5 and 6 (DES-02 manifest, DES-03 size) and ask.ps1 (OWN-04) ----"
   },
   {
+    "_": "---- guard rules 11 and 12 (AUTO-11 loop-no-push, AUTO-04 ledger) ----"
+  },
+  {
+    "name": "loop: git push on a harness/ branch -> deny",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git push -u origin HEAD",
+    "cwd": "${T}\\root\\repo-loop",
+    "expect": "deny",
+    "contains": "AUTO-11"
+  },
+  {
+    "name": "loop: git merge on a harness/ branch -> deny",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git merge main",
+    "cwd": "${T}\\root\\repo-loop",
+    "expect": "deny",
+    "contains": "loop branch"
+  },
+  {
+    "name": "loop: git -C <loop repo> pull from elsewhere -> deny",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "git -C \"${T}\\root\\repo-loop\" pull",
+    "cwd": "${T}\\root",
+    "expect": "deny"
+  },
+  {
+    "name": "loop: git commit on a harness/ branch -> allowed (the loop commits freely)",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git commit -m \"story 1\"",
+    "cwd": "${T}\\root\\repo-loop",
+    "expect": "allow"
+  },
+  {
+    "name": "loop: git push on main (repo-clean) -> allowed by this rule",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git push origin main",
+    "cwd": "${T}\\root\\repo-clean",
+    "expect": "allow"
+  },
+  {
+    "name": "ledger: Edit the story ledger on a harness/ branch -> deny",
+    "hook": "guard",
+    "tool": "Edit",
+    "path": "${T}/root/repo-loop/docs/specs/chunk-1.tasks.json",
+    "expect": "deny",
+    "contains": "AUTO-04"
+  },
+  {
+    "name": "ledger: Write source on the same loop branch -> allowed",
+    "hook": "guard",
+    "tool": "Write",
+    "path": "${T}/root/repo-loop/src/core.py",
+    "content": "x = 2",
+    "expect": "allow"
+  },
+  {
+    "name": "ledger: Edit the ledger on main (repo-clean) -> allowed",
+    "hook": "guard",
+    "tool": "Edit",
+    "path": "${T}/root/repo-clean/docs/specs/chunk-1.tasks.json",
+    "expect": "allow"
+  },
+  {
     "_": "---- guard rule 10 (GATE-08 / GATE-09 design gate) ----"
   },
   {
