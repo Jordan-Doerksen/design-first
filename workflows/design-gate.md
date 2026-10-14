@@ -84,3 +84,31 @@ debt (`DES-07`).
 The gate gives correctness, not scope. When it is clean, build the smallest slice that works of
 each designed chunk and show the owner (`DES-05`), split by domain, config in `.json`. The gate
 requires care; it does not authorise extra scope.
+
+## The record the guard reads (0.1.23, CR-2026-10-13-HONOUR)
+
+GATE-08 and GATE-09 are enforced by guard rule 10 (`hooks/guard.ps1#design-gate`). A repository
+declares its gate with one line in `DECISIONS.md`, either form:
+
+```
+Design gate: on
+| Design gate | on |
+```
+
+While that line stands and `records/gate-cleared.md` is absent, every source write in the
+repository is refused; documents, config and data stay writable, because the gate is cleared by
+writing documents. The record is read, not trusted. It carries one `Findings: <n>` line with n
+above zero, and one `- ` line per finding, each marked `resolved` or `recorded`:
+
+```
+# Gate cleared
+
+Findings: 12
+
+- F1 resolved: the spec names the failure mode (SPEC 4.2)
+- F2 recorded: Open Questions row 3, owner named
+```
+
+A record with `Findings: 0`, fewer lines than findings, or a line marked neither way refuses the
+write and names the line. Removing the `Design gate` line from `DECISIONS.md` ends the gate; that
+is a Change Request like any other manifest edit.

@@ -61,15 +61,15 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 
 | id | grade | rule | owner |
 |---|---|---|---|
-| GATE-01 | HONOUR | Every requested addition gets the four-verdict pass of approve, redact, add and flavour, however detailed the prompt; a long request is a strong opening position, not a spec. | `kit:instructions/interview-every-add-law.md` |
+| GATE-01 | HOOK | Every requested addition gets the four-verdict pass of approve, redact, add and flavour, however detailed the prompt; a long request is a strong opening position, not a spec. | `kit:instructions/interview-every-add-law.md` |
 | GATE-02 | ADVISE | Silence is not approval; full approval with nothing to cut is said out loud. | `kit:instructions/interview-every-add-law.md` |
 | GATE-03 | GATE | A new third-party package is an owner decision, never an addition the agent makes itself; name it exactly and wait. | `kit:instructions/interview-every-add-law.md` |
 | GATE-04 | ADVISE | The Programmer hat unlocks only after the interview pass is complete. | `kit:instructions/interview-every-add-law.md` |
 | GATE-05 | HOOK | After each chunk, run the cross-check against the manifest, the architecture and the core goal. | `kit:instructions/design-methodology.md` |
 | GATE-06 | HOOK | Any change to design, behaviour, config, risk, execution, data flow or dependencies needs a Change Request, and an approved one updates the Change Log. | `kit:instructions/design-methodology.md` |
 | GATE-07 | HOOK | Code that runs is not done; done is the Definition of Done checklist in the owning file. | `kit:instructions/design-methodology.md` |
-| GATE-08 | HONOUR | Work where a wrong output costs money, safety or a person's trust gets an adversarial gap review of the spec and the manifest before the repository exists. | `kit:workflows/design-gate.md` |
-| GATE-09 | HONOUR | The gate is cleared when every finding is resolved or recorded, never because the review returned nothing; a review that finds nothing is a failed review. | `kit:workflows/design-gate.md` |
+| GATE-08 | HOOK | Work where a wrong output costs money, safety or a person's trust gets an adversarial gap review of the spec and the manifest before the repository exists. | `kit:workflows/design-gate.md` |
+| GATE-09 | HOOK | The gate is cleared when every finding is resolved or recorded, never because the review returned nothing; a review that finds nothing is a failed review. | `kit:workflows/design-gate.md` |
 | GATE-10 | ADVISE | When a tool fails later, check the spec first; a failure the spec did not predict is a spec failure, not only a code failure. | `kit:workflows/design-gate.md` |
 | GATE-11 | HOOK | An edit that removes or neuters an assertion in a measuring file is stopped or questioned; fix the code, not the measure. | `kit:instructions/design-methodology.md` |
 | GATE-12 | ADVISE | Before removing anything you did not put there, answer the fence question: what it prevents, what breaks, and what evidence you checked. | `kit:instructions/design-methodology.md` |
@@ -160,10 +160,10 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | grade | count |
 |---|---|
 | DENY | 0 |
-| HOOK | 13 |
+| HOOK | 16 |
 | ADVISE | 26 |
 | GATE | 13 |
 | BUILDABLE | 12 |
 | OWNER | 2 |
-| HONOUR | 12 |
+| HONOUR | 9 |
 | total | 78 |

@@ -23,6 +23,12 @@
 # What the disk reading cannot see is written at the top of lib\turn-changes.ps1.
 #
 # anchor: stop-done  mode: deny  verbs: document,cross-check,change,finish,gate-change
+#
+# interview (GATE-01, 0.1.23): a repository whose .git was created since the prompt is an addition
+# this turn. When no question was asked this session (no <session>.asked marker, written by
+# ask.ps1), the card carries the interview line for that repository. Same refusal, once.
+#
+# anchor: interview  mode: deny  verbs: interview
 
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 [Console]::InputEncoding  = [Text.UTF8Encoding]::new($false)
@@ -122,6 +128,18 @@ try {
     $hits = @($groups.Keys | Where-Object { $groups[$_].src.Count -gt 0 } | Sort-Object)
     if ($hits.Count -eq 0) { exit 0 }
 
+    # GATE-01: a repository born this turn, with no question asked this session.
+    $asked = Test-Path -LiteralPath (Get-DfSessionFile $sessionId '.asked') -PathType Leaf
+    $owner = Get-DfOwnerName $ptr.brain
+    foreach ($repo in $hits) {
+        $g = $groups[$repo]; $g.born = $false
+        if ($null -eq $since) { continue }
+        $gitDir = Join-Path $repo '.git'
+        if (Test-Path -LiteralPath $gitDir) {
+            try { $g.born = ([IO.Directory]::GetCreationTimeUtc($gitDir) -ge $since.UtcDateTime) } catch { $g.born = $false }
+        }
+    }
+
     $sb = [Text.StringBuilder]::new()
     [void]$sb.AppendLine("design-first: this turn changed source. Answer this card in your reply, then stop (DES-07, GATE-05, GATE-06, GATE-07; the hook asks once per turn).")
     foreach ($root in $hits) {
@@ -131,6 +149,7 @@ try {
         if ($g.docs.Count -gt 0) { [void]$sb.AppendLine("  Documents touched: " + ($g.docs -join ', ') + ".") }
         else { [void]$sb.AppendLine("  Documents touched: none. DES-07: documents are co-equal; say which document should carry this change, or why none does.") }
         if ($g.decisions -and -not $g.changelog) { [void]$sb.AppendLine("  DECISIONS.md was edited with no Change Log row. GATE-06: a change to a decision is a Change Request; add the row, or say why this edit is not one.") }
+        if ($g.born -and -not $asked) { [void]$sb.AppendLine(("  This repository was created this turn and no question was asked this session. GATE-01: every addition gets the interview, however detailed the request; interview {0} now with one question at a time, or say why this is a toy or a throwaway." -f $owner)) }
         if ($g.how -eq 'calls-git-failed') { [void]$sb.AppendLine("  git could not be read here, so this repository is counted from Edit and Write calls only; a file a command changed is not in the count.") }
     }
     [void]$sb.AppendLine("")

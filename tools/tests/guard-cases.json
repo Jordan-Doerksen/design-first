@@ -998,6 +998,48 @@
     "_": "---- guard rules 5 and 6 (DES-02 manifest, DES-03 size) and ask.ps1 (OWN-04) ----"
   },
   {
+    "_": "---- guard rule 10 (GATE-08 / GATE-09 design gate) ----"
+  },
+  {
+    "name": "gate: source edit in a gated repo with no record -> deny",
+    "hook": "guard",
+    "tool": "Edit",
+    "path": "${T}/root/repo-gated/src/core.py",
+    "expect": "deny",
+    "contains": "gate-cleared.md"
+  },
+  {
+    "name": "gate: a document edit in the same gated repo -> allowed",
+    "hook": "guard",
+    "tool": "Edit",
+    "path": "${T}/root/repo-gated/DECISIONS.md",
+    "expect": "allow"
+  },
+  {
+    "name": "gate: source edit with a cleared record (table-row marker) -> allowed",
+    "hook": "guard",
+    "tool": "Edit",
+    "path": "${T}/root/repo-gated-ok/src/core.py",
+    "expect": "allow"
+  },
+  {
+    "name": "gate: a record with Findings: 0 -> deny (a review that finds nothing failed)",
+    "hook": "guard",
+    "tool": "Edit",
+    "path": "${T}/root/repo-gated-bad/src/core.py",
+    "expect": "deny",
+    "contains": "Findings: 0"
+  },
+  {
+    "name": "gate: a finding neither resolved nor recorded -> deny, line named",
+    "hook": "guard",
+    "tool": "Write",
+    "path": "${T}/root/repo-gated-open/src/core.py",
+    "content": "x = 1",
+    "expect": "deny",
+    "contains": "still thinking about it"
+  },
+  {
     "name": "manifest: source edit in a repo with no DECISIONS.md -> advises once",
     "hook": "guard",
     "tool": "Edit",

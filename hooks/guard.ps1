@@ -33,6 +33,7 @@ try {
     . (Join-Path $PSScriptRoot 'lib\tokenise.ps1')
     . (Join-Path $PSScriptRoot 'lib\guard-rules.ps1')
     . (Join-Path $PSScriptRoot 'lib\guard-owner-rules.ps1')
+    . (Join-Path $PSScriptRoot 'lib\guard-gate-rules.ps1')
     . (Join-Path $PSScriptRoot 'lib\turn-changes.ps1')
 
     $raw = [Console]::In.ReadToEnd()
@@ -64,11 +65,14 @@ try {
         if (-not $result -and $cfg.present) { $result = Test-DfPathRuleFile $full $cfg.protected $owner }
         if (-not $result -and $cfg.forbidScheduling) { $result = Test-DfScheduleRuleFile $full $owner }
         if (-not $result -and @($cfg.contentRules).Count -gt 0) { $result = Test-DfContentRuleFile $tool $ti $full $cfg.contentRules $owner }
+        # Brain tunables when present, built-in defaults otherwise (rules 5, 6 and 10 share them).
+        $exts  = if ($cfg.sourceExtensions -and @($cfg.sourceExtensions).Count -gt 0) { @($cfg.sourceExtensions) } else { $script:DfDefaultSourceExtensions }
+        $split = if ($cfg.splitLines) { [int]$cfg.splitLines } else { 500 }
+        $skip  = @($ptr.brain) + @(if ($ptr.pointer -and $ptr.pointer.pluginRoot) { [string]$ptr.pointer.pluginRoot })
+        # Rule 10 denies: a source write in a repository whose design gate is declared and not cleared.
+        if (-not $result) { $result = Test-DfDesignGateRule $full $exts $owner $skip }
         if (-not $result) {
-            # Rules 5 and 6 advise; they never deny. Brain tunables when present, built-in defaults otherwise.
-            $exts  = if ($cfg.sourceExtensions -and @($cfg.sourceExtensions).Count -gt 0) { @($cfg.sourceExtensions) } else { $script:DfDefaultSourceExtensions }
-            $split = if ($cfg.splitLines) { [int]$cfg.splitLines } else { 500 }
-            $skip  = @($ptr.brain) + @(if ($ptr.pointer -and $ptr.pointer.pluginRoot) { [string]$ptr.pointer.pluginRoot })
+            # Rules 5 and 6 advise; they never deny.
             Test-DfManifestRule $full $exts $sessionId $owner $skip
             Test-DfSizeRule $tool $ti $full $exts $split
         }

@@ -5,6 +5,10 @@
 # multiple-choice shape and the recommended-default-first rule are the owner's to judge; this
 # hook sees only the count. Non-AskUserQuestion payloads exit silently.
 #
+# An allowed question also writes the session's interview marker (<markers>/<session>.asked), which
+# the Stop hook reads for GATE-01: a repository created this turn with no question asked this
+# session gets the interview line on the card.
+#
 # Failure policy: an internal error ALLOWS the call, logs an ERROR line and says so.
 #
 # anchor: one-question  mode: deny  verbs: ask
@@ -15,6 +19,7 @@ $ErrorActionPreference = 'Stop'
 
 try {
     . (Join-Path $PSScriptRoot 'lib\common.ps1')
+    . (Join-Path $PSScriptRoot 'lib\turn-changes.ps1')   # Get-DfSessionFile
     $raw = [Console]::In.ReadToEnd()
     if ([string]::IsNullOrWhiteSpace($raw)) { throw 'empty stdin (no tool call payload)' }
     $j = $raw | ConvertFrom-Json
@@ -22,7 +27,11 @@ try {
     $ti = $j.tool_input
     $n = 0
     if ($null -ne $ti -and $ti.PSObject.Properties['questions']) { $n = @($ti.questions).Count }
-    if ($n -le 1) { exit 0 }
+    if ($n -le 1) {
+        $sessionId = if ($j.session_id) { [string]$j.session_id } else { 'unknown' }
+        Add-DfTextLine (Get-DfSessionFile $sessionId '.asked') (Get-DfIso)
+        exit 0
+    }
     $ptr = Read-DfPointer
     $owner = Get-DfOwnerName $ptr.brain
     $reason = ("This call carries {0} questions. {1} answers one question at a time, as multiple choice, recommended default first (OWN-04). " +

@@ -340,8 +340,12 @@
       "verb": "interview",
       "rule": "Every requested addition gets the four-verdict pass of approve, redact, add and flavour, however detailed the prompt; a long request is a strong opening position, not a spec.",
       "owner": "kit:instructions/interview-every-add-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "HOOK",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/stop.ps1#interview"
+      }
     },
     {
       "id": "GATE-02",
@@ -427,8 +431,12 @@
       "verb": "gap-review",
       "rule": "Work where a wrong output costs money, safety or a person's trust gets an adversarial gap review of the spec and the manifest before the repository exists.",
       "owner": "kit:workflows/design-gate.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "HOOK",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/guard.ps1#design-gate"
+      }
     },
     {
       "id": "GATE-09",
@@ -436,8 +444,12 @@
       "verb": "clear-gate",
       "rule": "The gate is cleared when every finding is resolved or recorded, never because the review returned nothing; a review that finds nothing is a failed review.",
       "owner": "kit:workflows/design-gate.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "HOOK",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/guard.ps1#design-gate"
+      }
     },
     {
       "id": "GATE-10",

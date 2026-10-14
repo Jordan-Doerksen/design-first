@@ -158,8 +158,15 @@ here; nothing was cut. Target: HONOUR 0, the ratchet then holds it. Shipped in c
   the deterministic pass mark (AUTO-07), the new-probe rule (AUTO-08), one process per story
   (AUTO-10) and the start conditions (AUTO-12) are its behaviour. They print BUILDABLE until the
   runner ships in the kit or the brain overlay re-grades them against a shipped copy.
-- *Chunks 1 to 4* (planned, this CR): an interview marker checked by the Stop hook (GATE-01), a
-  design-gate guard rule and gate-cleared claim (GATE-08, GATE-09), a ledger lock and no-push-in-loop
+- *interview* (`hooks/stop.ps1#interview`, 0.1.23): `ask.ps1` writes a session marker on every
+  allowed question; a repository whose `.git` was created since the prompt, with source changed
+  and no marker, gets the GATE-01 line on the Stop card. Carries GATE-01 at HOOK.
+- *design-gate* (`hooks/guard.ps1#design-gate`, guard rule 10, 0.1.23): `Design gate: on` in a
+  repository's DECISIONS.md refuses every source write until `records/gate-cleared.md` exists
+  and reads clean: `Findings: <n>` above zero, one `- ` line per finding marked resolved or
+  recorded. Documents stay writable. Carries GATE-08 and GATE-09 at HOOK, one grade higher than the
+  triage's GATE for GATE-09, because the same rule that opens the gate reads the record.
+- *Chunks 2 to 4* (planned, this CR): a ledger lock and no-push-in-loop
   guard rules (AUTO-04, AUTO-11), a non-canonical guard rule (MAP-01, needs a machine-readable
   column in the brain's canonical.md), three generator and commit-message checks (PRIN-05, SKIN-07,
   VOICE-05), a `file_fresh` claim type with tombstone and figure templates (VCS-06, VCS-12, DISP-07).
@@ -288,3 +295,4 @@ per profile, the guard does not see nested shells. The page states them before t
 | 2026-10-13 | Chunk 10 opened: adopter one installs. The README status line still read "not installable until chunk 7" from 0.1.0; replaced with the current state and a pointer to the manifest for the version (0.1.20). No code change. |
 | 2026-10-13 | The page (Chapter 3), 0.1.21. Research pass: GitHub, Hacker News and Exa; Reddit is not configured on the build machine. Owner rejected palettes and frameworks and asked for composition; chose scrollycoding with one explorable. Built: docs/build.ps1 renders docs/index.html from the template, law.json, hooks.json, claims.json, the commands, the README sections and four recorded runs (adopt, Doctor on the fresh brain, the guard refusing a force push and a secrets stage, the kit Doctor on itself). Verified in the browser at 1366 and 375 wide: no element wider than the viewport, scenes inline without JS, typing off under reduced motion. Claim KIT-DOCS-01 (generated_matches) added; KIT-LEAK-01 now scans .html, .css and .js, with the public slug allowed in the four docs files that carry a link. Found by the recorded run and left open for the owner: a fresh adopt ends RED on SCAN-MANIFEST-01 because the kit writes no manifest into the new brain (fix list, chunk 10). The page stays unpublished until the public flip; the owner's site serves it, this repo gets no Pages. |
 | 2026-10-13 | HONOUR audit, chunks 0 and A (0.1.22, DECISIONS 2.8). Measured before: 37 HONOUR of 78. GAME-12 to HOOK on the existing stop-done anchor (verb added). Five loop-runner clauses to BUILDABLE, ref 2.8. Eighteen reader-judged clauses to ADVISE on the new subagent.ps1 advise-by-role anchor; DES-12 to ADVISE on the new route.ps1 skills anchor. The reviewer agent gains the ADVISE report section. Five hook cases added (two subagent, three route). Measured after: HOOK 13, GATE 13, ADVISE 26, BUILDABLE 12, OWNER 2, HONOUR 12. The ratchet records the fall. The page regenerated and prints the new count. |
+| 2026-10-13 | HONOUR audit, chunk 1 (0.1.23, DECISIONS 2.8). Guard rule 10 design-gate in a new lib file (hooks/lib/guard-gate-rules.ps1, 61 lines): Design gate: on in DECISIONS.md refuses source writes until records/gate-cleared.md reads clean; four sandbox repositories and five guard cases prove open, cleared, Findings: 0 and an unmarked finding. ask.ps1 writes the .asked marker; stop.ps1 adds the GATE-01 line for a repository born this turn with no marker; four cases. The owning files gained a section each on the record and the marker. Measured after: HOOK 16, GATE 13, ADVISE 26, BUILDABLE 12, OWNER 2, HONOUR 9. Hook cases 266. Scope note: a repository anywhere on the disk that already carried the Design gate line would have been gated at once; the build machine was searched first and had none. |

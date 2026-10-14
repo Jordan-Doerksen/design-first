@@ -113,3 +113,11 @@ spec only. Until the pass above has restated, split, judged, costed and asked, t
 spec, and code written before it is code written against a guess. In an approved autonomous loop
 (`instructions/autonomy-law.md`) the pass runs at the chunk boundary, before the loop starts; the
 loop never interprets a new request.
+
+## The marker the Stop hook reads (0.1.23, CR-2026-10-13-HONOUR)
+
+GATE-01 is enforced by `hooks/stop.ps1#interview`. Every allowed AskUserQuestion call writes the
+session's interview marker (`<markers>/<session>.asked`, by `hooks/ask.ps1`). When a turn changed
+source in a repository whose `.git` was created since the prompt, and the session has no marker,
+the Stop card carries the interview line for that repository and refuses the stop once. The hook
+cannot grade the interview; it can see that none happened before a new repository got code.

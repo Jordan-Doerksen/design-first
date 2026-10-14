@@ -113,6 +113,27 @@ Put (Join-Path $repoNoManifest 'src\app.py') 'print(2)'
 Put (Join-Path $repoNoManifest 'notes.md') 'not source'
 RunGit $repoNoManifest @('add', '-A'); RunGit $repoNoManifest @('commit', '-q', '-m', 'init')
 
+# Guard rule 10 (GATE-08, GATE-09): a declared design gate with no record, a cleared one, a bad record.
+$repoGated = NewRepo 'repo-gated'
+Put (Join-Path $repoGated 'src\core.py') 'print(3)'
+Put (Join-Path $repoGated 'DECISIONS.md') "# decisions`n`nDesign gate: on`n"
+RunGit $repoGated @('add', '-A'); RunGit $repoGated @('commit', '-q', '-m', 'init')
+$repoGatedOk = NewRepo 'repo-gated-ok'
+Put (Join-Path $repoGatedOk 'src\core.py') 'print(4)'
+Put (Join-Path $repoGatedOk 'DECISIONS.md') "# decisions`n`n| Design gate | on |`n"
+Put (Join-Path $repoGatedOk 'records\gate-cleared.md') "# Gate cleared`n`nFindings: 2`n`n- F1 resolved: the spec names the failure mode`n- F2 recorded: open question 3, owner named`n"
+RunGit $repoGatedOk @('add', '-A'); RunGit $repoGatedOk @('commit', '-q', '-m', 'init')
+$repoGatedBad = NewRepo 'repo-gated-bad'
+Put (Join-Path $repoGatedBad 'src\core.py') 'print(5)'
+Put (Join-Path $repoGatedBad 'DECISIONS.md') "# decisions`n`nDesign gate: on`n"
+Put (Join-Path $repoGatedBad 'records\gate-cleared.md') "# Gate cleared`n`nFindings: 0`n"
+RunGit $repoGatedBad @('add', '-A'); RunGit $repoGatedBad @('commit', '-q', '-m', 'init')
+$repoGatedOpen = NewRepo 'repo-gated-open'
+Put (Join-Path $repoGatedOpen 'src\core.py') 'print(6)'
+Put (Join-Path $repoGatedOpen 'DECISIONS.md') "# decisions`n`nDesign gate: on`n"
+Put (Join-Path $repoGatedOpen 'records\gate-cleared.md') "Findings: 2`n`n- F1 resolved: yes`n- F2 still thinking about it`n"
+RunGit $repoGatedOpen @('add', '-A'); RunGit $repoGatedOpen @('commit', '-q', '-m', 'init')
+
 $repoTracked = NewRepo 'repo-tracked'
 Put (Join-Path $repoTracked '.env') 'TOKEN=tracked-by-mistake'
 RunGit $repoTracked @('add', '-A'); RunGit $repoTracked @('commit', '-q', '-m', 'init')
@@ -368,6 +389,24 @@ Record 'stop: no document touched -> DES-07 line' 'des07' $(if ((Classify $r.out
 Put (Ledger 'st-norow') ((Join-Path $repoClean 'src\main.py') + "`t`n" + (Join-Path $repoClean 'DECISIONS.md') + "`t`n")
 $r = Stop 'st-norow' $false
 Record 'stop: DECISIONS.md edited with no Change Log row -> GATE-06 line' 'gate06' $(if ($r.out -like '*no Change Log row*') { 'gate06' } else { 'quiet' }) $r.out
+# stop: GATE-01, a repository born this turn with no question asked this session -> the interview line
+$null = Route 'yes please' 'st-born' $root          # writes the turn marker, injects nothing
+$null = Route 'yes please' 'st-born-asked' $root
+Start-Sleep -Milliseconds 50
+$repoBorn = NewRepo 'repo-born'
+Put (Join-Path $repoBorn 'src\new.py') 'print(7)'
+Put (Join-Path $repoBorn 'DECISIONS.md') '# decisions'
+Put (Ledger 'st-born') ((Join-Path $repoBorn 'src\new.py') + "`t`n")
+$r = Stop 'st-born' $false
+Record 'stop: a repo created this turn, no question asked -> GATE-01 line' 'gate01' $(if ((Classify $r.out) -eq 'block' -and $r.out -like '*GATE-01*') { 'gate01' } else { 'quiet' }) $r.out
+Put (Join-Path $env:DF_MARKER_DIR 'st-born-asked.asked') '2026-10-13T00:00:00Z'
+Put (Ledger 'st-born-asked') ((Join-Path $repoBorn 'src\new.py') + "`t`n")
+$r = Stop 'st-born-asked' $false
+Record 'stop: the same repo with a question asked this session -> no GATE-01 line' 'quiet' $(if ((Classify $r.out) -eq 'block' -and $r.out -notlike '*GATE-01*') { 'quiet' } else { 'nagged' }) $r.out
+Record 'stop: an old repo (repo-clean) never gets the GATE-01 line' 'quiet' $(if ((Stop 'st-nodoc' $false).out -notlike '*GATE-01*') { 'quiet' } else { 'nagged' }) ''
+# ask: an allowed question writes the session's interview marker
+$null = Invoke-Hook 'ask.ps1' (@{ session_id = 'st-ask-marker'; cwd = $root; hook_event_name = 'PreToolUse'; tool_name = 'AskUserQuestion'; tool_input = @{ questions = @(@{ question = 'q'; header = 'h'; options = @(@{ label = 'a'; description = 'd' }, @{ label = 'b'; description = 'e' }); multiSelect = $false }) } } | ConvertTo-Json -Compress -Depth 6)
+Record 'ask: an allowed question writes the .asked marker' 'written' $(if (Test-Path -LiteralPath (Join-Path $env:DF_MARKER_DIR 'st-ask-marker.asked')) { 'written' } else { 'missing' }) ''
 # stop: docs only, or nothing -> silent
 Put (Ledger 'st-docs') ((Join-Path $repoClean 'README.md') + "`t`n")
 $r = Stop 'st-docs' $false
