@@ -77,7 +77,8 @@ claude plugin install design-first@design-first
 /design-first:adopt
 ```
 
-`adopt` asks six questions, one at a time, then a script writes the files and runs the Doctor.
+`adopt` asks seven questions, one at a time (the seventh only when root is a git work tree), then
+a script writes the files and runs the Doctor.
 The result is exit 0 with any survey findings printed. `/design-first:remove` reverses exactly
 what `adopt` wrote and leaves anything you changed.
 
