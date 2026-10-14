@@ -56,6 +56,65 @@ function Test-RuleValues($c) {
     if (($r -split '(?<=[.!?])\s+(?=[A-Z])').Count -gt 1) { Add-Warning $id 'rule looks like more than one sentence' }
 }
 
+# SKIN-07 (build-law.ps1#no-count): a count in a rule goes stale silently. A number before a
+# plural noun, or any number of two or more digits, fails; a bare single digit keeps its warning.
+function Test-RuleCount($c) {
+    $id = $c.id; $r = [string]$c.rule
+    if ($r -match '\b\d+\s+[A-Za-z]+(s|es)\b') { Add-Problem $id "rule carries a count ('$($Matches[0])'); read the catalogue for the current number instead (SKIN-07)" }
+    elseif ($r -match '\b\d{2,}\b') { Add-Problem $id "rule carries a number of two or more digits ('$($Matches[0])'); a count in a law goes stale silently (SKIN-07)" }
+}
+
+# PRIN-05 (build-law.ps1#state-once): one subject, one file. The "### ID" headings of every law
+# file are indexed once; a clause must have its heading in exactly one file, and that file must be
+# its owner. Kit law files: instructions/, workflows/, lessons/. Brain law files, when -BrainRoot is
+# given: the brain's instructions/ and its top-level .md files.
+$script:HeadingIndex = $null
+function Get-HeadingIndex() {
+    if ($null -ne $script:HeadingIndex) { return $script:HeadingIndex }
+    $idx = @{}
+    $dirs = @('instructions', 'workflows', 'lessons' | ForEach-Object { @{ base = $KitRoot; ns = 'kit'; dir = $_ } })
+    if ($BrainRoot) { $dirs += @{ base = $BrainRoot; ns = 'brain'; dir = 'instructions' }; $dirs += @{ base = $BrainRoot; ns = 'brain'; dir = '.' } }
+    foreach ($d in $dirs) {
+        $full = Join-Path $d.base $d.dir
+        if (-not (Test-Path -LiteralPath $full -PathType Container)) { continue }
+        foreach ($f in (Get-ChildItem -LiteralPath $full -Filter *.md -File | Sort-Object Name)) {
+            $rel = if ($d.dir -eq '.') { $f.Name } else { "$($d.dir)/$($f.Name)" }
+            $key = "$($d.ns):$rel"
+            foreach ($line in [IO.File]::ReadAllLines($f.FullName)) {
+                if ($line -match '^###\s+([A-Z]{3,5}-\d{2})\b') {
+                    $hid = $Matches[1]
+                    if (-not $idx.ContainsKey($hid)) { $idx[$hid] = [Collections.Generic.List[string]]::new() }
+                    if (-not $idx[$hid].Contains($key)) { $idx[$hid].Add($key) }
+                }
+            }
+        }
+    }
+    $script:HeadingIndex = $idx
+    return $idx
+}
+function Test-HeadingOnce($c) {
+    $id = $c.id; $owner = [string]$c.owner
+    if ($owner -match '^brain:' -and -not $BrainRoot) { return }   # already warned by Test-OwnerFile
+    $idx = Get-HeadingIndex
+    # Workaround: an empty @() emitted from an if-expression collapses to $null, and strict mode
+    # then refuses .Count on it. Start from an array and fill it.
+    $where = @()
+    if ($idx.ContainsKey($id)) { $where = @($idx[$id]) }
+    # A brain file is the owner's: a heading missing or misplaced there warns, a duplicate fails
+    # everywhere. The kit's own files are held to the full rule.
+    $soft = ($owner -match '^brain:') -or $script:SkipOwners
+    if ($where.Count -eq 0) {
+        $m = "no '### $id' heading in any law file; the owning file $owner must carry it (PRIN-05)"
+        if ($soft) { Add-Warning $id $m } else { Add-Problem $id $m }
+        return
+    }
+    if ($where.Count -gt 1) { Add-Problem $id "'### $id' heading is in more than one law file: $($where -join ', ') (PRIN-05: one subject, one file)"; return }
+    if ($where[0] -ne ($owner -replace '\\', '/')) {
+        $m = "'### $id' heading is in $($where[0]) but the owner is $owner (PRIN-05)"
+        if ($soft) { Add-Warning $id $m } else { Add-Problem $id $m }
+    }
+}
+
 function Test-OwnerFile($c) {
     $id = $c.id
     if ([string]$c.owner -notmatch '^(?<ns>kit|brain):(?<path>.+)$') { return }

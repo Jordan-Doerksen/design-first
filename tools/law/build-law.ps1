@@ -8,6 +8,12 @@
 # -BrainRoot   resolves brain: owners, overlay refs and the brain claims.json. Without it, brain: owners are not checked (warning).
 # -Installed   JSON { "hooks": { "guard": true, "fence": true, "entry": true }, "rootSettings": true, "pointer": true }.
 #              A clause whose mechanism is not installed prints HONOUR with a "(mechanism not installed)" note.
+# Two checks here are law mechanisms (CR-2026-10-13-HONOUR), implemented in validate.ps1:
+# anchor: state-once  mode: gate  verbs: state-once
+#   a clause's "### ID" heading exists in exactly one law file, and that file is its owner (PRIN-05)
+# anchor: no-count  mode: gate  verbs: snapshot-count
+#   a rule text carries no count: no number before a plural noun, no number of two or more digits (SKIN-07)
+#
 # Build-time escape hatches, never for a Doctor run:
 #   DF_SKIP_HOOK_FILES=1   a referenced mechanism file (hook script, claims file) that does not exist yet warns instead of failing
 #   DF_SKIP_OWNER_FILES=1  an owning file that does not exist yet warns instead of failing
@@ -101,7 +107,9 @@ $clauses = @($byId.Values)
 foreach ($c in $clauses) {
     Test-ClauseShape $c $groupNames
     Test-RuleValues $c
+    Test-RuleCount $c
     Test-OwnerFile $c
+    Test-HeadingOnce $c
     Test-Enforcement $c
 }
 

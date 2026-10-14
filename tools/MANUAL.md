@@ -202,6 +202,7 @@ Finding kinds for `acceptedExceptions`: `noRemote`, `emptyRepo`, `foreignRemote`
 | `contentRules` | hooks/guard.ps1 | Default empty. A list of `{ id, under[], except[], exceptParts[], extensions[], pattern, shell, why }`. Guard rule 9 refuses an edit under `under` that adds a match of `pattern`. A rule needs `id`, `pattern` and one `under` path that resolves. |
 | `loopBranchPrefix` | hooks/guard.ps1 | Default `harness/`. A repository whose current branch starts with it is on the loop branch: guard rule 11 refuses `git push`, `merge` and `pull` there (AUTO-11), rule 12 refuses edits to the story ledger (AUTO-04). |
 | `loopLedgerGlobs` | hooks/guard.ps1 | Default `docs/specs/*.tasks.json`, `specs/*.tasks.json`. Repository-relative globs of the story ledger rule 12 protects on the loop branch. |
+| `commitMessage` | tools/vcs/law-claim.ps1 | `{ maxSubject, pastTenseWords[], placeholders[] }`. Defaults 72, a built-in past-tense list, a built-in placeholder list. The commit-msg shim refuses a subject over the limit, a past-tense first word or a bare placeholder (VOICE-05); merges and reverts are exempt. |
 
 Keys that are no longer keys and are reported as dead if present: `root`, `stateDir`, `recordsDir`,
 `gitTimeoutSeconds`, `staleStateDays`, `_retiredUnversionedWatchlist`, `enforcement.settingsPath`,

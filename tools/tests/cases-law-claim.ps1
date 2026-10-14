@@ -70,3 +70,19 @@ Copy-Item -LiteralPath $shim -Destination (Join-Path $repoClean '.git\hooks\comm
 Put (Join-Path $repoClean 'src\main.py') 'print(3)'; RunGit $repoClean @('add', '-A')
 $r = GitTry $repoClean @('commit', '-m', 'code')
 Record 'law-claim: a repository with no LAW.md -> committed, silent' 'committed' $(if ($r.code -eq 0 -and $r.out -notlike '*law-claim*' -and $r.out -notlike '*VCS-23*') { 'committed' } else { 'noisy' }) $r.out
+
+# ------------------------------------------------------------------ 6b. the message check (VOICE-05), same shim, any repository
+Write-Host '-- commit-msg: message (VOICE-05)'
+function VerdictV($r) { if ($r.code -eq 0) { return 'committed' } elseif ($r.out -like '*VOICE-05*') { return 'refused' } else { return "exit$($r.code)" } }
+Put (Join-Path $repoClean 'src\main.py') 'print(4)'; RunGit $repoClean @('add', '-A')
+$r = GitTry $repoClean @('commit', '-m', 'Updated the main script')
+Record 'message: a past-tense first word -> refused, present tense suggested' 'refused' $(if ((VerdictV $r) -eq 'refused' -and $r.out -like '*past tense*') { 'refused' } else { "wrong:$(VerdictV $r)" }) $r.out
+$r = GitTry $repoClean @('commit', '-m', 'Update')
+Record 'message: a bare placeholder -> refused' 'refused' $(if ((VerdictV $r) -eq 'refused' -and $r.out -like '*says nothing*') { 'refused' } else { "wrong:$(VerdictV $r)" }) $r.out
+$r = GitTry $repoClean @('commit', '-m', ('Correct the fence claim so that the ' + ('x' * 60)))
+Record 'message: a subject over 72 characters -> refused, length named' 'refused' $(if ((VerdictV $r) -eq 'refused' -and $r.out -like '*characters; the limit is 72*') { 'refused' } else { "wrong:$(VerdictV $r)" }) $r.out
+$r = GitTry $repoClean @('commit', '-m', 'Correct the fence claim', '-m', 'A body may be as long as it needs to be and may say Updated as much as it likes.')
+Record 'message: short, present tense, specific -> committed' 'committed' (VerdictV $r) $r.out
+Put (Join-Path $repoClean 'src\main.py') 'print(5)'; RunGit $repoClean @('add', '-A')
+$r = GitTry $repoClean @('commit', '-m', "Merge branch 'x' into main")
+Record 'message: a merge subject is exempt' 'committed' (VerdictV $r) $r.out

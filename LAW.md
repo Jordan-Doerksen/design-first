@@ -28,7 +28,7 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | PRIN-01 | OWNER | Context economy comes before every other rule: every decision about files, folders and config reduces what an agent must read before it can change something safely. | `kit:instructions/principles.md` |
 | PRIN-03 | GATE | A fact about the disk is generated, never typed; if it can be derived, derive it. | `kit:instructions/principles.md` |
 | PRIN-04 | GATE | The next misbehaviour produces a mechanism, not a paragraph; writing the rule harder is the reflex that made adherence worse. | `kit:instructions/principles.md` |
-| PRIN-05 | HONOUR | One subject, one file; a rule stated in two places will disagree in two places. | `kit:instructions/principles.md` |
+| PRIN-05 | GATE | One subject, one file; a rule stated in two places will disagree in two places. | `kit:instructions/principles.md` |
 
 ## OWN - Working with the owner
 
@@ -141,13 +141,13 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 
 | id | grade | rule | owner |
 |---|---|---|---|
-| SKIN-07 | HONOUR | Never snapshot a count from any external corpus into a law; read the catalogue for the current corpus, because a number quoted in a law goes stale silently. | `kit:instructions/integrity-law.md` |
+| SKIN-07 | GATE | Never snapshot a count from any external corpus into a law; read the catalogue for the current corpus, because a number quoted in a law goes stale silently. | `kit:instructions/integrity-law.md` |
 
 ## VOICE - Voice
 
 | id | grade | rule | owner |
 |---|---|---|---|
-| VOICE-05 | HONOUR | Commit messages are short, present tense and specific; the house writing standard governs the rest but not tense, so tense is specified in the owning file. | `kit:workflows/coding.md` |
+| VOICE-05 | GATE | Commit messages are short, present tense and specific; the house writing standard governs the rest but not tense, so tense is specified in the owning file. | `kit:workflows/coding.md` |
 
 ## MAP - Canonical copies
 
@@ -162,8 +162,8 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | DENY | 0 |
 | HOOK | 19 |
 | ADVISE | 26 |
-| GATE | 13 |
+| GATE | 16 |
 | BUILDABLE | 12 |
 | OWNER | 2 |
-| HONOUR | 6 |
+| HONOUR | 3 |
 | total | 78 |

@@ -250,3 +250,11 @@ reference, read its own index (`SKIN-07`), never a count written in a law file.
 ## Definition of done
 
 `GATE-07` in `instructions/design-methodology.md`. Code that runs is not done.
+
+## The commit message, checked at commit time (0.1.25, CR-2026-10-13-HONOUR)
+
+VOICE-05 is enforced by the commit-msg shim (`tools/vcs/law-claim.ps1#commit-message`) in every
+repository the shim is installed in: the subject line is 72 characters or fewer, its first word is
+not past tense (Added, Fixed, Updated and their kind), and it is not a bare placeholder (Update,
+WIP, changes). A merge or a revert is exempt. "Specific" is not graded; a person reads that.
+Tunables: `commitMessage` in the brain's `doctor.config.json`.

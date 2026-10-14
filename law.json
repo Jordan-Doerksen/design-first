@@ -110,8 +110,12 @@
       "verb": "state-once",
       "rule": "One subject, one file; a rule stated in two places will disagree in two places.",
       "owner": "kit:instructions/principles.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "GATE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "tool",
+        "ref": "tools/law/build-law.ps1#state-once"
+      }
     },
     {
       "id": "OWN-04",
@@ -974,8 +978,12 @@
       "verb": "snapshot-count",
       "rule": "Never snapshot a count from any external corpus into a law; read the catalogue for the current corpus, because a number quoted in a law goes stale silently.",
       "owner": "kit:instructions/integrity-law.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "GATE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "tool",
+        "ref": "tools/law/build-law.ps1#no-count"
+      }
     },
     {
       "id": "VOICE-05",
@@ -983,8 +991,12 @@
       "verb": "write-commit",
       "rule": "Commit messages are short, present tense and specific; the house writing standard governs the rest but not tense, so tense is specified in the owning file.",
       "owner": "kit:workflows/coding.md",
-      "grade": "HONOUR",
-      "since": "2026-09-22"
+      "grade": "GATE",
+      "since": "2026-09-22",
+      "enforcedBy": {
+        "kind": "tool",
+        "ref": "tools/vcs/law-claim.ps1#commit-message"
+      }
     },
     {
       "id": "MAP-01",

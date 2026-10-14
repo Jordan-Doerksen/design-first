@@ -264,3 +264,11 @@ it is either generated or carried by a claim.
 
 **Run the Doctor. If it is not GREEN, this law is not satisfied — and if it reports
 COULD-NOT-LOOK, that is not a pass.**
+
+## No count in a rule, checked by the generator (0.1.25, CR-2026-10-13-HONOUR)
+
+SKIN-07 is enforced by the law generator (`tools/law/build-law.ps1#no-count`): a clause's rule
+text may not carry a count, a number followed by a plural noun (`94 repositories`, `18 sites`),
+nor any number of two or more digits. A bare single digit still warns, so a threshold is seen
+before it is accepted. The scope is the rule text and the generated `LAW.md`; prose in an owning
+file may cite a measurement with its date, because a sentence with a date is a record, not a law.

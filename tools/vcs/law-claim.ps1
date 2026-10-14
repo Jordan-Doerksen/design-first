@@ -20,6 +20,14 @@
 # writes an ERROR line to the design-first hooks log; it never refuses a commit it could not inspect.
 #
 # anchor: law-claim  mode: gate  verbs: claim
+#
+# The message check (VOICE-05, 0.1.25, CR-2026-10-13-HONOUR) runs first, in every repository the
+# shim is installed in, brain or not: the subject line is 72 characters or fewer (config
+# commitMessage.maxSubject), is not a past-tense first word (Added, Fixed, Updated...), and is not
+# a bare placeholder (Update, Fix, WIP, changes). A merge or a revert is exempt. It reads tense from
+# the first word only; "specific" is a person's judgement and is not graded.
+#
+# anchor: commit-message  mode: gate  verbs: write-commit
 
 param(
     [Parameter(Mandatory = $true)] [string] $MessageFile,
@@ -41,10 +49,12 @@ try {
     if ($LASTEXITCODE -ne 0 -or $top.Count -eq 0 -or -not $top[0]) { exit 0 }   # not a repository: nothing to check
     $root = ([string]$top[0]).Trim() -replace '/', '\'
     $lawPath = Join-Path $root 'LAW.md'
-    if (-not (Test-Path -LiteralPath $lawPath -PathType Leaf)) { exit 0 }  # not a brain
 
-    # Tunables (doctor.config.json, key lawClaim); built-in defaults when the key is absent.
+    # Tunables (doctor.config.json, keys lawClaim and commitMessage); built-in defaults when absent.
     $trailer = 'No-Claim'; $minReason = 10; $extra = @()
+    $maxSubject = 72
+    $pastWords = @('Added', 'Fixed', 'Updated', 'Changed', 'Removed', 'Corrected', 'Moved', 'Merged', 'Refactored', 'Improved', 'Created', 'Deleted', 'Renamed', 'Replaced', 'Cleaned', 'Tweaked')
+    $placeholders = @('Update', 'Updates', 'Fix', 'Fixes', 'WIP', 'Changes', 'Misc', 'Stuff', 'Work', 'Save', 'Commit', 'Test', 'Tmp', 'Temp')
     $cfgPath = Join-Path $root 'doctor.config.json'
     if (Test-Path -LiteralPath $cfgPath -PathType Leaf) {
         $cfg = Get-Content -LiteralPath $cfgPath -Raw -Encoding utf8 | ConvertFrom-Json
@@ -54,7 +64,38 @@ try {
             if ($lc.PSObject.Properties['minReason']) { $v = 0; if ([int]::TryParse([string]$lc.minReason, [ref]$v) -and $v -ge 1) { $minReason = $v } }
             if ($lc.PSObject.Properties['extraFiles']) { $extra = @($lc.extraFiles | Where-Object { $_ } | ForEach-Object { [string]$_ }) }
         }
+        $cm = if ($cfg.PSObject.Properties['commitMessage']) { $cfg.commitMessage } else { $null }
+        if ($cm) {
+            if ($cm.PSObject.Properties['maxSubject']) { $v = 0; if ([int]::TryParse([string]$cm.maxSubject, [ref]$v) -and $v -ge 20) { $maxSubject = $v } }
+            if ($cm.PSObject.Properties['pastTenseWords']) { $w = @($cm.pastTenseWords | Where-Object { $_ } | ForEach-Object { [string]$_ }); if ($w.Count -gt 0) { $pastWords = $w } }
+            if ($cm.PSObject.Properties['placeholders']) { $w = @($cm.placeholders | Where-Object { $_ } | ForEach-Object { [string]$_ }); if ($w.Count -gt 0) { $placeholders = $w } }
+        }
     }
+
+    # ---- VOICE-05: the message, before anything about law files. Comment lines are git's, not the author's.
+    $msgText = if (Test-Path -LiteralPath $MessageFile -PathType Leaf) { [IO.File]::ReadAllText($MessageFile) } else { '' }
+    $subject = ''
+    foreach ($line in ($msgText -split "`r?`n")) { if ($line -match '^\s*#') { continue }; if ($line.Trim()) { $subject = $line.Trim(); break } }
+    $exempt = ($subject -match '^(Merge|Revert|fixup!|squash!)\b')
+    if ($subject -and -not $exempt) {
+        $fault = $null
+        $first = ($subject -split '\s+')[0] -replace '[:.,;!]+$', ''
+        if ($subject.Length -gt $maxSubject) { $fault = ("the subject is {0} characters; the limit is {1}" -f $subject.Length, $maxSubject) }
+        elseif ($placeholders -contains $first -and ($subject -split '\s+').Count -le 2) { $fault = ("'{0}' says nothing about the change" -f $subject) }
+        elseif ($pastWords -contains $first) { $fault = ("'{0}' is past tense; write what the commit does, present tense: '{1}'" -f $first, ($first -replace 'ed$', '' -replace 'dd$', 'dd' -replace '^Fix$', 'Fix')) }
+        if ($fault) {
+            Write-Err ''
+            Write-Err 'design-first VOICE-05: this commit message does not pass the house rule.'
+            Write-Err ('  subject: ' + $subject)
+            Write-Err ('  fault:   ' + $fault)
+            Write-Err '  Commit messages are short, present tense and specific: "Correct the fence claim", not "Corrected the fence claim" and not "Updates".'
+            Write-Err ("  Limits: subject {0} characters or fewer; first word not past tense; not a bare placeholder." -f $maxSubject)
+            Write-Err ''
+            exit 1
+        }
+    }
+
+    if (-not (Test-Path -LiteralPath $lawPath -PathType Leaf)) { exit 0 }  # not a brain: the law-claim check does not apply
 
     $norm = { param($p) (([string]$p).Trim() -replace '\\', '/').TrimStart('/').ToLowerInvariant() }
     $lawFiles = [Collections.Generic.HashSet[string]]::new()
@@ -72,7 +113,7 @@ try {
     if ($hits.Count -eq 0) { exit 0 }
     if (@($staged | Where-Object { (& $norm $_) -eq 'claims.json' }).Count -gt 0) { exit 0 }
 
-    $msg = if (Test-Path -LiteralPath $MessageFile -PathType Leaf) { [IO.File]::ReadAllText($MessageFile) } else { '' }
+    $msg = $msgText
     $rx = '(?im)^[ \t]*' + [regex]::Escape($trailer) + '[ \t]*:[ \t]*(.+?)[ \t]*$'
     $given = ''
     foreach ($m in [regex]::Matches($msg, $rx)) { if ($m.Groups[1].Value.Trim().Length -gt $given.Length) { $given = $m.Groups[1].Value.Trim() } }
