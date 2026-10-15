@@ -12,7 +12,9 @@
 # ---- run A: what the report prints for dead and live keys
 Assert-HasNot 'A: config load did not crash on a key the fixture sets' $a.out 'cannot be found on this object'
 Assert-Has 'A: dead config key reported' $a.out 'dead config key: gitTimeoutSeconds'
-foreach ($live in 'splitLines', 'sourceExtensions', 'stopDocs', 'stopFromGit', 'forbidScheduling', 'contentRules', 'lawClaim', 'categories') { Assert-HasNot "A: $live has a reader outside the Doctor, not a dead key" $a.out "dead config key: $live" }
+Assert-Has 'A: the retired splitLines key is reported, not read (CR-2026-10-15-SPLIT)' $a.out 'dead config key: splitLines'
+Assert-Has 'A: the splitLines finding names its successor' $a.out 'the read check is readCeilingBytes'
+foreach ($live in 'readCeilingBytes', 'readCeilingExempt', 'sourceExtensions', 'stopDocs', 'stopFromGit', 'forbidScheduling', 'contentRules', 'lawClaim', 'categories') { Assert-HasNot "A: $live has a reader outside the Doctor, not a dead key" $a.out "dead config key: $live" }
 
 # ---- the two tables, read in this process. The child scope keeps context.ps1's functions out of selftest.ps1.
 & {

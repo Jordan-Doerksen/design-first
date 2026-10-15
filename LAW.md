@@ -46,7 +46,7 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 |---|---|---|---|
 | DES-01 | BUILDABLE | Interview, then the decisions manifest, then the architecture map, then build in chunks, then cross-check; every project, no exceptions. | `kit:instructions/design-methodology.md` |
 | DES-02 | ADVISE | A subsystem is not coded until its foundational decisions are locked in the manifest; a later change is a Change Request, never drift. | `kit:instructions/design-methodology.md` |
-| DES-03 | ADVISE | Split by domain, and split a file by the size rule in the owning file; a tiny helper stays inline. | `kit:instructions/design-methodology.md` |
+| DES-03 | ADVISE | Split by subject, never by size: a part leaves its file when it is independent and separately tunable, or when a real change finds a subject that falls out; a split-off file names what it uses, and a tiny helper stays inline. | `kit:instructions/design-methodology.md` |
 | DES-04 | ADVISE | Every tunable value lives in a config file, never in logic; changing behaviour never requires changing code. | `kit:instructions/design-methodology.md` |
 | DES-05 | ADVISE | Build the smallest slice that works, then show the owner; never over-engineer the slice and never skip the design. | `kit:workflows/coding.md` |
 | DES-06 | ADVISE | During a chunk, edit only that chunk's files; no unrelated refactor. | `kit:instructions/design-methodology.md` |

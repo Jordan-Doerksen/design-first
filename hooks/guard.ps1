@@ -52,7 +52,7 @@ try {
     # checks when its config was missing). Read it defensively; a parse error becomes an advisory.
     try { $cfg = Read-DfBrainConfig $ptr }
     catch {
-        $cfg = @{ present = $false; protected = @(); exceptions = @(); reason = "doctor.config.json unreadable: $($_.Exception.Message)" }
+        $cfg = @{ present = $false; protected = @(); exceptions = @(); readCeilingBytes = $script:DfReadCeilingDefault; readCeilingExempt = @(); reason = "doctor.config.json unreadable: $($_.Exception.Message)" }
         Write-DfLog 'ERROR' 'guard' $cfg.reason
         Add-DfAdvisory 'brain config unreadable, path rules skipped' "$($cfg.reason). Inline rules still ran."
     }
@@ -68,7 +68,7 @@ try {
         if (-not $result -and @($cfg.contentRules).Count -gt 0) { $result = Test-DfContentRuleFile $tool $ti $full $cfg.contentRules $owner }
         # Brain tunables when present, built-in defaults otherwise (rules 5, 6 and 10 share them).
         $exts  = if ($cfg.sourceExtensions -and @($cfg.sourceExtensions).Count -gt 0) { @($cfg.sourceExtensions) } else { $script:DfDefaultSourceExtensions }
-        $split = if ($cfg.splitLines) { [int]$cfg.splitLines } else { 500 }
+        $ceiling = [int]$cfg.readCeilingBytes   # 0 turns the read check off (DES-03); the default lives in Read-DfBrainConfig
         $skip  = @($ptr.brain) + @(if ($ptr.pointer -and $ptr.pointer.pluginRoot) { [string]$ptr.pointer.pluginRoot })
         # Rule 10 denies: a source write in a repository whose design gate is declared and not cleared.
         if (-not $result) { $result = Test-DfDesignGateRule $full $exts $owner $skip }
@@ -77,7 +77,7 @@ try {
         if (-not $result) {
             # Rules 5 and 6 advise; they never deny.
             Test-DfManifestRule $full $exts $sessionId $owner $skip
-            Test-DfSizeRule $tool $ti $full $exts $split
+            Test-DfSizeRule $tool $ti $full $exts $ceiling @($cfg.readCeilingExempt) $sessionId
         }
     }
     elseif ($tool -in @('Bash', 'PowerShell')) {

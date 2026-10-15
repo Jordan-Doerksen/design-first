@@ -15,7 +15,7 @@ Status: V1, installable. Windows and PowerShell 7 only. The version is in `.clau
 2. **Lock decisions before code.** `DECISIONS.md` is the one record. A later change is a Change
    Request, never drift. `ARCHITECTURE.md` is one page and names every domain and its config file.
 3. **Build in chunks.** One domain at a time. Tunable values live in `.json`, logic defines
-   behaviour. Review a file at 300 lines, split by 500. Parallel agents are the default when more
+   behaviour. Split by subject, never by size: there is no line count. Parallel agents are the default when more
    than one file changes.
 4. **Cross-check every chunk** against the manifest, the architecture, the existing subsystems and
    the original goal before the next one starts.

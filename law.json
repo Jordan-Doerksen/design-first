@@ -212,7 +212,7 @@
       "id": "DES-03",
       "group": "DES",
       "verb": "split",
-      "rule": "Split by domain, and split a file by the size rule in the owning file; a tiny helper stays inline.",
+      "rule": "Split by subject, never by size: a part leaves its file when it is independent and separately tunable, or when a real change finds a subject that falls out; a split-off file names what it uses, and a tiny helper stays inline.",
       "owner": "kit:instructions/design-methodology.md",
       "grade": "ADVISE",
       "since": "2026-09-22",

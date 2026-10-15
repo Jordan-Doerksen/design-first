@@ -211,7 +211,8 @@ Finding kinds for `acceptedExceptions`: `noRemote`, `emptyRepo`, `foreignRemote`
 | `lawClaim.trailer` | tools/vcs/law-claim.ps1 | The waiver line's name. Default `No-Claim`. |
 | `lawClaim.minReason` | tools/vcs/law-claim.ps1 | Shortest reason accepted on the waiver line. Default 10 characters. |
 | `categories.since` | survey.ps1 | ISO date. A stray born before it (git's first-commit date) is reported; one born on or after it is a fail. Empty: every stray is a fail. |
-| `splitLines` | hooks/guard.ps1 | A source write that leaves a file over this many lines asks (DES-03). Default 500; 0 disables. |
+| `readCeilingBytes` | hooks/guard.ps1 | The read check (DES-03). A write that grows a source file past this many bytes, about one Read, tells the agent once per file per session, on its context only, to list the file's subjects; it never asks for a split for size. Default 49152; 0 turns it off. |
+| `readCeilingExempt` | hooks/guard.ps1 | Path globs the read check skips. Only `*` is a wildcard (`**` is the same) and it matches across folders; brackets and other characters match literally, so a folder named `[slug]` needs no escaping. `${ROOT}`, `${BRAIN}` and `%USERPROFILE%` expand. A file whose first lines carry `@generated`, or a line with both "generated" and "do not edit", is skipped without a glob. |
 | `sourceExtensions` | hooks/guard.ps1, hooks/stop.ps1 | Which extensions count as source. Documents, config and data do not. |
 | `stopDocs` | hooks/stop.ps1 | File names that count as documents on the Stop card. A file under `docs/` counts too. |
 | `stopFromGit` | hooks/stop.ps1 | Default true: the Stop card reads the turn's changes from git, so a file a command changed is counted. False: the card counts Edit and Write calls only, as before 0.1.15. |
@@ -224,7 +225,8 @@ Finding kinds for `acceptedExceptions`: `noRemote`, `emptyRepo`, `foreignRemote`
 
 Keys that are no longer keys and are reported as dead if present: `root`, `stateDir`, `recordsDir`,
 `gitTimeoutSeconds`, `staleStateDays`, `_retiredUnversionedWatchlist`, `enforcement.settingsPath`,
-`enforcement.fenceLogPath`. Keys starting with `_` are comments and are ignored.
+`enforcement.fenceLogPath`, and `splitLines` (since 0.1.35: DES-03 has no line count; delete it and, if
+you want a different read check, set `readCeilingBytes`). Keys starting with `_` are comments and are ignored.
 
 ## Route policy: `<brain>\route-policy.json` (DES-13)
 

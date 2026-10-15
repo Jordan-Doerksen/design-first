@@ -57,7 +57,7 @@ try {
     $baseOf = @{}; foreach ($n in $nominated) { $baseOf[$n.repo] = $n.base }
 
     $ptr = Read-DfPointer
-    $cfg = @{ present = $false; sourceExtensions = @(); splitLines = 0; stopFromGit = $true }
+    $cfg = @{ present = $false; sourceExtensions = @(); readCeilingBytes = 0; stopFromGit = $true }
     try { $cfg = Read-DfBrainConfig $ptr } catch { }
     $exts = if ($cfg.sourceExtensions -and @($cfg.sourceExtensions).Count -gt 0) { @($cfg.sourceExtensions) } else { $script:DfDefaultSourceExtensions }
     $docs = $script:DfDefaultStopDocs

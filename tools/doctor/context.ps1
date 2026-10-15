@@ -80,7 +80,8 @@ $script:ConfigReaders = [ordered]@{
     lawClaim                   = 'tools/vcs/law-claim.ps1 (the commit check: extraFiles, trailer, minReason)'
     # Read by the hooks, not by the Doctor. They are listed so the dead-key check knows they are
     # live: before this, every brain that carried them got three "nothing reads it" warnings.
-    splitLines                 = 'hooks/guard.ps1 (rule 6, file-size: the line count that asks)'
+    readCeilingBytes           = 'hooks/guard.ps1 (rule 6, the read check: a write that grows a source file past this many bytes tells the agent once; 0 turns it off)'
+    readCeilingExempt          = 'hooks/guard.ps1 (rule 6: path globs the read check skips)'
     sourceExtensions           = 'hooks/guard.ps1 (rules 5 and 6) / hooks/stop.ps1 (what counts as source)'
     stopDocs                   = 'hooks/stop.ps1 (file names that count as documents on the Stop card)'
     stopFromGit                = 'hooks/stop.ps1 (true: the turn''s changes are read from git; false: Edit and Write calls only)'
@@ -94,9 +95,13 @@ $script:ConfigReaders = [ordered]@{
 
 # Keys the previous Doctor had that are now derived from the pointer or simply dead (SPEC 5.3).
 $script:RemovedConfigKeys = @(
-    'root', 'stateDir', 'recordsDir', 'gitTimeoutSeconds', 'staleStateDays', '_retiredUnversionedWatchlist'
+    'root', 'stateDir', 'recordsDir', 'gitTimeoutSeconds', 'staleStateDays', '_retiredUnversionedWatchlist', 'splitLines'
 )
 $script:RemovedEnforcementKeys = @('settingsPath', 'fenceLogPath')
+# What to do instead, for a removed key that has a successor (printed with the dead-key finding).
+$script:RemovedKeyNotes = @{
+    splitLines = 'removed in 0.1.35: DES-03 has no line count (CR-2026-10-15-SPLIT); the read check is readCeilingBytes (0 turns it off), so rename both the key and its _readers entry, or delete them to keep the default'
+}
 
 function Get-DefaultConfig {
     return [PSCustomObject]@{
@@ -117,7 +122,8 @@ function Get-DefaultConfig {
         enforcement                = [PSCustomObject]@{ fenceLogStaleDays = 30 }
         categories                 = [PSCustomObject]@{ folders = @(); since = '' }
         lawClaim                   = [PSCustomObject]@{ extraFiles = @(); trailer = 'No-Claim'; minReason = 10 }
-        splitLines                 = 500
+        readCeilingBytes           = 49152
+        readCeilingExempt          = @()
         sourceExtensions           = @()
         stopDocs                   = @()
         stopFromGit                = $true

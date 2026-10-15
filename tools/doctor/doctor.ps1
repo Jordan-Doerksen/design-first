@@ -108,7 +108,16 @@ if (-not $ctx.brain) {
     }
 }
 foreach ($dk in $cr.deadKeys) {
-    $survey += New-Finding 'warn' 'deadConfigKey' $ConfigPath ("dead config key: {0} - nothing reads it (derived from the pointer or removed in schema 1). Delete it from {1}." -f $dk, $ConfigPath)
+    # Three cases, three messages: a live key with no _readers line is NOT dead and must not be
+    # deleted; a removed key with a successor says what replaced it; anything else is plain dead.
+    $dkName = ($dk -split ' ')[0]
+    if ($dk -like '* (no _reader entry)') {
+        $survey += New-Finding 'warn' 'deadConfigKey' $ConfigPath ("config key {0} has no _readers line - the key is live; add a _readers entry naming what reads it (DECISIONS 3.6) in {1}." -f $dkName, $ConfigPath)
+    } elseif ($script:RemovedKeyNotes -and $script:RemovedKeyNotes.Contains($dkName)) {
+        $survey += New-Finding 'warn' 'deadConfigKey' $ConfigPath ("dead config key: {0} - {1}. Edit {2}." -f $dkName, $script:RemovedKeyNotes[$dkName], $ConfigPath)
+    } else {
+        $survey += New-Finding 'warn' 'deadConfigKey' $ConfigPath ("dead config key: {0} - nothing reads it (derived from the pointer or removed in schema 1). Delete it from {1}." -f $dk, $ConfigPath)
+    }
 }
 # Built-in config_schema (reader: doctor.ps1). A mismatch is a CLAIMS-band fact: this Doctor and
 # that config disagree about the contract, so every other reading is suspect.

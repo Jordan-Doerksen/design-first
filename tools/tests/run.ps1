@@ -474,6 +474,7 @@ Record 'route: a new prompt clears the edit ledger' 'cleared' $(if (-not (Test-P
 . (Join-Path $here 'cases-state-card.ps1')
 . (Join-Path $here 'cases-stop-git.ps1')
 . (Join-Path $here 'cases-own.ps1')
+. (Join-Path $here 'cases-size.ps1')
 
 # ------------------------------------------------------------------ summary
 $passed = @($results | Where-Object pass).Count

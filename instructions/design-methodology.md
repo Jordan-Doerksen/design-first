@@ -83,13 +83,50 @@ in-progress work; the code shows only what shipped.
 
 ### DES-03
 
-**Split by domain, and split a file by the size rule in the owning file; a tiny helper stays
-inline.**
+**Split by subject, never by size: a part leaves its file when it is independent and separately
+tunable, or when a real change finds a subject that falls out; a split-off file names what it
+uses, and a tiny helper stays inline.**
 
-Make each file small enough to read in one pass, and do not split so far that the structure is hard
-to follow. **The file-size rule: review a file at 300 lines; split it by 500**, unless a recorded
-reason says otherwise. Split sooner when a part is independent and separately tunable. A five-line
-helper stays in its parent file. **These numbers live only here.**
+**There is no line count.** One subject, one file (`PRIN-05`). A part gets its own file when it is
+independent and separately tunable, or when a file opened for a real change shows a subject that
+falls out of it. A five-line helper stays in its parent file. Never cite a file's size as the
+reason for a split, and never pack or trim a file to stay under a number.
+
+*Why there is no number* (amended 2026-10-15, CR-2026-10-15-SPLIT, after the first instance's
+owner retired the rule on 2026-10-14). The old rule, review at 300 lines and split by 500, had no
+source: it came from a generated methodology document that cites nothing, and the research usually
+quoted for a 300-line figure was withdrawn by its author. Studies of size and defects find no
+threshold. On the first instance the rule fired mostly on files that are one file by nature
+(mockups, generated pages, test data, single-file games), agents packed files to just under the
+line, and splits made for size narrowed guards and turned private helpers into cross-file imports.
+
+**How to split.** A split-off file names what it uses: an import list, parameters, or, where the
+language only loads a file into its caller's scope, a header that names every variable and helper
+it reads from the file that loads it. It never depends on something it does not name. A helper
+that several test files share goes to a named fixtures or helpers module with public names, not to
+one test file that the others import from. An existing split that reads its parent's scope is
+fixed when a real change next opens it, never in a refactor of its own (`DES-06`).
+
+**The read check.** One limit is real for an agent: a single file read returns a bounded amount of
+text, so a file past it is read in parts. Guard rule 6 (`hooks/guard.ps1`, anchor `file-size`)
+measures the bytes a write would leave. When a write grows a source file past the brain's
+`readCeilingBytes`, it tells the agent, once per file per session and never on the owner's screen,
+to list the file's subjects from a search of its top-level definitions and to split only if a
+subject falls out. It never asks for a split for size alone. Files whose first lines say they are
+generated, and globs in `readCeilingExempt`, are skipped; each firing is logged.
+
+The default ceiling is 49152 bytes. It was measured on 2026-10-15 during this rule's review: dense
+files of three kinds (HTML, GDScript, Python) were read with Claude Code's Read tool, their bytes
+divided by the tokens the tool reported, and the lowest result, 1.98 bytes per token, multiplied by
+the Read limit of about 25,000 tokens; 49,500 rounds down to 48 KiB. Repeat that after a model or
+tool change and set the config value; a stale ceiling only moves the note a little earlier or later.
+The check measures text with line endings normalised, so a file stored with CRLF endings is
+measured the same as one with LF.
+
+What the check cannot see: Read also stops at 2,000 lines, so a long file of short lines is past
+one Read below the ceiling; that is a tool limit, not a split rule, and the check does not count
+lines. It cannot see whether a split was made by subject or whether a split file names what it
+uses; the owner and the Reviewer judge that.
 
 One primary responsibility per file: `rules_engine.py` + `rules.json` + `validators.py`, never a
 god-object `engine.py`. Build one domain at a time (for example `/core /data /rules /ui /config
@@ -98,7 +135,7 @@ in `/config`, and each domain has its own `.json`.
 
 This law replaced three earlier defaults in the method's first instance: the single-file default,
 "don't organise until it hurts", and "momentum over architecture". A single very large file is not
-a scoping discipline; the interview, the manifest and the split rule are.
+a scoping discipline; the interview, the manifest and the split by subject are.
 
 ### DES-04
 
@@ -138,7 +175,8 @@ before a new subsystem · after implementing one · after changing config behavi
 dependency · after a change to the file structure · before calling anything complete.
 
 **Checklist (pass / warn / fail):** Manifest Alignment · Architecture Alignment · No Contradictions
-· Scope Stability · Context Economy · Config Separation · File Size · Single Responsibility ·
+· Scope Stability · Context Economy · Config Separation · Split by Subject (a split file names what
+it uses; a file this chunk opened that reads its parent's scope is fixed now) · Single Responsibility ·
 Dependency Safety · Test Coverage · Core-Goal Alignment → Results + Action Items + **Approval
 (Proceed: yes/no)**.
 

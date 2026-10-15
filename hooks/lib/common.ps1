@@ -65,17 +65,19 @@ function New-DfDeny([string]$hook, [string]$title, [string]$reason) {
     }
 }
 
-# Advisory: both channels (SPEC 5.4 channels). $items is a list of @{ title; body }.
+# Advisory: both channels (SPEC 5.4 channels). $items is a list of @{ title; body; agentOnly? }.
+# An item marked agentOnly reaches the agent's context only; when every item is, there is no
+# systemMessage at all, so nothing shows on the owner's screen (CR-2026-10-15-SPLIT).
 function New-DfAdvisory([string]$hook, [object[]]$items) {
-    $titles = @($items | ForEach-Object { $_.title }) -join ' | '
+    $shown  = @($items | Where-Object { -not $_.agentOnly } | ForEach-Object { $_.title })
     $bodies = @($items | ForEach-Object { $_.body }) -join "`n`n"
-    return [ordered]@{
-        systemMessage      = "$($hook.ToUpper()): $titles"
-        hookSpecificOutput = [ordered]@{
-            hookEventName     = 'PreToolUse'
-            additionalContext = $bodies
-        }
+    $out = [ordered]@{}
+    if ($shown.Count -gt 0) { $out.systemMessage = "$($hook.ToUpper()): $($shown -join ' | ')" }
+    $out.hookSpecificOutput = [ordered]@{
+        hookEventName     = 'PreToolUse'
+        additionalContext = $bodies
     }
+    return $out
 }
 
 # Internal error: allow, log, surface on both channels (SPEC 5.4 internal errors).
@@ -182,10 +184,14 @@ function Get-DfAskDefaults {
     }
 }
 
+# The read check's default ceiling (DES-03, CR-2026-10-15-SPLIT): one Read, measured at 1.98 bytes per
+# token x 25,000 tokens, rounded down to 48 KiB. One constant, so an unreadable config keeps it too.
+$script:DfReadCeilingDefault = 49152
+
 # Brain config, or $null when there is no brain (no pointer, no folder, or no config file).
 # Returns @{ protected = full paths; exceptions = full paths; reason = why null }.
 function Read-DfBrainConfig($ptr) {
-    $out = @{ protected = @(); tombstoned = @(); exceptions = @(); present = $false; reason = $null; splitLines = 0; sourceExtensions = @(); stopDocs = @(); stopFromGit = $true
+    $out = @{ protected = @(); tombstoned = @(); exceptions = @(); present = $false; reason = $null; readCeilingBytes = $script:DfReadCeilingDefault; readCeilingExempt = @(); sourceExtensions = @(); stopDocs = @(); stopFromGit = $true
               forbidScheduling = $false; contentRules = @(); contentRuleProblems = @()
               loopBranchPrefix = 'harness/'; loopLedgerGlobs = @('docs/specs/*.tasks.json', 'specs/*.tasks.json')
               ask = (Get-DfAskDefaults) }
@@ -206,7 +212,9 @@ function Read-DfBrainConfig($ptr) {
     foreach ($p in @($cfg.tombstonedPaths)) { $f = Expand-DfConfigPath ([string]$p) $ptr.root $ptr.brain; if ($f) { $out.tombstoned += $f } }
     foreach ($e in @($cfg.secretExceptions)) { $f = Expand-DfConfigPath ([string]$e) $ptr.root $ptr.brain; if ($f) { $out.exceptions += $f } }
     # Rules 5 and 6 of the guard (DES-02, DES-03): tunables, with built-in defaults when absent.
-    if ($cfg.PSObject.Properties['splitLines']) { $v = 0; if ([int]::TryParse([string]$cfg.splitLines, [ref]$v)) { $out.splitLines = $v } }
+    # readCeilingBytes 0 (or less) turns the read check off; the old splitLines key is not read (CR-2026-10-15-SPLIT).
+    if ($cfg.PSObject.Properties['readCeilingBytes']) { $v = 0; if ([int]::TryParse([string]$cfg.readCeilingBytes, [ref]$v)) { $out.readCeilingBytes = [Math]::Max(0, $v) } }
+    if ($cfg.PSObject.Properties['readCeilingExempt']) { $out.readCeilingExempt = @($cfg.readCeilingExempt | Where-Object { $_ } | ForEach-Object { ([string]$_).Replace('${ROOT}', [string]$ptr.root).Replace('${BRAIN}', [string]$ptr.brain).Replace('%USERPROFILE%', [string]$env:USERPROFILE) }) }
     if ($cfg.PSObject.Properties['sourceExtensions']) { $out.sourceExtensions = @($cfg.sourceExtensions | Where-Object { $_ } | ForEach-Object { ([string]$_).ToLowerInvariant() }) }
     if ($cfg.PSObject.Properties['stopDocs']) { $out.stopDocs = @($cfg.stopDocs | Where-Object { $_ } | ForEach-Object { [string]$_ }) }
     # The Stop card reads the turn's changes from git; false goes back to counting Edit and Write calls only.

@@ -18,8 +18,10 @@ function Test-DfException([string]$full, [string[]]$exceptions) {
     return $false
 }
 
-function Add-DfAdvisory([string]$title, [string]$body) {
-    $script:DfAdvisories += @{ title = $title; body = $body }
+# -AgentOnly: the advisory goes to the agent's context and never to the owner's screen (no
+# systemMessage title). Rule 6 uses it: a note about a file's size is the agent's to act on.
+function Add-DfAdvisory([string]$title, [string]$body, [switch]$AgentOnly) {
+    $script:DfAdvisories += @{ title = $title; body = $body; agentOnly = [bool]$AgentOnly }
 }
 
 # Short-option group scan: returns @{ flags = letters seen before a value-taking letter;
@@ -256,37 +258,85 @@ function Test-DfManifestRule([string]$full, [string[]]$sourceExts, [string]$sess
          "Interview $owner, write the manifest, then build; or, if this is a toy or a throwaway, say so and carry on. This notice appears once per repository per session.")
 }
 
-# ============================================================================ (6) file size
+# ============================================================================ (6) the read check
 # anchor: file-size  mode: advise  verbs: split
-# A write that leaves a source file over the split line asks (DES-03: review at 300, split by
-# 500). The threshold is the brain's splitLines, default 500.
-function Get-DfResultingLineCount([string]$tool, $ti, [string]$full) {
-    try {
-        if ($tool -eq 'Write') { $text = [string]$ti.content }
-        elseif ($tool -eq 'Edit') {
-            if (-not (Test-Path -LiteralPath $full -PathType Leaf)) { return -1 }
-            $text = [IO.File]::ReadAllText($full)
-            $old = [string]$ti.old_string; $new = [string]$ti.new_string
-            if ($old) {
-                $all = $false; if ($ti.PSObject.Properties['replace_all']) { $all = [bool]$ti.replace_all }
-                if ($all) { $text = $text.Replace($old, $new) }
-                else { $i = $text.IndexOf($old); if ($i -ge 0) { $text = $text.Substring(0, $i) + $new + $text.Substring($i + $old.Length) } }
-            }
+# DES-03 (CR-2026-10-15-SPLIT): split by subject, never by size; there is no line count. The one
+# real limit is a single Read, so a write that GROWS a source file past the brain's
+# readCeilingBytes tells the agent, once per file per session and on the agent's channel only, to
+# list the file's subjects from its top-level definitions and to split only if a subject falls out.
+# A file whose first lines say it is generated, and readCeilingExempt globs, are skipped. Each
+# firing is one INFO line in the hooks log. The 300/500 line rule this replaces fired on every
+# write over 500 lines, shrinking ones included, and showed on the owner's screen.
+
+# Before and after sizes of a Write or Edit, in UTF-8 bytes of LF-normalised text, or $null when the
+# result cannot be known. Line endings are normalised on both sides because the host's Edit matches
+# an LF old_string against a CRLF file and writes CRLF back: matching the raw text missed every
+# multi-line Edit of a CRLF file, so the check never fired there (CR-2026-10-15-SPLIT review).
+function Get-DfSizeChange([string]$tool, $ti, [string]$full) {
+    $lf = { param([string]$s) if ($null -eq $s) { '' } else { $s.Replace("`r`n", "`n") } }
+    $utf8 = [Text.Encoding]::UTF8
+    $exists = [IO.File]::Exists($full)
+    $base = if ($exists) { & $lf ([IO.File]::ReadAllText($full)) } else { '' }
+    if ($tool -eq 'Write') { $text = & $lf ([string]$ti.content) }
+    elseif ($tool -eq 'Edit') {
+        $old = & $lf ([string]$ti.old_string); $new = & $lf ([string]$ti.new_string)
+        if (-not $old) {
+            if ($base.Length -gt 0) { return $null }   # an empty old_string on a non-empty file: the host refuses it
+            $text = $new                                 # an Edit that creates or fills a file
+        } else {
+            $all = $false; if ($ti.PSObject.Properties['replace_all']) { $all = [bool]$ti.replace_all }
+            $i = $base.IndexOf($old, [StringComparison]::Ordinal)
+            if ($i -lt 0) { return $null }               # the host will refuse an Edit that does not match
+            $text = if ($all) { $base.Replace($old, $new) } else { $base.Substring(0, $i) + $new + $base.Substring($i + $old.Length) }
         }
-        else { return -1 }
-        if ([string]::IsNullOrEmpty($text)) { return 0 }
-        return ($text.Replace("`r`n", "`n").TrimEnd("`n") -split "`n").Count
-    } catch { return -1 }
+    }
+    else { return $null }
+    return @{ before = $utf8.GetByteCount($base); after = $utf8.GetByteCount($text); text = $text }
 }
 
-function Test-DfSizeRule([string]$tool, $ti, [string]$full, [string[]]$sourceExts, [int]$splitLines) {
-    if (-not $full -or $splitLines -le 0) { return }
-    $ext = [IO.Path]::GetExtension($full).ToLowerInvariant()
-    if ($sourceExts -notcontains $ext) { return }
-    $n = Get-DfResultingLineCount $tool $ti $full
-    if ($n -le $splitLines) { return }
-    Add-DfAdvisory "file would be $n lines (split line $splitLines)" `
-        ("DES-03: this write leaves $full at $n lines; the rule is review at 300, split by $splitLines. Split by domain before adding more, or say why this file is the exception.")
+# Glob match on the full path. Only * is a wildcard (** is the same), so a folder named with
+# brackets matches literally and a malformed entry cannot throw; / and \ are equal. ${ROOT},
+# ${BRAIN} and %USERPROFILE% are expanded by Read-DfBrainConfig. A glob that still fails is logged
+# and skipped, never fatal: one bad entry once made every source write throw.
+function Test-DfPathGlob([string]$full, [string[]]$globs) {
+    $p = $full -replace '\\', '/'
+    foreach ($g in @($globs)) {
+        if ([string]::IsNullOrWhiteSpace([string]$g)) { continue }
+        try {
+            $raw = (([string]$g) -replace '\\', '/') -replace '\*\*', '*'
+            $pat = [Management.Automation.WildcardPattern]::Escape($raw).Replace('`*', '*')
+            if ($p -like $pat -or $p -like "*/$pat") { return $true }
+        } catch { Write-DfLog 'ERROR' 'guard' ("readCeilingExempt entry '{0}' skipped: {1}" -f $g, $_.Exception.Message) }
+    }
+    return $false
+}
+
+# A generated file says so in its first lines: '@generated', or a line that carries both
+# 'generated' and 'do not edit'. Prose that only mentions generation is not a marker.
+$script:DfGeneratedMarker = '(?im)^.{0,12}(@generated\b|.*\bgenerated\b.*\bdo not edit\b|.*\bdo not edit\b.*\bgenerated\b)'
+
+function Test-DfSizeRule([string]$tool, $ti, [string]$full, [string[]]$sourceExts, [int]$ceiling, [string[]]$exempt, [string]$sessionId) {
+    # An ADVISE rule must never cost a deny-free call its ledger entry or the Stop card: any error
+    # here is logged and the rule is skipped.
+    try {
+        if (-not $full -or $ceiling -le 0) { return }
+        $ext = [IO.Path]::GetExtension($full).ToLowerInvariant()
+        if ($sourceExts -notcontains $ext) { return }
+        if (Test-DfPathGlob $full $exempt) { return }
+        $size = Get-DfSizeChange $tool $ti $full
+        if ($null -eq $size) { return }
+        if ($size.after -le $ceiling) { return }
+        if ($size.after -le $size.before) { return }   # a write that does not grow the file is not the moment
+        $head = (($size.text -split "`n", 6) | Select-Object -First 5) -join "`n"
+        if ($head -match $script:DfGeneratedMarker) { return }
+        $key = 'readcheck-' + ([BitConverter]::ToString([Security.Cryptography.SHA1]::HashData([Text.Encoding]::UTF8.GetBytes($full.ToLowerInvariant()))) -replace '-', '').Substring(0, 12)
+        if (-not (Test-DfFirstTime $sessionId $key)) { return }
+        $kb = [Math]::Round($size.after / 1024)
+        Write-DfLog 'INFO' 'guard' ("DES-03 read check: {0} grows to {1} bytes (ceiling {2})" -f $full, $size.after, $ceiling)
+        Add-DfAdvisory "read check: $full is past one Read" `
+            ("DES-03: this write grows $full to about $kb KB, past one Read (readCeilingBytes $ceiling). There is no size rule and this is not a request to split. " +
+             "Before you go on, list the file's subjects from a search of its top-level definitions (do not read it whole for this), and split a part out only if it is a subject of its own: independent and separately tunable. A split-off file names what it uses. This note appears once per file per session.") -AgentOnly
+    } catch { Write-DfLog 'ERROR' 'guard' ("rule 6 (read check) skipped for {0}: {1}" -f $full, $_.Exception.Message) }
 }
 
 function Test-DfPathRuleShell([string[]]$tokens, $gitCall, [string]$cwd, [string[]]$protected, [string]$owner) {

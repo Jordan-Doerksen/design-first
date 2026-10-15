@@ -107,9 +107,9 @@ than where the skill is. Absence is a claim and needs the same proof as presence
 
 ## Defaults
 
-- **Split by domain, config beside logic.** Each domain folder holds its logic and its `.json`. The
-  file-size rule lives in `instructions/design-methodology.md` (`DES-03`); do not copy the numbers
-  here.
+- **Split by subject, config beside logic.** Each domain folder holds its logic and its `.json`.
+  Split by subject, never by size; there is no line count (`DES-03`, owned by
+  `instructions/design-methodology.md`).
 - **Config in `.json`, never hardcoded** (`DES-04`). A change of behaviour must not need a change of
   code.
 - **A dependency only for a real reason, and only by owner decision** (`GATE-03`). Keep the list
