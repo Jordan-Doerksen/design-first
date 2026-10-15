@@ -14,7 +14,7 @@ If the command is not found or the major version is below 7, stop and say exactl
 
 ## 1. The questions
 
-Ask with AskUserQuestion, **one question at a time**, recommended default first and marked. Accepting a shown default counts as the user typing it. Do not batch questions. Do not skip a question because the answer seems obvious. Before question 1, you may run `git config user.name` and `git -C "<cwd>" rev-parse --is-inside-work-tree` to prepare defaults; show, never assume.
+Ask with AskUserQuestion, **one question at a time**, recommended default first and marked. Every option's description carries its reason in a sentence: what it gives and what it costs (OWN-04); `hooks/ask.ps1` refuses a description too short to hold one. Accepting a shown default counts as the user typing it. Do not batch questions. Do not skip a question because the answer seems obvious. Before question 1, you may run `git config user.name` and `git -C "<cwd>" rev-parse --is-inside-work-tree` to prepare defaults; show, never assume.
 
 1. **Root** - "Which folder do your sessions start under? Root holds the entry `CLAUDE.md` and `.claude\settings.json`."
    Options: the current working directory (Recommended) · another folder (they type it).

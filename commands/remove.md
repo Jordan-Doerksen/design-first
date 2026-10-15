@@ -8,7 +8,7 @@ You are running `/design-first:remove`. **You ask; the script deletes.** You nev
 ## 1. One question
 
 Ask with AskUserQuestion: "Dry run first, or remove now?"
-Options: Dry run first (Recommended: prints every decision, deletes nothing) · Remove now.
+Options: Dry run first (Recommended: prints every decision, deletes nothing) · Remove now (deletes the kit-written files at once; pick it after a dry run you have read). Each option's description carries its reason in a sentence (OWN-04); `hooks/ask.ps1` refuses a description too short to hold one.
 
 ## 2. Run the script
 

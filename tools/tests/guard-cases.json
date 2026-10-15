@@ -1208,6 +1208,114 @@
     "expect": "allow"
   },
   {
+    "name": "ask: an option with no reason (OWN-04) -> deny, naming the option",
+    "hook": "ask",
+    "tool": "AskUserQuestion",
+    "options": [
+      { "label": "keep (Recommended)", "description": "Gives the working version; costs nothing to keep as it is." },
+      { "label": "drop", "description": "drop it" }
+    ],
+    "expect": "deny",
+    "contains": "description of 'drop' is under"
+  },
+  {
+    "name": "ask: a tie-break that says what tips it is not a tie (OWN-04) -> allow",
+    "hook": "ask",
+    "tool": "AskUserQuestion",
+    "options": [
+      { "label": "keep (Recommended)", "description": "Both are good for a small repo, but this one costs less to keep." },
+      { "label": "drop", "description": "Gives a shorter README; costs the number a reader came for." }
+    ],
+    "expect": "allow"
+  },
+  {
+    "name": "ask: a negated phrase (not equally good) is not a tie -> allow",
+    "hook": "ask",
+    "tool": "AskUserQuestion",
+    "options": [
+      { "label": "keep (Recommended)", "description": "Gives the working version; the two are not equally good at scale." },
+      { "label": "drop", "description": "Gives a shorter README; costs the number a reader came for." }
+    ],
+    "expect": "allow"
+  },
+  {
+    "name": "ask: a quoted mention of a phrase is not a tie -> allow",
+    "hook": "ask",
+    "tool": "AskUserQuestion",
+    "question": "Should the hook refuse \"either is fine\" in a description?",
+    "expect": "allow"
+  },
+  {
+    "name": "ask: a multi-select question with reasons, recommended first -> allow",
+    "hook": "ask",
+    "tool": "AskUserQuestion",
+    "multiSelect": true,
+    "expect": "allow"
+  },
+  {
+    "name": "ask: a multi-select question is held to the reason rule -> deny",
+    "hook": "ask",
+    "tool": "AskUserQuestion",
+    "multiSelect": true,
+    "options": [
+      { "label": "keep (Recommended)", "description": "Gives the working version; costs nothing to keep as it is." },
+      { "label": "drop", "description": "drop it" }
+    ],
+    "expect": "deny",
+    "contains": "description of 'drop' is under"
+  },
+  {
+    "name": "ask: options offered as equally fine (OWN-04) -> deny",
+    "hook": "ask",
+    "tool": "AskUserQuestion",
+    "question": "Keep or drop the numbers? Both are acceptable.",
+    "expect": "deny",
+    "contains": "equally fine"
+  },
+  {
+    "name": "ask: the equal-options phrase across a line break still matches",
+    "hook": "ask",
+    "tool": "AskUserQuestion",
+    "options": [
+      { "label": "keep (Recommended)", "description": "Gives the working version; costs nothing to keep. Either\nis fine for a draft." },
+      { "label": "drop", "description": "Gives a shorter README; costs the number a reader came for." }
+    ],
+    "expect": "deny",
+    "contains": "equally fine"
+  },
+  {
+    "name": "ask: the recommended option is not first (OWN-04) -> deny",
+    "hook": "ask",
+    "tool": "AskUserQuestion",
+    "options": [
+      { "label": "drop", "description": "Gives a shorter README; costs the number a reader came for." },
+      { "label": "keep (Recommended)", "description": "Gives the working version; costs nothing to keep as it is." }
+    ],
+    "expect": "deny",
+    "contains": "not marked recommended"
+  },
+  {
+    "name": "ask: no option is marked recommended (OWN-04) -> deny",
+    "hook": "ask",
+    "tool": "AskUserQuestion",
+    "options": [
+      { "label": "keep", "description": "Gives the working version; costs nothing to keep as it is." },
+      { "label": "drop", "description": "Gives a shorter README; costs the number a reader came for." }
+    ],
+    "expect": "deny",
+    "contains": "not marked recommended"
+  },
+  {
+    "name": "ask: 'both work on' in a real reason is not the equal-options phrase -> allow",
+    "hook": "ask",
+    "tool": "AskUserQuestion",
+    "options": [
+      { "label": "both files (Recommended)", "description": "Both work on one rule; costs a second edit, gives one source of truth." },
+      { "label": "one file", "description": "Gives a smaller diff; costs a second copy that will drift from the first." }
+    ],
+    "expect": "allow"
+  },
+  {
     "name": "ask: a non-AskUserQuestion tool passes through silently",
     "hook": "ask",
     "tool": "Edit",

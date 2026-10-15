@@ -220,10 +220,25 @@ Finding kinds for `acceptedExceptions`: `noRemote`, `emptyRepo`, `foreignRemote`
 | `loopBranchPrefix` | hooks/guard.ps1 | Default `harness/`. A repository whose current branch starts with it is on the loop branch: guard rule 11 refuses `git push`, `merge` and `pull` there (AUTO-11), rule 12 refuses edits to the story ledger (AUTO-04). |
 | `loopLedgerGlobs` | hooks/guard.ps1 | Default `docs/specs/*.tasks.json`, `specs/*.tasks.json`. Repository-relative globs of the story ledger rule 12 protects on the loop branch. |
 | `commitMessage` | tools/vcs/law-claim.ps1 | `{ maxSubject, pastTenseWords[], placeholders[] }`. Defaults 72, a built-in past-tense list, a built-in placeholder list. The commit-msg shim refuses a subject over the limit, a past-tense first word or a bare placeholder (VOICE-05); merges and reverts are exempt. |
+| `ask` (in `doctor.config.json`) | hooks/ask.ps1 | `{ minReason, equalPhrases[], recommendedMarker }` (OWN-04). Defaults 40 characters, a built-in list of equal-options phrases ("both are acceptable", "either is fine", "no wrong answer" and others), and `(?i)\brecommended\b` on the first option's label. A question is refused when an option's description is shorter than `minReason`, when its text holds a phrase from the list, or when its first option's label does not match the marker. `minReason` 0 or an empty marker turns that check off. |
 
 Keys that are no longer keys and are reported as dead if present: `root`, `stateDir`, `recordsDir`,
 `gitTimeoutSeconds`, `staleStateDays`, `_retiredUnversionedWatchlist`, `enforcement.settingsPath`,
 `enforcement.fenceLogPath`. Keys starting with `_` are comments and are ignored.
+
+## Route policy: `<brain>\route-policy.json` (DES-13)
+
+Read by `hooks/route.ps1` on every prompt and `hooks/subagent.ps1` at every subagent start; the
+template's `_comment` describes each key. `adopt` copies `templates/route-policy.json` into the
+brain once; a kit upgrade never edits the brain's copy, so a key added to the template after adopt
+reaches a brain only when it is added there by hand.
+
+| Key | Since | Effect |
+|---|---|---|
+| `alwaysForSessions` | 0.1.34 | Groups added to every session's first prompt, and again after a compaction, whatever the words and the folder (OWN-10). The template lists `OWN`. Absent: no group arrives without a matching word or folder, as before 0.1.34. These groups are not sent to subagents unless `alwaysForSubagents` lists them too. |
+
+To take a new key on an existing brain, copy its line from the template into the brain's
+`route-policy.json`.
 
 ## Generated output: `<brain>\state\`
 

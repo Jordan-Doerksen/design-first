@@ -1,12 +1,15 @@
-# Working with the owner — four rules about asking, deciding and stopping
+# Working with the owner — five rules about asking, ranking, deciding and stopping
 
-This file owns `OWN-04`, `OWN-05`, `OWN-06` and `OWN-07`. The adopter's own preferences (name,
+This file owns `OWN-04`, `OWN-05`, `OWN-06`, `OWN-07` and `OWN-10`. The adopter's own preferences (name,
 voice, what they are building, what overwhelms them) live in the brain's `me.md`, which `/adopt`
 writes from the interview. This file holds only the method rules, which do not change per adopter.
 
 ### OWN-04
 
-**Ask the owner one question at a time, as multiple choice, with the recommended default first.**
+**Ask the owner one question at a time, as multiple choice, with the recommended option first;
+every option carries a reason to pick it, the recommendation says why it wins, no two options are
+offered as equally fine, and where the asking surface has no room for a reason the reason goes in
+the text above it.**
 
 A wall of questions is also overload. The owner reads one question, picks one option, and the next
 question is built on that answer. Each question offers three or four real options plus a custom
@@ -21,6 +24,38 @@ interview about nothing is overload too.
 never do, and which notification channel?", the agent asks: "Runtime mode? **(a) real-time,
 recommended** — the data arrives continuously · (b) scheduled batch · (c) on demand · (d) other."
 The answer decides which question comes next.
+
+**Every option carries its reason** (amended 2026-10-14, CR-2026-10-14-OPTIONS). A choice without
+information is not a choice: it hands the thinking back to the owner, which is the overload this
+file exists to reduce. A reason says what the option gives, what it costs, and who would pick it.
+A label is not a reason. The recommendation says why it wins. Two options are never offered as
+equally fine: if they are close, say what tips it, and pick. The reasons come from the research
+the decision's rank asks for (`OWN-10`), with the source named.
+
+**Where the reasons go.** In a multiple-choice tool, each option's description holds its reason.
+Some asking surfaces have no room for one: a host's next-step box with a short question field and
+button labels of a few words, or a button row in plain text. There the reasons go in the reply
+text written before the call, and the box carries the question only. A surface's own instruction
+to keep its field short is not an instruction to drop the reasons; it says where they cannot go,
+not that they are not needed.
+
+*What the hook sees.* `hooks/ask.ps1` reads every multiple-choice call and refuses one that holds
+more than one question, an option whose description is shorter than the minimum length, a phrase
+that offers options as equally fine, or no recommended option first. A negated phrase ("not equally
+good"), a quoted one, or one in a sentence that goes on to say what tips it ("both are fine, but
+this one costs less") is not a tie. A multi-select question is held to the same rules. The
+minimum, the phrases and the recommended marker are config values; an unreadable config keeps the
+defaults. In a multiple-choice call the description is the reason's place even when reasons were
+also written above the question, because the description is the only part the hook can see. It
+does not see reasons written in plain text or above a next-step box, and it cannot judge whether a
+reason is a good one; a padded description passes. Those parts are delivered by route
+(`alwaysForSessions`) and judged by the owner.
+
+*Worked example.* Asked how a README should treat a typed count, the agent offered two buttons,
+"drop the numbers" and "generate them", with no trade-off, and the owner had to ask which was the
+more professional choice. The question that follows this rule reads: "(a) generate them,
+recommended — a generated count cannot go stale, costs one build step · (b) drop the numbers — no
+build step, but the README says less · (c) other."
 
 ### OWN-05
 
@@ -77,3 +112,42 @@ server or the app itself.
 beside the executable for pulling a new version. The operator never ran the `.bat`, because nothing
 in the window told them to. Moving "Update" into the window as a button that prints its own result
 is the fix; documenting the `.bat` better is not.
+
+### OWN-10
+
+**Never assume the best way: rank each decision low, medium or high and state the rank; a low one
+is acted on, a medium one gets a quick research pass first, a high one gets serious recon, and a
+case study supplements research but never replaces it.**
+
+(Added 2026-10-14, CR-2026-10-14-OPTIONS.) An answer from judgement alone reinvents a pattern that
+already exists and misses the proven, safe path. The rank keeps the research in proportion, so a
+trivial call stays fast; research about nothing is overload too.
+
+| Rank | When | What happens first |
+|---|---|---|
+| Low | reversible, local, and no effect on money, safety, trust or anything public | act; no research |
+| Medium | a design or method choice that sticks, or that other people see | a quick pass: a focused web or documentation sweep for how it is normally done right |
+| High | hard to reverse, public, money, safety or trust, a law, an architecture | serious recon: several sources, prior art and failure modes, before anything is proposed; pairs with the gap review (`GATE-08`) |
+
+- **State the rank** in one line with its reason, before the work on that decision starts.
+- **Rank per decision, not per action.** A task holds a few decisions; rank those. A rank on every
+  tool call is noise.
+- **The findings feed the options.** What the research found goes into each option's reason
+  (`OWN-04`), with the source named.
+- **A case study is not research.** A style bible's case, donor code or a reference repository
+  shows one answer. Research shows whether it is the normal right one, and what fails.
+- **Research informs the slice; it does not replace it** (`DES-05`). The smallest slice still ships.
+
+*What delivers it.* No machine can see whether a rank was stated or research was done. The rule
+reaches every session because `hooks/route.ps1` adds the groups in the route policy's
+`alwaysForSessions` list to every session's first prompt, and again after a compaction; the
+template lists `OWN`. The owner judges it. A subagent does not receive it, because
+`hooks/subagent.ps1` leaves the session-only groups out of a subagent's injection; a brief that
+needs research says so itself. An existing brain gets the route only when its own
+`route-policy.json` carries the key: adopt copies the template once, and an upgrade does not edit
+the brain.
+
+*Worked example.* Asked which of two README treatments was "the more professional choice", the
+agent answered from its own judgement, with nothing behind it. The decision was medium: other
+people read the README. The rule asks for a quick pass first, a look at how maintained projects
+treat a typed count, and the finding goes into the reasons of the options.

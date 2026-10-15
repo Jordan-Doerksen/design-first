@@ -88,6 +88,7 @@ $script:ConfigReaders = [ordered]@{
     contentRules               = 'hooks/guard.ps1 (rule 9, content-rule: an edit in scope that adds a match of the pattern is refused)'
     loopBranchPrefix           = 'hooks/guard.ps1 (rules 11 and 12: a branch with this prefix is the loop branch; default harness/)'
     loopLedgerGlobs            = 'hooks/guard.ps1 (rule 12, ledger: repository-relative globs of the story ledger refused on the loop branch)'
+    ask                        = 'hooks/ask.ps1 (OWN-04, the shape of a question: minReason, equalPhrases, recommendedMarker)'
     commitMessage              = 'tools/vcs/law-claim.ps1 (the message check: maxSubject, pastTenseWords, placeholders)'
 }
 
@@ -124,7 +125,8 @@ function Get-DefaultConfig {
         contentRules               = @()
         loopBranchPrefix           = 'harness/'
         loopLedgerGlobs            = @('docs/specs/*.tasks.json', 'specs/*.tasks.json')
-        commitMessage              = [ordered]@{ maxSubject = 72; pastTenseWords = @(); placeholders = @() }
+        ask                        = [PSCustomObject]@{ minReason = 40; equalPhrases = @(); recommendedMarker = '(?i)\brecommended\b' }   # the phrase list's default lives in hooks/lib/common.ps1 (Get-DfAskDefaults), its only reader
+        commitMessage             = [ordered]@{ maxSubject = 72; pastTenseWords = @(); placeholders = @() }
     }
 }
 

@@ -236,8 +236,15 @@ foreach ($c in $cases) {
             'NotebookEdit' { $ti.notebook_path = Expand $c.path; $ti.new_source = 'x' }
             'Write' { $ti.file_path = Expand $c.path; $ti.content = if ($null -ne $c.content) { [string]$c.content } else { 'x' } }
             'AskUserQuestion' {
+                # OWN-04: the default options are well formed (recommended first, each with a reason),
+                # so a case changes only the part it tests: options, question, or n.
                 $n = if ($c.n) { [int]$c.n } else { 1 }
-                $ti.questions = @(1..$n | ForEach-Object { @{ question = "q$_"; header = 'h'; options = @(@{ label = 'a'; description = 'a' }, @{ label = 'b'; description = 'b' }) } })
+                $opts = if ($c.PSObject.Properties['options']) { @($c.options) } else {
+                    @(@{ label = 'a (Recommended)'; description = 'Gives the thing the case needs; costs nothing worth a word.' },
+                      @{ label = 'b'; description = 'Gives a second path for a different owner; costs one more step.' }) }
+                $qText = if ($c.question) { [string]$c.question } else { $null }
+                $multi = ($c.PSObject.Properties['multiSelect'] -and $c.multiSelect -eq $true)
+                $ti.questions = @(1..$n | ForEach-Object { @{ question = $(if ($qText) { $qText } else { "q$_" }); header = 'h'; options = $opts; multiSelect = $multi } })
             }
             'Agent' {
                 $ti.description = 'case'; $ti.prompt = [string]$c.prompt
@@ -249,7 +256,7 @@ foreach ($c in $cases) {
         $payload = @{ session_id = $session; cwd = $cwd; hook_event_name = 'PreToolUse'; tool_name = $c.tool; tool_input = $ti }
         if ($c.prompt_id) { $payload.prompt_id = [string]$c.prompt_id }
         if ($c.agent_id)  { $payload.agent_id  = [string]$c.agent_id }
-        $stdin = $payload | ConvertTo-Json -Depth 5 -Compress
+        $stdin = $payload | ConvertTo-Json -Depth 8 -Compress   # 8: an AskUserQuestion option sits 5 levels down
     }
     $savedPointer = $env:DF_POINTER_PATH
     if ($c.pointer -eq 'none') { $env:DF_POINTER_PATH = Join-Path $T 'no-such-pointer.json' }
@@ -346,6 +353,7 @@ $r = Route 'start the server and check the log' 'r1' $root
 Record 'route: a new group later in the session is added' 'obs' $(if ($r.out -match 'group OBS' -and $r.out -notmatch 'group DES') { 'obs' } else { 'wrong' }) $r.out
 $r = Route 'The goal is to design a loop' 'r2' $root
 Record 'route: whole words (design and loop match)' 'des+auto' $(if ($r.out -match 'group DES' -and $r.out -match 'group AUTO') { 'des+auto' } else { 'wrong' }) $r.out
+$null = Route 'ok' 'r3' $root   # the session's first prompt takes the always group (OWN), so the next check can demand silence
 $r = Route 'the designer looped' 'r3' $root
 Record 'route: substrings do not match (designer, looped)' 'silent' $(if ([string]::IsNullOrWhiteSpace($r.out)) { 'silent' } else { 'matched' }) $r.out
 $r = Sub 'r1' 'general-purpose'
@@ -417,7 +425,7 @@ $r = Stop 'st-born-asked' $false
 Record 'stop: the same repo with a question asked this session -> no GATE-01 line' 'quiet' $(if ((Classify $r.out) -eq 'block' -and $r.out -notlike '*GATE-01*') { 'quiet' } else { 'nagged' }) $r.out
 Record 'stop: an old repo (repo-clean) never gets the GATE-01 line' 'quiet' $(if ((Stop 'st-nodoc' $false).out -notlike '*GATE-01*') { 'quiet' } else { 'nagged' }) ''
 # ask: an allowed question writes the session's interview marker
-$null = Invoke-Hook 'ask.ps1' (@{ session_id = 'st-ask-marker'; cwd = $root; hook_event_name = 'PreToolUse'; tool_name = 'AskUserQuestion'; tool_input = @{ questions = @(@{ question = 'q'; header = 'h'; options = @(@{ label = 'a'; description = 'd' }, @{ label = 'b'; description = 'e' }); multiSelect = $false }) } } | ConvertTo-Json -Compress -Depth 6)
+$null = Invoke-Hook 'ask.ps1' (@{ session_id = 'st-ask-marker'; cwd = $root; hook_event_name = 'PreToolUse'; tool_name = 'AskUserQuestion'; tool_input = @{ questions = @(@{ question = 'q'; header = 'h'; options = @(@{ label = 'a (Recommended)'; description = 'Gives the thing the case needs; costs nothing worth a word.' }, @{ label = 'b'; description = 'Gives a second path for a different owner; costs one more step.' }); multiSelect = $false }) } } | ConvertTo-Json -Compress -Depth 6)
 Record 'ask: an allowed question writes the .asked marker' 'written' $(if (Test-Path -LiteralPath (Join-Path $env:DF_MARKER_DIR 'st-ask-marker.asked')) { 'written' } else { 'missing' }) ''
 # stop: docs only, or nothing -> silent
 Put (Ledger 'st-docs') ((Join-Path $repoClean 'README.md') + "`t`n")
@@ -465,6 +473,7 @@ Record 'route: a new prompt clears the edit ledger' 'cleared' $(if (-not (Test-P
 . (Join-Path $here 'cases-law-claim.ps1')
 . (Join-Path $here 'cases-state-card.ps1')
 . (Join-Path $here 'cases-stop-git.ps1')
+. (Join-Path $here 'cases-own.ps1')
 
 # ------------------------------------------------------------------ summary
 $passed = @($results | Where-Object pass).Count

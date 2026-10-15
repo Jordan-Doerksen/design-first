@@ -167,12 +167,28 @@ function Expand-DfConfigPath([string]$p, [string]$root, [string]$brain) {
     return (ConvertTo-DfFullPath $s)
 }
 
+# The ask hook's defaults (OWN-04), used when the brain config has no `ask` key or no brain exists.
+# minReason: the shortest option description that counts as a reason. equalPhrases: wording that
+# offers options as equally fine, matched whole-word, case-insensitive, any run of spaces. The
+# marker is a regex on the first option's label; the host's own convention is "(Recommended)".
+function Get-DfAskDefaults {
+    return [pscustomobject]@{
+        minReason         = 40
+        equalPhrases      = @('both are acceptable', 'both are fine', 'both are good', 'both options work', 'both would work',
+                              'either is fine', 'either works', 'either one works', 'either would work',
+                              'equally good', 'equally valid', 'equally fine', 'no wrong answer', 'no wrong choice',
+                              'whichever you prefer')
+        recommendedMarker = '(?i)\brecommended\b'
+    }
+}
+
 # Brain config, or $null when there is no brain (no pointer, no folder, or no config file).
 # Returns @{ protected = full paths; exceptions = full paths; reason = why null }.
 function Read-DfBrainConfig($ptr) {
     $out = @{ protected = @(); tombstoned = @(); exceptions = @(); present = $false; reason = $null; splitLines = 0; sourceExtensions = @(); stopDocs = @(); stopFromGit = $true
               forbidScheduling = $false; contentRules = @(); contentRuleProblems = @()
-              loopBranchPrefix = 'harness/'; loopLedgerGlobs = @('docs/specs/*.tasks.json', 'specs/*.tasks.json') }
+              loopBranchPrefix = 'harness/'; loopLedgerGlobs = @('docs/specs/*.tasks.json', 'specs/*.tasks.json')
+              ask = (Get-DfAskDefaults) }
     if ($null -eq $ptr.pointer) { $out.reason = "no pointer at $($ptr.path)"; return $out }
     if (-not $ptr.brain -or -not (Test-Path -LiteralPath $ptr.brain -PathType Container)) {
         $out.reason = "brain folder missing: $($ptr.brain)"; return $out
@@ -200,6 +216,14 @@ function Read-DfBrainConfig($ptr) {
     # Guard rules 11 and 12 (guard-loop-rules.ps1): the loop branch name and the story ledger paths.
     if ($cfg.PSObject.Properties['loopBranchPrefix'] -and -not [string]::IsNullOrWhiteSpace([string]$cfg.loopBranchPrefix)) { $out.loopBranchPrefix = [string]$cfg.loopBranchPrefix }
     if ($cfg.PSObject.Properties['loopLedgerGlobs']) { $g = @($cfg.loopLedgerGlobs | Where-Object { $_ } | ForEach-Object { [string]$_ }); if ($g.Count -gt 0) { $out.loopLedgerGlobs = $g } }
+    # The ask hook (OWN-04): each sub-key falls back to its default on its own. An empty marker
+    # turns the recommended-first check off; minReason 0 turns the reason check off.
+    if ($cfg.PSObject.Properties['ask'] -and $null -ne $cfg.ask) {
+        $a = $cfg.ask
+        if ($a.PSObject.Properties['minReason']) { $v = 0; if ([int]::TryParse([string]$a.minReason, [ref]$v) -and $v -ge 0) { $out.ask.minReason = $v } }
+        if ($a.PSObject.Properties['equalPhrases']) { $out.ask.equalPhrases = @($a.equalPhrases | Where-Object { $_ } | ForEach-Object { [string]$_ }) }
+        if ($a.PSObject.Properties['recommendedMarker']) { $out.ask.recommendedMarker = [string]$a.recommendedMarker }
+    }
     foreach ($r in @($cfg.contentRules)) {
         if ($null -eq $r) { continue }
         try {

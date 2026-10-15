@@ -16,6 +16,15 @@
 #
 # anchor: route-law  mode: advise  verbs: route-law
 #
+# always-route (OWN-10, CR-2026-10-14-OPTIONS): the groups the policy lists in alwaysForSessions
+# join the matches of every prompt, whatever its words and folder. They go first, so the size cap
+# defers a topic group before one of them (a policy that lists several large always groups can still
+# defer the later ones); the route file keeps them to once per session, and a compaction clears it, so
+# they arrive again after one. A rule about how every decision is asked and researched has no
+# topic word to route on: before this key, no OWN row reached any session by route.
+#
+# anchor: always-route  mode: advise  verbs: rank
+#
 # skills (DES-12, CR-2026-10-13-HONOUR): the same prompt is matched against the installed skills,
 # read from the skills directories themselves (root\.claude\skills and the profile's), never from
 # a list in a law file. A skill whose name or description shares a whole word with the typed text
@@ -109,6 +118,8 @@ try {
     if ($policy.maxChars) { [void][int]::TryParse([string]$policy.maxChars, [ref]$maxChars); if ($maxChars -le 0 -or $maxChars -gt 9800) { $maxChars = 9500 } }
 
     $matched = Get-DfMatchedGroups $policy $prompt $cwd $ptr.root
+    $always  = @(@($policy.alwaysForSessions) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | ForEach-Object { [string]$_ })
+    $matched = @($always + @($matched | Where-Object { $always -notcontains $_ }))
     $active  = Read-DfActiveRoutes $sessionId
     $new = @($matched | Where-Object { $active -notcontains $_ })
 

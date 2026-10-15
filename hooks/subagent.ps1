@@ -82,7 +82,18 @@ try {
 
     $wanted = [Collections.Generic.List[string]]::new()
     foreach ($g in @($policy.alwaysForSubagents)) { if ($g -and -not $wanted.Contains([string]$g)) { $wanted.Add([string]$g) } }
-    foreach ($g in (Read-DfActiveRoutes $sessionId)) { if (-not $wanted.Contains($g)) { $wanted.Add($g) } }
+    # A group the policy sends to every session (alwaysForSessions, OWN in the template) is about the
+    # session's talk with the owner, and a subagent does not talk to the owner; the advise-by-role
+    # block below already carries the clauses of that group a subagent answers for. Measured
+    # 2026-10-14 with Format-DfLawGroup on the kit LAW.md: SAFE, DES, VCS and OBS rows plus the
+    # advise block came to about 8,850 characters, under the 9,500 cap; the OWN rows add 1,209 and put
+    # it near 10,050, over the cap, and the run.ps1 Reviewer case got the clause ids without their
+    # text. List the group in alwaysForSubagents to send it anyway.
+    $sessionOnly = @(@($policy.alwaysForSessions) | Where-Object { $_ } | ForEach-Object { [string]$_ })
+    foreach ($g in (Read-DfActiveRoutes $sessionId)) {
+        if ($sessionOnly -contains $g -and -not $wanted.Contains($g)) { continue }
+        if (-not $wanted.Contains($g)) { $wanted.Add($g) }
+    }
 
     $out = [Text.StringBuilder]::new()
     [void]$out.AppendLine(("You are a design-first subagent ({0}). The brief is your spec; these are the law groups active in the session that spawned you. Cite ids; open the owning file for the full text." -f $agentType))

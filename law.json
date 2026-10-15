@@ -121,13 +121,13 @@
       "id": "OWN-04",
       "group": "OWN",
       "verb": "ask",
-      "rule": "Ask the owner one question at a time, as multiple choice, with the recommended default first.",
+      "rule": "Ask the owner one question at a time, as multiple choice, with the recommended option first; every option carries a reason to pick it, the recommendation says why it wins, no two options are offered as equally fine, and where the asking surface has no room for a reason the reason goes in the text above it.",
       "owner": "kit:instructions/working-with-the-owner.md",
       "grade": "HOOK",
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/ask.ps1#one-question"
+        "ref": "hooks/ask.ps1#ask-shape"
       }
     },
     {
@@ -167,6 +167,19 @@
       "enforcedBy": {
         "kind": "hook",
         "ref": "hooks/subagent.ps1#advise-by-role"
+      }
+    },
+    {
+      "id": "OWN-10",
+      "group": "OWN",
+      "verb": "rank",
+      "rule": "Never assume the best way: rank each decision low, medium or high and state the rank; a low one is acted on, a medium one gets a quick research pass first, a high one gets serious recon, and a case study supplements research but never replaces it.",
+      "owner": "kit:instructions/working-with-the-owner.md",
+      "grade": "ADVISE",
+      "since": "2026-10-14",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/route.ps1#always-route"
       }
     },
     {

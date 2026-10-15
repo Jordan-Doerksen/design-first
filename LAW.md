@@ -34,10 +34,11 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 
 | id | grade | rule | owner |
 |---|---|---|---|
-| OWN-04 | HOOK | Ask the owner one question at a time, as multiple choice, with the recommended default first. | `kit:instructions/working-with-the-owner.md` |
+| OWN-04 | HOOK | Ask the owner one question at a time, as multiple choice, with the recommended option first; every option carries a reason to pick it, the recommendation says why it wins, no two options are offered as equally fine, and where the asking surface has no room for a reason the reason goes in the text above it. | `kit:instructions/working-with-the-owner.md` |
 | OWN-05 | ADVISE | Do not ask the owner an implementation question they have no way to answer; when one answer is defensible, choose it, record why, and make it a config value so it stays reversible. | `kit:instructions/working-with-the-owner.md` |
 | OWN-06 | ADVISE | Deliver what was asked, then stop; offer an addition in one line and do not build it first. | `kit:instructions/working-with-the-owner.md` |
 | OWN-07 | ADVISE | When the project has a UI, anything the operator must run is a button in the app, not a script on the disk. | `kit:instructions/working-with-the-owner.md` |
+| OWN-10 | ADVISE | Never assume the best way: rank each decision low, medium or high and state the rank; a low one is acted on, a medium one gets a quick research pass first, a high one gets serious recon, and a case study supplements research but never replaces it. | `kit:instructions/working-with-the-owner.md` |
 
 ## DES - Design-first
 
@@ -163,9 +164,9 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 |---|---|
 | DENY | 0 |
 | HOOK | 19 |
-| ADVISE | 28 |
+| ADVISE | 29 |
 | GATE | 19 |
 | BUILDABLE | 12 |
 | OWNER | 2 |
 | HONOUR | 0 |
-| total | 80 |
+| total | 81 |
