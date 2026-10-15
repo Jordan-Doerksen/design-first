@@ -29,7 +29,8 @@ Status: V1, installable. Windows and PowerShell 7 only. The version is in `.clau
    zero. A check that cannot look does not report green.
 8. **A lesson must produce a rule.** An event with no rule is a story.
 
-The full text of every rule is in `instructions/` and `workflows/`. The index is `LAW.md`.
+The full text of every rule is in `instructions/` and `workflows/`. The index is `LAW.md`. How the
+loops and gates fit together, drawn as plain-text charts with every step also in words: [`LOOPS.md`](LOOPS.md).
 
 ## What a grade means
 
@@ -54,6 +55,7 @@ more are BUILDABLE with the mechanism specified in DECISIONS.md 2.7. Most rules 
 | path | holds |
 |---|---|
 | `law.json`, `LAW.md` | the clauses and their generated index |
+| `LOOPS.md` | the loops and gates drawn as plain-text charts, each with its steps in words; a lint case keeps its clause ids and widths true |
 | `instructions/`, `workflows/`, `lessons/` | the rule text, one subject per file |
 | `hooks/` | `guard.ps1` (secrets, git history, frozen paths, a dirty tree, and, when the brain turns them on, scheduling and content rules), `fence.ps1` (deletion and weakened assertions), `agent.ps1` (subagent brief contract, model routing, spawn cap), `route.ps1` (the law for the task, per prompt, from the index, plus the groups every session gets), `subagent.ps1` (the session's law into every subagent), `entry.ps1` (the personal layer on session start, and a state card built from the documents when the session starts in a game repository), `ask.ps1` (one question per call, each option's description long enough to carry a reason, no "either is fine", the recommended option first), `stop.ps1` (a turn that changed source ends with its card: documents touched, the cross-check, the Definition of Done; what changed is read from git, so a file a script wrote counts) |
 | `tools/doctor/` | checks claims, surveys repos, smokes the hooks; three bands, three exit codes |
