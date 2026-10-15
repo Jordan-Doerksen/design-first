@@ -17,7 +17,7 @@
 # Failure policy: an internal error injects nothing law-shaped, logs an ERROR line and says so.
 #
 # anchor: subagent-law  mode: advise  verbs: route-law
-# anchor: advise-by-role  mode: advise  verbs: decide,deliver,expose-action,configure,slice,scope-edit,annotate,confirm,diagnose,decide-scope,size-work,evidence,shape-log,log-negative,aggregate,locate-log,wear-hat,cite,taste
+# anchor: advise-by-role  mode: advise  verbs: decide,deliver,expose-action,configure,slice,scope-edit,annotate,confirm,diagnose,decide-scope,size-work,evidence,shape-log,log-negative,aggregate,locate-log,wear-hat,cite,taste,frontier
 
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 [Console]::InputEncoding  = [Text.UTF8Encoding]::new($false)

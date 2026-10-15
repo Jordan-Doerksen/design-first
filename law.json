@@ -547,6 +547,19 @@
       }
     },
     {
+      "id": "GATE-15",
+      "group": "GATE",
+      "verb": "frontier",
+      "rule": "The interview is a design tree worked by frontier: the next question is one whose prerequisites are settled, facts about the environment are the agent's job to find and never the owner's to supply, and the pass ends only when no branch is left silently assumed.",
+      "owner": "kit:instructions/interview-every-add-law.md",
+      "grade": "ADVISE",
+      "since": "2026-10-15",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/subagent.ps1#advise-by-role"
+      }
+    },
+    {
       "id": "AUTO-01",
       "group": "AUTO",
       "verb": "decide-scope",

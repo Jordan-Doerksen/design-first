@@ -77,6 +77,7 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | GATE-12 | ADVISE | Before removing anything you did not put there, answer the fence question: what it prevents, what breaks, and what evidence you checked. | `kit:instructions/design-methodology.md` |
 | GATE-13 | ADVISE | Before you remove, automate or simplify a thing, list its full function, not only its named one. | `kit:instructions/design-methodology.md` |
 | GATE-14 | ADVISE | A decision about appearance, motion or feel is asked only after more than one real option is rendered side by side on one page; the question that follows is one question, with the recommended option first. | `kit:instructions/interview-every-add-law.md` |
+| GATE-15 | ADVISE | The interview is a design tree worked by frontier: the next question is one whose prerequisites are settled, facts about the environment are the agent's job to find and never the owner's to supply, and the pass ends only when no branch is left silently assumed. | `kit:instructions/interview-every-add-law.md` |
 
 ## AUTO - Autonomy
 
@@ -164,9 +165,9 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 |---|---|
 | DENY | 0 |
 | HOOK | 19 |
-| ADVISE | 29 |
+| ADVISE | 30 |
 | GATE | 19 |
 | BUILDABLE | 12 |
 | OWNER | 2 |
 | HONOUR | 0 |
-| total | 81 |
+| total | 82 |

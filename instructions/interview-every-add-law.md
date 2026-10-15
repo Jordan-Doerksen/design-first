@@ -134,3 +134,34 @@ scratch or docs folder, opens it, and only then asks the one question. The chose
 in `DECISIONS.md` by its label on that page. A text-only taste question is a finding for the
 Reviewer, not a refusal: the mechanism is `hooks/subagent.ps1#advise-by-role`, which hands this
 clause to every subagent and makes the Reviewer name it as holding or as a finding.
+
+### GATE-15
+
+**The interview is a design tree worked by frontier: the next question is one whose prerequisites are settled, facts about the environment are the agent's job to find and never the owner's to supply, and the pass ends only when no branch is left silently assumed.**
+
+Added 2026-10-15 (CR-2026-10-15-FRONTIER), after the owner compared this law with the `grilling`
+skill in Matt Pocock's `mattpocock/skills` (MIT), whose interview primitive is the same idea with
+three sharper mechanics. The pass above says what to judge (four verdicts) and OWN-04 says how to
+ask (one question, recommended option first, reasons on every option). This clause says which
+question comes next and when the asking is over.
+
+- **The tree.** Every decision hangs off the decisions it depends on. The **frontier** is the set
+  of open decisions whose prerequisites are all settled: the questions that can be asked now
+  without guessing at an answer not yet heard. A question whose answer depends on another open
+  question is not on the frontier; it waits.
+- **One from the frontier.** OWN-04 holds: one question per turn. The agent computes the frontier,
+  asks its most load-bearing item, and recomputes after the answer, because each answer settles a
+  node and pushes the frontier outward. The source skill asks the whole frontier in one numbered
+  round; here that is a sequence of single questions, for PRIN-02.
+- **Facts are the agent's; decisions are the owner's.** A frontier item that needs a fact from the
+  disk, a tool or a document is not a question for the owner. The agent looks it up, by a subagent
+  with a DES-11 brief when the lookup is long, and does not block on it: the questions downstream of
+  that fact wait, the rest of the frontier is asked meanwhile. The owner is asked only what only
+  the owner can decide (OWN-05).
+- **Done means empty.** The pass is complete when the frontier is empty, not when the owner looks
+  tired of questions and not when a plan merely exists. Anything still assumed in silence is an
+  open node. GATE-02 stands: full approval is said out loud.
+
+Grade ADVISE by `hooks/subagent.ps1#advise-by-role`: the Reviewer names the clause as holding or as
+a finding, with a frontier item that was asked before its prerequisite, a fact the owner was asked
+to supply, or a build that began with an open node.
