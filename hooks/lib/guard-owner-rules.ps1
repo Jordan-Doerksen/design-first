@@ -12,8 +12,9 @@
 # protect something that works. stash drop and stash clear are refused always, because stashed
 # work is in no commit. The command list follows the git-safety-guard pattern (terraphim
 # opencode-skills): checkout -- <path>, restore without --staged, reset --hard / --merge / --keep,
-# clean -f, switch --discard-changes, stash. Allowed: checkout -b / -B / --orphan, a checkout of a
-# branch, restore --staged, clean -n, and every one of these on a clean tree.
+# clean -f, switch --discard-changes, stash. Allowed by this rule: checkout -b / -B / --orphan, a
+# checkout of a branch, restore --staged, clean -n, and every one of these on a clean tree. On a
+# loop branch, rule 11 (guard-loop-rules.ps1) refuses a checkout or switch that leaves it (AUTO-11).
 # Cannot see: the same residual as the other shell rules (nested shells, scripts on disk, aliases),
 # and a cd into another repository by any route other than cd / Set-Location / pushd / chdir.
 function Test-DfDirtyTreeRule($call, [string]$owner) {

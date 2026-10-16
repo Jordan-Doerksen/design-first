@@ -1,6 +1,8 @@
 # claims-ratchet.ps1 - the ratchet claim type (2026-10-08, PRIN-04). Dot-sourced by doctor.ps1.
 #
-# A number read from a generated markdown table may only fall. The first use is the HONOUR row of
+# A number read from a generated markdown table may not rise above the value recorded in
+# <state>\ratchets.json unless an unused `accepted` entry covers it; with no record, any value
+# passes and becomes the baseline. The first use is the HONOUR row of
 # the generated LAW.md Summary: a new rule that nothing enforces raises the count, and the run goes
 # RED until the rule gets a mechanism, a different grade, or a signed raise.
 #

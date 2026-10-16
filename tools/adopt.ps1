@@ -15,6 +15,8 @@
 # Everything written is recorded in <brain>\state\installed.json as { path, sha256, generated }
 # (sha over CRLF->LF bytes; merged by path with any earlier record) so remove.ps1 can reverse
 # exactly this and nothing else. Then: pointer, brain LAW.md via the generator, the Doctor, summary.
+# The generator reads <brain>\state\law-installed.json: every hook hooks.json registers, root
+# settings, pointer. It stays there, so the shipped claim BRAIN-LAW-01 repeats the same build.
 # -DryRun prints every step and writes nothing under root, brain or the profile.
 #
 # Exit 0 = adopt finished (the Doctor's own exit code is printed in the summary, never adopted:
@@ -152,14 +154,9 @@ try {
     # ---------------------------------------------------------------- brain LAW.md (generated)
     Say ''
     Say 'law'
-    $hooksDoc = Read-DfJson (Join-Path $kit 'hooks\hooks.json')
-    $hookText = ($hooksDoc | ConvertTo-Json -Depth 10)
+    # Every hook hooks.json registers, read from the file (adopt-plan.ps1), never a typed list.
     $installedState = [ordered]@{
-        hooks = [ordered]@{
-            guard = ($hookText -match 'guard\.ps1') -and (Test-Path -LiteralPath (Join-Path $kit 'hooks\guard.ps1'))
-            fence = ($hookText -match 'fence\.ps1') -and (Test-Path -LiteralPath (Join-Path $kit 'hooks\fence.ps1'))
-            entry = ($hookText -match 'entry\.ps1') -and (Test-Path -LiteralPath (Join-Path $kit 'hooks\entry.ps1'))
-        }
+        hooks = (Get-DfRegisteredHooks $kit)
         rootSettings = $settingsWritten
         pointer = $true
     }
@@ -171,8 +168,15 @@ try {
     }
     $tmpDir = Join-Path ([IO.Path]::GetTempPath()) 'design-first-adopt'
     if (-not (Test-Path -LiteralPath $tmpDir)) { New-Item -ItemType Directory -Force -Path $tmpDir | Out-Null }
-    $tmpState = Join-Path $tmpDir 'installed-state.json'
+    # The installed state is kept in the brain, not a temp file, because the shipped claim
+    # BRAIN-LAW-01 (templates/claims.json) builds LAW.md again from the same inputs on every Doctor
+    # run. Built from a temp file that was then deleted, the claim could not repeat this build.
+    # A dry run writes nothing in the brain, so it builds from a temp copy.
+    $lawState = Join-Path $stateDir 'law-installed.json'
+    $tmpState = if ($DryRun) { Join-Path $tmpDir 'installed-state.json' } else { $lawState }
     $tmpLaw = Join-Path $tmpDir 'LAW.md'
+    $hookCount = @($installedState.hooks.Keys).Count
+    Say "  $verb    $lawState  - installed mechanisms the LAW.md grades read: $hookCount registered hook(s), root settings, pointer"
     Write-DfBytes $tmpState (Get-DfTextBytes (($installedState | ConvertTo-Json -Depth 4) + "`n") $tmpState)
     $overlay = Join-Path $Brain 'law.overlay.json'
     $lawArgs = @('-Source', (Join-Path $kit 'law.json'), '-Installed', $tmpState, '-Out', $tmpLaw)
@@ -189,7 +193,8 @@ try {
         Place (Join-Path $Brain 'LAW.md') ([IO.File]::ReadAllBytes($tmpLaw)) $true 'generated from kit law.json + overlay + installed state'
         $lawStatus = switch ($script:placeResult) { 'written' { "$verb" } 'same' { 'already current' } 'kept' { 'exists and differs: kept; regenerate it after migrating it to the overlay (build-law.ps1)' } }
     }
-    Remove-Item -LiteralPath $tmpState, $tmpLaw -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $tmpLaw -Force -ErrorAction SilentlyContinue
+    if ($DryRun) { Remove-Item -LiteralPath $tmpState -Force -ErrorAction SilentlyContinue }
 
     # ---------------------------------------------------------------- installed.json
     $installedPath = Join-Path $stateDir 'installed.json'

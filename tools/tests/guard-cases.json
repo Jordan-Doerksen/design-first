@@ -235,6 +235,14 @@
     "contains": "not ignored"
   },
   {
+    "name": "RESIDUAL env-write: PowerShell Set-Content of a .env git does not ignore is NOT denied (rule 3 reads file-tool calls only)",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "Set-Content .env 'X=1'",
+    "cwd": "${T}\\root\\repo-plain",
+    "expect": "allow"
+  },
+  {
     "name": ".env outside any repo -> advise",
     "hook": "guard",
     "tool": "Write",
@@ -270,6 +278,31 @@
     "path": "${T}\\root\\repo-tracked\\.env",
     "expect": "deny",
     "contains": "git rm --cached"
+  },
+  {
+    "name": "RESIDUAL stage-secret: git add -A with a changed .env git already tracks is NOT denied (the wildcard probe lists untracked files only)",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git add -A",
+    "cwd": "${T}\\root\\repo-tracked",
+    "expect": "allow"
+  },
+  {
+    "name": "RESIDUAL stage-secret: git commit -a with a changed .env git already tracks is NOT denied (no path argument, no probe)",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git commit -a -m \"x\"",
+    "cwd": "${T}\\root\\repo-tracked",
+    "expect": "allow"
+  },
+  {
+    "name": "git add .env that git already tracks -> DENIED (named)",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git add .env",
+    "cwd": "${T}\\root\\repo-tracked",
+    "expect": "deny",
+    "contains": "credential"
   },
   {
     "name": ".env in a not-yet-existing subfolder (nearest ancestor)",
@@ -1090,6 +1123,14 @@
     "expect": "allow"
   },
   {
+    "name": "RESIDUAL ledger: PowerShell Set-Content to the story ledger on a harness/ branch is NOT denied (rule 12 reads file-tool calls only)",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "Set-Content docs/specs/chunk-1.tasks.json '{}'",
+    "cwd": "${T}\\root\\repo-loop",
+    "expect": "allow"
+  },
+  {
     "_": "---- guard rule 10 (GATE-08 / GATE-09 design gate) ----"
   },
   {
@@ -1105,6 +1146,8 @@
     "hook": "guard",
     "tool": "Edit",
     "path": "${T}/root/repo-gated/DECISIONS.md",
+    "old": "# decisions",
+    "new": "# decisions (edited, the gate line kept)",
     "expect": "allow"
   },
   {
@@ -1130,6 +1173,14 @@
     "content": "x = 1",
     "expect": "deny",
     "contains": "still thinking about it"
+  },
+  {
+    "name": "RESIDUAL gate: PowerShell Set-Content of source in a gated repo with no record is NOT denied (rule 10 reads file-tool calls only)",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "Set-Content src/core.py 'x = 1'",
+    "cwd": "${T}\\root\\repo-gated",
+    "expect": "allow"
   },
   {
     "name": "manifest: source edit in a repo with no DECISIONS.md -> advises once",

@@ -7,14 +7,16 @@
 #      pointer.pluginKind (checkout = not under a plugins\cache folder; cache = under one).
 #      A mismatch is a dual install: warn once per session, leave the pointer alone.
 #   2. Heartbeat <brain>/state/last-session.json.
-#   3. Delete once-per-session markers older than 1 day; truncate the hooks log to 90 days.
+#   3. On a compaction or a clear, delete this session's route file. Delete the marker files of
+#      every other session none of whose files was written for a day; truncate the hooks log to 90 days.
 #   4. cwd under root: print <brain>/entry.json in order, MISSING: for absent files, never skip.
 #      "kit:" entries resolve under pointer.pluginRoot (the kit the brain's LAW.md and Doctor
 #      run from; the running plugin root when the pointer has none), "brain:" under the brain.
 #      Outside root: one line. No pointer: the /design-first:adopt line.
 #   5. cwd inside a repository whose top-level folder the route policy maps to a state-card group
-#      (a game repository): print the state card built from its documents and git (GAME-13,
-#      lib\state-card.ps1).
+#      (a game repository), or, with stateCard.anyRepoWithHandoff on, inside any repository under
+#      root that holds HANDOFF.md or docs\HANDOFF.md: print the state card built from its documents
+#      and git (GAME-13, DES-14, lib\state-card.ps1).
 # Output is buffered and printed once, so an internal error can still answer as JSON on both
 # channels with the ERROR logged.
 #
@@ -108,16 +110,35 @@ try {
         }
         else { $lines.Add("design-first: WARNING - brain folder missing: $($ptr.brain). Heartbeat and entry path skipped.") }
 
-        # 3a. compaction: forget this session's routes so the next prompt re-injects its law (DES-13).
-        if ($source -eq 'compact') {
+        # 3a. compaction or clear: forget this session's routes so the next prompt re-injects its law
+        # (DES-13). A clear empties the context as a compaction does (CR-2026-10-15-GAPS D5; a clear
+        # used to keep the routes). The delete is keyed by the session id the host reports; when the
+        # host gives a clear a new id, there is no route file under it and nothing to delete. No kit
+        # file records which the host does, so a clear logs one INFO line that says what it found.
+        if ($source -in @('compact', 'clear')) {
             $routeFile = Join-Path (Get-DfMarkerDir) ((($sessionId -replace '[^A-Za-z0-9_.-]', '_')) + '.routes')
-            if (Test-Path -LiteralPath $routeFile) { Remove-Item -LiteralPath $routeFile -Force -ErrorAction SilentlyContinue }
+            $hadRoutes = Test-Path -LiteralPath $routeFile
+            if ($hadRoutes) { Remove-Item -LiteralPath $routeFile -Force -ErrorAction SilentlyContinue }
+            if ($source -eq 'clear') {
+                Write-DfLog 'INFO' 'entry' ("clear: session {0} {1}" -f $sessionId, $(if ($hadRoutes) { 'had a route file, so the host kept the session id; routes deleted' } else { 'had no route file (a new session id, or nothing routed yet)' }))
+            }
         }
-        # 3. housekeeping
+        # 3. housekeeping: the marker files of a session none of whose files was written for a day, and
+        # never the starting session's own. A file is named "<session>.<kind>"; the session is the part
+        # before the first dot. Workaround (CR-2026-10-15-GAPS D5): every marker older than a day was
+        # deleted, a live session's too, so a session resumed after a day lost its interview marker and
+        # the Stop card said "no question was asked this session" when one was, and its routes came again.
         $markerDir = Get-DfMarkerDir
         if (Test-Path -LiteralPath $markerDir) {
-            Get-ChildItem -LiteralPath $markerDir -File | Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-1) } |
-                Remove-Item -Force -ErrorAction SilentlyContinue
+            $cut = (Get-Date).AddDays(-1)
+            $own = ($sessionId -replace '[^A-Za-z0-9_.-]', '_') + '.'
+            $bySession = Get-ChildItem -LiteralPath $markerDir -File |
+                Where-Object { -not $_.Name.StartsWith($own, [StringComparison]::OrdinalIgnoreCase) } |
+                Group-Object { ($_.Name -split '\.', 2)[0] }
+            foreach ($grp in $bySession) {
+                if (@($grp.Group | Where-Object { $_.LastWriteTime -ge $cut }).Count -gt 0) { continue }   # written within the day: live
+                $grp.Group | Remove-Item -Force -ErrorAction SilentlyContinue
+            }
         }
         $logPath = Get-DfLogPath
         if (Test-Path -LiteralPath $logPath -PathType Leaf) {
@@ -157,9 +178,9 @@ try {
                     }
                     if ($n -eq 0) { $lines.Add(" (entry.json lists no files)") }
                 }
-                # 5. the state card (GAME-13): only when the session starts inside a repository whose
-                #    top-level folder the route policy maps to a state-card group. A failure here
-                #    must not cost the session its entry path, so it is caught, logged and said.
+                # 5. the state card (GAME-13, DES-14): which repositories get one is item 5 at the
+                #    top of this file. A failure here must not cost the session its entry path, so
+                #    it is caught, logged and said.
                 try {
                     . (Join-Path $PSScriptRoot 'lib\law-rows.ps1')
                     . (Join-Path $PSScriptRoot 'lib\state-card.ps1')

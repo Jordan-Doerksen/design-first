@@ -104,6 +104,21 @@ function ConvertTo-DfFullPath([string]$p, [string]$base) {
     # path typed in MSYS form is not recognised as the same folder.
     if ($s -match '^/([A-Za-z])(/|$)') { $s = $Matches[1].ToUpper() + ':\' + $s.Substring(2).TrimStart('/') }
     $s = $s -replace '/', '\'
+    # Workaround (CR-2026-10-15-GAPS third review): a Win32 namespace prefix (\\?\C:\, \\.\C:\, and
+    # \\?\UNC\ before a share) and this machine's admin share (\\localhost\C$\, \\127.0.0.1\C$\) name
+    # the same file as the drive path, but GetFullPath keeps them as they are, so rule 4's string
+    # compare saw another folder and a write into a frozen or tombstoned folder by those spellings
+    # passed. They are mapped to the drive path here, for every caller. Not mapped (the residual in
+    # hooks/guard.ps1): an 8.3 short name, a junction or symbolic link, a subst or mapped drive, a
+    # \\?\Volume{...} path, and this machine named by its own name or another address.
+    # A PowerShell provider-qualified path ('FileSystem::C:\x', 'Microsoft.PowerShell.Core\FileSystem::
+    # C:\x') is the same file to Remove-Item and its kin; the provider part is dropped before the rest.
+    # Workaround (check of the third review): 'Remove-Item FileSystem::<root>\frozen\x.py' was read
+    # as a relative path under the call's folder and passed rule 4.
+    if ($s -match '^(Microsoft\.PowerShell\.Core\\)?FileSystem::(.+)$') { $s = $Matches[2] }
+    if ($s -match '^\\\\[?.]\\UNC\\(.+)$') { $s = '\\' + $Matches[1] }
+    elseif ($s -match '^\\\\[?.]\\([A-Za-z]):(\\.*)?$') { $s = $Matches[1].ToUpper() + ':\' + ([string]$Matches[2]).TrimStart('\') }
+    if ($s -match '^\\\\(localhost|127\.0\.0\.1)\\([A-Za-z])\$(\\.*)?$') { $s = $Matches[2].ToUpper() + ':\' + ([string]$Matches[3]).TrimStart('\') }
     if ($s -match '^~(\\|$)') { $s = Join-Path $env:USERPROFILE $s.Substring(1).TrimStart('\') }
     try {
         if (-not [IO.Path]::IsPathRooted($s)) {
@@ -188,10 +203,15 @@ function Get-DfAskDefaults {
 # token x 25,000 tokens, rounded down to 48 KiB. One constant, so an unreadable config keeps it too.
 $script:DfReadCeilingDefault = 49152
 
+# The Stop card's default time budget in seconds: under the host's Stop timeout (20 s in hooks.json),
+# with room for pwsh to start and for the card to print. Past it, stop.ps1 reads no more repositories
+# and names the ones it did not read, instead of being ended by the host without a word.
+$script:DfStopBudgetDefault = 15
+
 # Brain config, or $null when there is no brain (no pointer, no folder, or no config file).
 # Returns @{ protected = full paths; exceptions = full paths; reason = why null }.
 function Read-DfBrainConfig($ptr) {
-    $out = @{ protected = @(); tombstoned = @(); exceptions = @(); present = $false; reason = $null; readCeilingBytes = $script:DfReadCeilingDefault; readCeilingExempt = @(); sourceExtensions = @(); stopDocs = @(); stopFromGit = $true
+    $out = @{ protected = @(); tombstoned = @(); exceptions = @(); present = $false; reason = $null; readCeilingBytes = $script:DfReadCeilingDefault; readCeilingExempt = @(); sourceExtensions = @(); stopDocs = @(); stopFromGit = $true; stopBudgetSeconds = $script:DfStopBudgetDefault
               forbidScheduling = $false; contentRules = @(); contentRuleProblems = @()
               loopBranchPrefix = 'harness/'; loopLedgerGlobs = @('docs/specs/*.tasks.json', 'specs/*.tasks.json')
               ask = (Get-DfAskDefaults) }
@@ -219,6 +239,12 @@ function Read-DfBrainConfig($ptr) {
     if ($cfg.PSObject.Properties['stopDocs']) { $out.stopDocs = @($cfg.stopDocs | Where-Object { $_ } | ForEach-Object { [string]$_ }) }
     # The Stop card reads the turn's changes from git; false goes back to counting Edit and Write calls only.
     if ($cfg.PSObject.Properties['stopFromGit']) { $out.stopFromGit = -not ($cfg.stopFromGit -eq $false -or [string]$cfg.stopFromGit -ieq 'false') }
+    # The Stop card's time budget in seconds (CR-2026-10-15-GAPS D5). A value outside (0, 18] keeps the
+    # default: the host ends the Stop hook at 20 s (hooks.json), and a budget past that cannot fire.
+    if ($cfg.PSObject.Properties['stopBudgetSeconds']) {
+        $v = 0.0
+        if ([double]::TryParse([string]$cfg.stopBudgetSeconds, [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref]$v) -and $v -gt 0 -and $v -le 18) { $out.stopBudgetSeconds = $v }
+    }
     # Guard rules 8 and 9 (guard-owner-rules.ps1). forbidScheduling is opt-in: off unless the brain says true.
     if ($cfg.PSObject.Properties['forbidScheduling']) { $out.forbidScheduling = ($cfg.forbidScheduling -eq $true -or [string]$cfg.forbidScheduling -ieq 'true') }
     # Guard rules 11 and 12 (guard-loop-rules.ps1): the loop branch name and the story ledger paths.

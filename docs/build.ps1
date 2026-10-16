@@ -47,12 +47,15 @@ $repoUrl = 'https://github.com/Jordan-Doerksen/design-first'
 
 # ------------------------------------------------------------------ clauses and grades
 $clauses = @($law.clauses | Sort-Object { $_.group }, { $_.id })
-$gradeOrder = @('HOOK', 'GATE', 'ADVISE', 'OWNER', 'BUILDABLE', 'HONOUR')
+# The same grade set as the law build (tools/law/validate.ps1), strongest first. Workaround
+# (CR-2026-10-15-GAPS D6): DENY was missing here, so the first DENY clause would have thrown
+# "unknown grade" and turned KIT-DOCS-01 COULD-NOT-LOOK. A DENY rule refuses, so it counts as stopped.
+$gradeOrder = @('DENY', 'HOOK', 'GATE', 'ADVISE', 'OWNER', 'BUILDABLE', 'HONOUR')
 $gradeCount = [ordered] @{}
 foreach ($g in $gradeOrder) { $gradeCount[$g] = @($clauses | Where-Object { $_.grade -eq $g }).Count }
 foreach ($c in $clauses) { if (-not $gradeCount.Contains($c.grade)) { throw "unknown grade $($c.grade) on $($c.id)" } }
 $total = $clauses.Count
-$stopped = $gradeCount['HOOK'] + $gradeCount['GATE']
+$stopped = $gradeCount['DENY'] + $gradeCount['HOOK'] + $gradeCount['GATE']
 $honour  = $gradeCount['HONOUR']
 
 $groupNames = $law.groups

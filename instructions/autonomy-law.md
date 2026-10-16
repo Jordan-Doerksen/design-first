@@ -1,6 +1,6 @@
 # Autonomy law — what an agent decides alone, and what stops the loop
 
-This file owns `AUTO-01` to `AUTO-12`. It has the same rank as `instructions/design-methodology.md`
+This file owns `AUTO-01` to `AUTO-13`. It has the same rank as `instructions/design-methodology.md`
 and does not restate it, `instructions/interview-every-add-law.md`, the hats and gates in
 `workflows/coding.md`, or `instructions/observability-law.md`. Those stay in force unchanged. This
 file says **which of their gates an agent may occupy**, and which stay with the owner.
@@ -93,6 +93,15 @@ file defines, and the kit's gave a fourth and had no `BLOCKED`. A second definit
 is a defect, for the reason in `PRIN-05`. A brain that wants to be sure asserts the other file is
 absent.
 
+A loop runner that starts its Reviewer as its own process, not as a subagent, uses this same file:
+it reads the body of `agents/reviewer.md` (through the pointer's `pluginRoot`, front matter dropped)
+and adds only its own input and output contract, which the Output section allows. The front matter,
+and with it the tool line, does not reach such a process: the runner's own command must hold the
+Reviewer to the same read-only tools with no shell, and the kit claim on the tool line does not
+check that command. The subagent hook does not fire for such a process, so the runner hands over the
+`advise-by-role` clauses itself, read from the files the hook reads. A runner that cannot read the
+file does not start a review (COULD-NOT-LOOK).
+
 The independence comes from a **fresh context**, not a second person: a reviewer in a fresh
 sub-agent context sees only the diff and the criteria it is given, not the reasoning that produced
 the change. This is the one adversarial practice that does not need a second human. Tell it to flag
@@ -145,6 +154,9 @@ new probe counts only once it has been proven to go RED: restore the defect in a
 confirm the probe fails, name the assertions that fire. A probe that cannot fail reports a safety it
 cannot prove.
 
+Nothing in the kit does the RED proof: the kit Reviewer has read-only tools and runs nothing
+(`agents/reviewer.md`).
+
 ### AUTO-09
 
 **Where a story is about feel, motion or appearance, a person is the gate, because a read-only
@@ -162,8 +174,13 @@ bug.
 ## 4. The loop
 
 **Phase 0 — the baseline.** Run the verify gate **before** the first story and record the result.
-A failure that exists before the loop starts is baseline debt; the Reviewer fails a story on **new**
-debt only.
+A red baseline refuses the run. A story passes only on a green gate (`AUTO-06`), so a gate that is
+red before the loop starts would fail every story and blame the Builder for debt it did not make.
+Fixing the gate is its own owner-approved chunk, as for a missing gate (`AUTO-12`). The loop makes
+its branch only after the baseline is green, and a refused run leaves the repository on the branch
+it was on. *(2026-10-15, CR-2026-10-15-GAPS D3: until then this paragraph allowed
+"baseline debt" and failed a story on new debt only, which contradicted `AUTO-06` and the Reviewer
+file; the strict reading is the one a loop runner holds.)*
 
 **Then, for each story:** (1) the Builder reads the manifest, the architecture map and the story,
 in a **fresh context** · (2) implements **that story only**, under the during-coding rules of
@@ -183,13 +200,12 @@ the context.
 
 ### AUTO-11
 
-**The loop works on its own branch and never pushes and never merges; it ends with a state card
-and the push command for the owner.**
+**The loop works on its own branch and never pushes and never merges.**
 
-The loop creates `harness/<chunk-slug>` and commits there freely. At the stop it writes a **state
-card** — hats · the chunk · stories passed · stories blocked · what is next (the same card as
-`workflows/coding.md`, "Hats and gates") — into `HANDOFF.md`, and prints **the exact push
-command** for the owner to run. The owner reviews one branch, not forty chunks.
+The loop creates `harness/<chunk-slug>` and commits there freely. The push and the merge are the
+owner's: the hand-back that gives them to the owner is `AUTO-13`. *(2026-10-15, CR-2026-10-15-GAPS
+D7: until then this clause also carried the hand-back and printed HOOK for both halves, but guard
+rule 11 refuses a push or a merge and writes no card and no command.)*
 
 ### AUTO-12
 
@@ -197,9 +213,33 @@ command** for the owner to run. The owner reviews one branch, not forty chunks.
 tree.**
 
 The loop does not start on: a project with no verify gate (writing the gate is its own
-owner-approved chunk) · a project on the brain's design-gate list · a chunk with an unresolved
-item in the manifest's Open Questions table · a repository with a dirty or untracked tree — report
-the state and stop (`SAFE-06`).
+owner-approved chunk) · a verify gate that is red before the first story (Phase 0) · a project on
+the brain's design-gate list · a chunk with an unresolved item in the manifest's Open Questions
+table · a repository with a dirty or untracked tree — report the state and stop (`SAFE-06`).
+
+A loop runner reads the brain's design-gate list from one file, `design-gate.json` at the brain's
+root (a `gated` array of folders under the root). It reads that file through the pointer, treats a
+linked worktree as the repository it was made from, and refuses every run with COULD-NOT-LOOK when
+it cannot read the file: an unread list is never "nothing is gated". The runner keeps no copy of
+its own. Guard rule 10 (`hooks/guard.ps1#design-gate`) does
+not read this list: it reads a different fact, the `Design gate: on` line in the repository's own
+`DECISIONS.md`. The kit does not ship or check `design-gate.json`; a brain that has one checks it
+with its own claim.
+
+### AUTO-13
+
+**The loop ends with a state card in HANDOFF.md and the exact push command for the owner.**
+
+At the stop the loop writes a **state card** — hats · the chunk · stories passed · stories blocked
+· what is next (the same card as `workflows/coding.md`, "Hats and gates") — into `HANDOFF.md`, and
+prints **the exact push command** for the owner to run. The owner reviews one branch, not forty
+chunks.
+
+**Grade: BUILDABLE** (since 2026-10-15, CR-2026-10-15-GAPS D7; until then the second half of
+`AUTO-11`, at HOOK). No kit code writes the card or the command, and no kit check reads that a loop
+wrote them: this is loop-runner behaviour (DECISIONS.md 2.8), like `AUTO-02`, `AUTO-07`,
+`AUTO-08`, `AUTO-10` and `AUTO-12`. A brain whose runner writes them re-grades `AUTO-13` in its
+`law.overlay.json`, against a claim that reads the runner.
 
 ---
 
@@ -208,7 +248,11 @@ the state and stop (`SAFE-06`).
 Every story in the chunk has `passes: true` with evidence · the verify gate is green · the
 cross-check (`GATE-05`) is run and recorded · `HANDOFF.md` carries the state card · the branch is
 unpushed and the push command is in the report · the run log exists and names what did **not** run
-(`OBS-03` applies to the loop itself).
+(`OBS-03` applies to the loop itself). The kit does not run or record the cross-check for a loop:
+the kit's Stop card asks for it only at the end of an agent turn and records no answer (its line in
+the fence log says only that a card was given). A run that
+stops with every story passed has not met this list until the cross-check is run and recorded in
+`HANDOFF.md`.
 
 A deviation from any rule here is an architecture change: file a Change Request (`GATE-06`) naming
 the rule and the reason.
@@ -216,15 +260,105 @@ the rule and the reason.
 ## The loop branch is the fact the guard reads (0.1.24, CR-2026-10-13-HONOUR)
 
 AUTO-11 and AUTO-04 are enforced by guard rules 11 and 12 (`hooks/guard.ps1#loop-no-push`,
-`hooks/guard.ps1#ledger`). Both read one fact, the current branch name, from git: a branch that
+`hooks/guard.ps1#ledger`). Both read branch names from git, never a marker file: a branch that
 starts with the loop prefix (brain config `loopBranchPrefix`, default `harness/`, the prefix the
 harness loop creates) is the loop branch. On it, `git push`, `git merge` and `git pull` are
-refused, and an Edit or Write to the story ledger (`loopLedgerGlobs`, default
+refused, and an Edit, Write or NotebookEdit to the story ledger (`loopLedgerGlobs`, default
 `docs/specs/*.tasks.json` and `specs/*.tasks.json`) is refused. Commits are not touched: the loop
 commits freely. The harness writes the pass mark with its own process, never through a tool
-call, so the rule binds only an agent reaching for the ledger. Off the loop branch, neither rule
-fires.
+call, so the rule binds only an agent reaching for the ledger through Edit, Write or NotebookEdit.
+A Bash or PowerShell command that writes the ledger (a redirect, `Set-Content`, `Copy-Item`, a
+script) is not seen by rule 12; for that case the law's only check is the harness's hash compare
+and restore (`AUTO-04`). Off the loop branch, rule 12 does not fire, and rule 11 still reads the
+command, as the next paragraph says. Rules 11 and 12 bind only a process that loads the kit's
+hooks, and an internal guard error allows the call (`hooks/guard.ps1`).
+
+**Rule 11 from any branch (2026-10-15, CR-2026-10-15-GAPS D1).** The loop's work leaves by a push
+or a merge that names its branch, so rule 11 does not wait to be on it. From any branch it refuses
+a `git push`, `git merge` or `git pull` whose arguments name a loop-prefixed ref (`harness/x`,
+`HEAD:harness/x`, `refs/heads/harness/x`, `origin/harness/x`), and a `git push --all`,
+`--branches`, `--mirror` or glob refspec that covers a loop branch the repository holds. On a loop
+branch it refuses a `git checkout` or `git switch` that leaves it: to another branch, to a new
+branch without the prefix, or to a detached HEAD. A target stays on the loop only when it is the
+short name of a local branch with the loop prefix (`refs/heads/` holds it): a revision such as
+`harness/x~0`, `harness/x^0` or `harness/x@{0}` and a loop-prefixed tag detach HEAD and are
+refused. A loop-prefixed name with no local branch is refused too, also where git would guess a
+new branch from a remote one; `git switch -c harness/x origin/harness/x` names the new branch and
+passes (since 2026-10-15, CR-2026-10-15-GAPS review; before, a prefix match on the whole revision
+let `git checkout harness/x~0` detach HEAD, and from there `git push origin HEAD:main` passed).
+With `--track` and no new name, git names the new branch itself (it drops `refs/`, `remotes/` and
+everything up to the first `/`), and only that name counts: `git checkout -t origin/harness/x`
+makes `harness/x` and passes, and `git checkout -t harness/x` makes `x` at the loop commit and is
+refused. `git checkout -` passes only when the previous branch is still a local loop branch; when
+it is gone and a loop-prefixed tag has its name, git detaches HEAD at the tag, and it is refused
+(both since the check of the review fixes, 2026-10-15; before, both passed). A
+new loop-prefixed branch, a switch to a local loop branch and a checkout of files stay allowed, and
+so does a checkout of `HEAD` (or `@`) or of the loop branch HEAD is on, which leaves HEAD where
+it is (since the second review of CR-2026-10-15-GAPS; before, `git checkout HEAD` was refused as a
+switch off the loop). A rename, copy or forced move of a branch (`git branch -m`, `-M`, `-c`, `-C` or `-f`)
+and a ref written by hand (`git update-ref`, or a `git symbolic-ref` that writes or deletes a ref)
+are refused on a loop branch whatever they name, and from any branch when they name a loop-prefixed
+ref (`git branch -f main harness/x`, `git update-ref refs/heads/main harness/x`). A list, a read, a
+delete and a move that names no loop ref pass (since the second review of CR-2026-10-15-GAPS;
+before, `git branch -M harness/x main` took HEAD onto `main` with the loop's work, and the next
+`git push origin main` passed). On a loop branch, a `git worktree add` whose new worktree is not on
+a loop branch is refused: a detached worktree (`--detach`, `HEAD`, a sha, a tag), another branch,
+or the branch git names after the folder when no start is given; one on a new loop-prefixed branch
+(`-b harness/y`) or on a local loop branch passes (since the check of the second review; before,
+`git worktree add --detach ../wt HEAD` and then `git -C ../wt push origin HEAD:main` passed,
+because the new folder is on no loop branch). On a loop branch, a `git rebase` that names a branch
+to check out that is not a local loop branch (`git rebase <upstream> <branch>`,
+`--onto <new> <upstream> <branch>`, `--root <branch>`; `HEAD` and a sha are no branch to git,
+which rebases them at a detached HEAD), `git bisect` (except `log`, `visualize`, `terms`, `help`,
+and a `reset` with no commit while no bisect runs), and a `git fetch` whose refspec writes a local
+branch (`git fetch . HEAD:main`; `.` is this repository) or whose refspecs come on standard input
+are refused; from any branch, a `git fetch` whose destination is a loop-prefixed local branch, or
+a glob that can cover one, or that writes a local branch from a loop ref (`git fetch . harness/x:main`)
+is refused. A rebase with no branch argument (`git rebase main`), and a fetch into a
+remote-tracking ref (`refs/remotes/...`), a tag or no destination, pass (since the third review of
+CR-2026-10-15-GAPS; before, `git rebase HEAD main` and `git bisect start HEAD main` took HEAD off
+the loop branch, `git fetch . HEAD:main` moved `main` onto the loop's work, and the push that
+followed passed). A rebase that stops (a conflict, an `edit` line) leaves HEAD detached at the
+loop's work; while a rebase of a loop branch is stopped, or a bisect that started on one runs, the
+rule reads the branch it goes back to as the branch HEAD is on, so everything above applies there,
+and `git rebase --quit`, which ends the rebase and keeps the detached HEAD, is refused;
+`--continue`, `--skip` and `--abort` pass. `git rebase --root`, `git fetch --stdin` and
+`git fetch --refmap` are read in any abbreviation git takes (`--ro`, `--st`, `--refm`), and from
+any branch a fetch into local branches from a glob source that can cover a loop branch
+(`git fetch . "refs/heads/*:refs/heads/copy/*"`) is refused. `git send-pack`, the plumbing under
+`git push`, is read as a push everywhere above (since the check of the third review; before, a
+plain `git rebase main` that stopped let `git push origin HEAD:main` pass, `git rebase --ro main`
+checked out `main`, the glob made `copy/harness/x` at the loop's work, and `git send-pack
+<repository> HEAD:refs/heads/main` pushed from the loop branch in one call).
+This also binds an interactive session that sits on a loop branch: the owner switches off it by
+hand. **Residual:** the git commands that move HEAD or a branch are an open-ended set. Rule 11
+reads the commands and forms named in this paragraph, listed in full in the header of
+`hooks/lib/guard-loop-rules.ps1`, and **any command or form not named there is a residual**,
+whatever it moves: for example, on a loop branch, `git stash branch <name>`, a `git clone` of the
+repository at a commit (`--revision`), `git rebase --exec` or an `exec` line in an interactive
+rebase (a command string git runs in a shell), and a long option that git accepts as an
+abbreviation (`--det` for `--detach`), except the three named above. Also not seen: a loop commit
+named by a sha, a tag, `FETCH_HEAD`, `@{u}` or `@{-1}` (so off a loop branch `git branch -f main
+<sha>` passes); a detached HEAD at a loop commit with no stopped rebase or running bisect of a loop
+branch behind it, which is no loop branch to the rule; off a loop branch, a
+checkout, switch, rebase or bisect that puts HEAD at a loop commit (`git checkout --detach
+harness/x`, `git bisect start harness/x main`), and a cherry-pick, rebase or reset that brings
+loop commits onto another branch, also from another worktree; off a loop branch,
+`git update-ref --stdin` and `git fetch --stdin`, whose refs come on standard input; off a loop
+branch, a new branch, tag or worktree made at a loop ref under another name
+(`git branch <name> harness/x`, `git checkout -b <name> harness/x`, `git switch -c`, `git tag`,
+`git worktree add -b` or `--detach`); on a loop branch, a plain `git branch <name>` or
+`git tag <name>`, and a fetch into a tag or a remote-tracking ref, each of which makes a name at
+the loop's work and moves no branch (a switch to it and a push of it there are refused, but a
+push of it from another worktree that already exists and is not on a loop branch passes); a
+`git push` whose refspec is `:` (matching) or comes from config (`push.default` set to
+`matching`, or a `remote.<name>.push` entry), and a `git fetch` whose refspec comes from config
+(a `remote.<name>.fetch` entry); and the guard's shell residual (nested shells, scripts on disk,
+git aliases).
 
 **The loop's last write to `HANDOFF.md` ends with `## Next session` (DES-14, 2026-10-14):** the
 exact opening prompt for the session that picks the branch up, under the state card the loop
-already writes. The state card hook prints it at that session's start.
+already writes. The kit does not write this section, and no kit check reads that the loop wrote
+it. The kit's state card prints the section, or says there is none, only for a session that starts
+inside that repository, and only when the repository's top-level folder maps to a group listed in
+`stateCard.groups` or the brain turns `stateCard.anyRepoWithHandoff` on.

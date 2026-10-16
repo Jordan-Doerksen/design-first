@@ -85,6 +85,7 @@ $script:ConfigReaders = [ordered]@{
     sourceExtensions           = 'hooks/guard.ps1 (rules 5 and 6) / hooks/stop.ps1 (what counts as source)'
     stopDocs                   = 'hooks/stop.ps1 (file names that count as documents on the Stop card)'
     stopFromGit                = 'hooks/stop.ps1 (true: the turn''s changes are read from git; false: Edit and Write calls only)'
+    stopBudgetSeconds          = 'hooks/stop.ps1 (time budget in seconds, under the host''s Stop timeout: past it no more repositories are read from git and the card names them)'
     forbidScheduling           = 'hooks/guard.ps1 (rule 8, no-schedule: true refuses scheduled tasks, cron, Run keys, services, the Startup folder)'
     contentRules               = 'hooks/guard.ps1 (rule 9, content-rule: an edit in scope that adds a match of the pattern is refused)'
     loopBranchPrefix           = 'hooks/guard.ps1 (rules 11 and 12: a branch with this prefix is the loop branch; default harness/)'
@@ -127,6 +128,7 @@ function Get-DefaultConfig {
         sourceExtensions           = @()
         stopDocs                   = @()
         stopFromGit                = $true
+        stopBudgetSeconds          = 15   # the hook's own default lives in hooks/lib/common.ps1 ($script:DfStopBudgetDefault), its only reader
         forbidScheduling           = $false
         contentRules               = @()
         loopBranchPrefix           = 'harness/'

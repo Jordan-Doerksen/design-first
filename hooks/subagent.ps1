@@ -3,9 +3,11 @@
 #
 # A subagent gets its brief and nothing else: no root CLAUDE.md, no entry path, no routed law.
 # This hook reads the session's route file (written by route.ps1) and injects, before the
-# subagent's first prompt, the rows of every group active in the session plus the groups the
-# policy marks alwaysForSubagents (the prohibitions by default). Same cap as the router. The host
-# re-injects after the subagent's own compaction.
+# subagent's first prompt, the rows of the groups the policy marks alwaysForSubagents (the
+# prohibitions by default) and of every group active in the session, except the alwaysForSessions
+# groups (unless alwaysForSubagents also lists them). Same cap as the router: a group past the cap
+# is named without its rows. With no pointer file it injects nothing. The host re-injects after the
+# subagent's own compaction.
 #
 # advise-by-role (CR-2026-10-13-HONOUR): every clause whose enforcedBy ref names this anchor is
 # read from the kit's law.json (and the brain's overlay when there is one) and injected with one

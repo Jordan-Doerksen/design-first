@@ -523,6 +523,9 @@ exit 0
     Assert-HasNot 'I: the root .claude folder is never outside a category' $i.out 'outside a category folder: .claude'
     Assert-Has 'I: with no since, a 2019 stray is a fail like any other' $i.out 'outside a category folder: oldstray - a project lives at'
     Assert-HasNot 'I: with no since there is no backlog line' $i.out 'predate the ratchet'
+
+    . (Join-Path $here 'selftest-truth.ps1')   # run X (a crash is could-not-look) and run K (every registered hook is smoked), CR-2026-10-15-GAPS D6
+    . (Join-Path $here 'selftest-law.ps1')     # run L (the law build: the ADVISE legend, an unregistered hook) and run M (the docs build accepts DENY)
 } finally {
     Remove-Item -LiteralPath $T -Recurse -Force -ErrorAction SilentlyContinue
 }

@@ -22,6 +22,9 @@ unsure, ask the owner one question: "does this count as a tool whose output some
 
 **The adopter's gated list lives in the brain**, in its own file, as the only copy; other files
 point at it. A project enters or leaves the list by owner ruling, recorded there with the date.
+No kit hook reads the list: the guard reads only the `Design gate` line in the repository's own
+`DECISIONS.md` (see "The record the guard reads"), so a listed project is guarded by the guard only
+while its manifest carries that line.
 An autonomous loop never runs on a listed project (`AUTO-02`, `AUTO-12`).
 
 **Before the repository exists**, write the same documents every project keeps, but write them
@@ -87,28 +90,58 @@ requires care; it does not authorise extra scope.
 
 ## The record the guard reads (0.1.23, CR-2026-10-13-HONOUR)
 
-GATE-08 and GATE-09 are enforced by guard rule 10 (`hooks/guard.ps1#design-gate`). A repository
-declares its gate with one line in `DECISIONS.md`, either form:
+GATE-08 and GATE-09 are enforced by guard rule 10 (`hooks/guard.ps1#design-gate`) inside an
+existing git repository, at a source Edit, Write or NotebookEdit and at an Edit or Write of the
+manifest. The guard cannot see a repository being created, or a source write in a folder with no
+git yet: keeping the review ahead of `git init` is law text. Once the repository exists, the rule
+denies source writes while its `DECISIONS.md` declares the gate and the record does not clear it.
+A repository declares its gate with one line in `DECISIONS.md`, at the root or in `docs/`, either
+form:
 
 ```
 Design gate: on
 | Design gate | on |
 ```
 
-While that line stands and `records/gate-cleared.md` is absent, every source write in the
-repository is refused; documents, config and data stay writable, because the gate is cleared by
-writing documents. The record is read, not trusted. It carries one `Findings: <n>` line with n
-above zero, and one `- ` line per finding, each marked `resolved` or `recorded`:
+While that line stands and `records/gate-cleared.md` is absent, every Edit, Write or NotebookEdit
+of a source file in the repository is refused; documents, config and data stay writable, because
+the gate is cleared by writing documents. Rule 10 reads no shell command at all, so a source file
+that a shell command writes (a redirect, `Set-Content`, `cp`, or a script the agent runs) passes.
+The guard's written residual (`hooks/guard.ps1`) names this gap, and a self-test case asserts
+that such a write is not denied. The guard reads both places the manifest may live, the root `DECISIONS.md`
+and `docs/DECISIONS.md`; when both exist, a gate line in either one holds the gate.
+
+The record is read, not trusted. It sits at `records/gate-cleared.md` in the repository root and
+carries exactly one `Findings: <n>` line with n above zero. Every `- ` line in it is a finding
+line, in the form `- <id> resolved: <where>` or `- <id> recorded: <where>`: the id is the
+finding's label and carries a digit (`F1`, `F12`, `S1-8`), the status word comes right after the
+id, and the place that holds the answer comes after the colon. The record lists n distinct ids;
+an id counts once however it is marked up (`**F1**` and `F1` are one id):
 
 ```
 # Gate cleared
 
-Findings: 12
+Findings: 2
 
 - F1 resolved: the spec names the failure mode (SPEC 4.2)
 - F2 recorded: Open Questions row 3, owner named
 ```
 
-A record with `Findings: 0`, fewer lines than findings, or a line marked neither way refuses the
-write and names the line. Removing the `Design gate` line from `DECISIONS.md` ends the gate; that
-is a Change Request like any other manifest edit.
+A record with `Findings: 0`, a number of distinct ids other than n, or a `- ` line that is not a
+finding line refuses the write and names the line. So does a list line in another style (`* F2`,
+`+ F2`, `1. F2`, `1) F2`) or inside a quote (`> - F2`): every list line in the record is a `- `
+line outside any quote, so a finding cannot sit outside the count in another bullet. A record with two `Findings:` lines is refused as ambiguous
+(since 2026-10-15, CR-2026-10-15-GAPS review; before, only `- ` lines and the first `Findings:`
+line were read, and `* F2 open` beside `- F1 resolved: x` cleared a gate on `Findings: 1`). A
+finding written outside any list line (a table row, a heading, prose) is not read, so it is not
+counted either. A status that is negated (`- F3 not resolved yet`, `- F3 unresolved: SPEC 4`) or
+not right after the id (`- F3: resolved in SPEC 4.2`) is not a finding line. A finding that is
+not resolved is recorded: in the manifest's Open Questions table
+with an owner, then listed as `- <id> recorded: <where>`. The guard reads the form of each line,
+not whether its words are true; a false line in the right form is the review's to catch.
+
+Removing the `Design gate` line from `DECISIONS.md` ends the gate; that is a Change Request like
+any other manifest edit. While the gate is open (no record, or a record that does not clear it),
+the guard refuses an Edit or Write from the agent that removes the line or turns it off, so the
+owner makes that edit by hand after the Change Request. Once the record clears the gate, the line
+may go. A shell command that deletes or rewrites `DECISIONS.md` is not inspected.

@@ -8,6 +8,7 @@ $script:ClaimIdRx   = '^[A-Z][A-Z0-9]*(-[A-Z0-9]+)+$'
 $script:SkipHooks   = $env:DF_SKIP_HOOK_FILES -eq '1'
 $script:SkipOwners  = $env:DF_SKIP_OWNER_FILES -eq '1'
 $script:ClaimCache  = $null
+$script:HookRegistry = $null
 
 function Get-Prop($obj, [string] $name) {
     if ($null -ne $obj -and $null -ne $obj.PSObject.Properties[$name]) { return $obj.$name }
@@ -201,6 +202,54 @@ function Test-JsonPath($c, [string] $file, [string] $jsonPath) {
     return $node
 }
 
+# A hook acts only when hooks/hooks.json registers its script. An anchor in a script that nothing
+# registers is a real line that never runs, and a clause graded on it printed HOOK or ADVISE in every
+# LAW.md with no warning (render.ps1 keeps the kit grade for a hook the installed state does not
+# name). Found by the CR-2026-10-15-GAPS review. The registry is the script paths under hooks/ in
+# each entry's command or args, read once per build. Workaround: a path, not a file name. Compared
+# by file name alone, a clause on hooks/lib/guard.ps1 passed because hooks/guard.ps1 is registered,
+# and a script registered in a subfolder of hooks/ was never found.
+function Get-HookRegistry() {
+    if ($null -ne $script:HookRegistry) { return $script:HookRegistry }
+    $path = Join-Path $KitRoot 'hooks/hooks.json'
+    $reg = @{ path = $path; why = ''; names = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase) }
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { $reg.why = 'does not exist' }
+    else {
+        $hj = $null
+        try { $hj = Read-JsonFile $path } catch { $reg.why = 'is not JSON' }
+        $events = Get-Prop $hj 'hooks'
+        if (-not $reg.why -and $null -eq $events) { $reg.why = "has no 'hooks' object" }
+        if (-not $reg.why) {
+            foreach ($ev in $events.PSObject.Properties) {
+                foreach ($entry in @($ev.Value)) {
+                    foreach ($h in @(Get-Prop $entry 'hooks')) {
+                        $text = (@(Get-Prop $h 'command') + @(Get-Prop $h 'args') | Where-Object { $null -ne $_ }) -join ' '
+                        foreach ($m in [regex]::Matches($text, '(?<![\w.-])hooks[\\/]+((?:[\w.-]+[\\/]+)*[\w.-]+\.ps1)')) { [void]$reg.names.Add(($m.Groups[1].Value -replace '[\\/]+', '/')) }
+                    }
+                }
+            }
+        }
+    }
+    $script:HookRegistry = $reg
+    return $reg
+}
+# Kit hook scripts only: a ref that resolved into the brain (an overlay clause) is not the kit's to
+# register, and the kit's hooks.json says nothing about it.
+function Test-HookRegistered($c, [string] $path) {
+    $id = $c.id
+    $kitHooks = [IO.Path]::GetFullPath((Join-Path $KitRoot 'hooks')).TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
+    $full = [IO.Path]::GetFullPath($path)
+    if (-not $full.StartsWith($kitHooks, [StringComparison]::OrdinalIgnoreCase)) { return }
+    $rel = $full.Substring($kitHooks.Length) -replace '[\\/]+', '/'   # 'guard.ps1', 'lib/guard-rules.ps1'
+    $reg = Get-HookRegistry
+    if ($reg.why) {
+        $msg = "hooks/hooks.json $($reg.why) ($($reg.path)), so nothing shows that $rel is registered"
+        if ($script:SkipHooks) { Add-Warning $id "$msg, skipped" } else { Add-Problem $id $msg }
+        return
+    }
+    if (-not $reg.names.Contains($rel)) { Add-Problem $id "hook script '$rel' is not registered in hooks/hooks.json, so it never runs; register it, or grade the clause by what does run (a lib/ file runs through the script that loads it: name that script in the ref)" }
+}
+
 function Test-Enforcement($c) {
     $id = $c.id; $g = $c.grade; $e = $c.enforcedBy
     if ($g -in @('OWNER', 'HONOUR')) {
@@ -230,7 +279,7 @@ function Test-Enforcement($c) {
     $path = Resolve-RefFile $file ($c.source -eq 'overlay')
     if (-not (Test-RequiredFile $id $path "mechanism file for $kind" $script:SkipHooks)) { return }
     switch ($kind) {
-        'hook'            { if (-not $frag) { Add-Problem $id 'a hook ref needs #<anchor>' } else { Test-Anchor $c $path $frag $kind } }
+        'hook'            { if (-not $frag) { Add-Problem $id 'a hook ref needs #<anchor>' } else { Test-Anchor $c $path $frag $kind; Test-HookRegistered $c $path } }
         'permission-rule' { if (-not $frag) { Add-Problem $id 'a permission-rule ref needs #<json.path>' } else { [void](Test-JsonPath $c $path $frag) } }
         'tool'            { if (-not $frag) { Add-Problem $id 'a tool ref needs #<anchor> (a tool refusal is a real line in the script, not a file name)' } else { Test-Anchor $c $path $frag $kind } }
     }

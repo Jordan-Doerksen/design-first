@@ -115,7 +115,7 @@
   </ul>
 
   <h3>The law</h3>
-  <p>One file, <code>law.json</code>, generates <code>LAW.md</code>. Every clause has one owning file, a verb, and a grade the generator derives from the mechanism that enforces it. A missing mechanism prints HONOUR.</p>
+  <p>One file, <code>law.json</code>, generates <code>LAW.md</code>. Every clause has one owning file, a verb, and a grade the generator checks against the mechanism that enforces it. A mechanism that is missing or does not declare the clause's verb and mode fails the build, and so does a hook script that <code>hooks.json</code> does not register.</p>
   <ul class="ix">
 {{GROUP_ROWS}}
   </ul>

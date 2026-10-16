@@ -266,7 +266,7 @@
       "verb": "document",
       "rule": "Documents are co-equal artifacts, updated before the work is called done; document debt is technical debt.",
       "owner": "kit:workflows/coding.md",
-      "grade": "HOOK",
+      "grade": "ADVISE",
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
@@ -292,12 +292,8 @@
       "verb": "pin-bytes",
       "rule": "Every repository carries its line-ending attributes file in its first commit; the bytes belong to the repository, not to a machine setting.",
       "owner": "kit:instructions/integrity-law.md",
-      "grade": "GATE",
-      "since": "2026-09-22",
-      "enforcedBy": {
-        "kind": "tool",
-        "ref": "tools/doctor/survey.ps1#survey-no-gitattributes"
-      }
+      "grade": "HONOUR",
+      "since": "2026-09-22"
     },
     {
       "id": "DES-10",
@@ -370,7 +366,7 @@
       "verb": "interview",
       "rule": "Every requested addition gets the four-verdict pass of approve, redact, add and flavour, however detailed the prompt; a long request is a strong opening position, not a spec.",
       "owner": "kit:instructions/interview-every-add-law.md",
-      "grade": "HOOK",
+      "grade": "ADVISE",
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
@@ -422,7 +418,7 @@
       "verb": "cross-check",
       "rule": "After each chunk, run the cross-check against the manifest, the architecture and the core goal.",
       "owner": "kit:instructions/design-methodology.md",
-      "grade": "HOOK",
+      "grade": "ADVISE",
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
@@ -435,7 +431,7 @@
       "verb": "change",
       "rule": "Any change to design, behaviour, config, risk, execution, data flow or dependencies needs a Change Request, and an approved one updates the Change Log.",
       "owner": "kit:instructions/design-methodology.md",
-      "grade": "HOOK",
+      "grade": "ADVISE",
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
@@ -448,7 +444,7 @@
       "verb": "finish",
       "rule": "Code that runs is not done; done is the Definition of Done checklist in the owning file.",
       "owner": "kit:instructions/design-methodology.md",
-      "grade": "HOOK",
+      "grade": "ADVISE",
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
@@ -689,7 +685,7 @@
       "id": "AUTO-11",
       "group": "AUTO",
       "verb": "push",
-      "rule": "The loop works on its own branch and never pushes and never merges; it ends with a state card and the push command for the owner.",
+      "rule": "The loop works on its own branch and never pushes and never merges.",
       "owner": "kit:instructions/autonomy-law.md",
       "grade": "HOOK",
       "since": "2026-09-22",
@@ -712,17 +708,26 @@
       }
     },
     {
+      "id": "AUTO-13",
+      "group": "AUTO",
+      "verb": "hand-back",
+      "rule": "The loop ends with a state card in HANDOFF.md and the exact push command for the owner.",
+      "owner": "kit:instructions/autonomy-law.md",
+      "grade": "BUILDABLE",
+      "since": "2026-10-15",
+      "enforcedBy": {
+        "kind": "planned",
+        "ref": "DECISIONS.md#2.8"
+      }
+    },
+    {
       "id": "VCS-01",
       "group": "VCS",
       "verb": "remote",
       "rule": "Every repository has a remote you own.",
       "owner": "kit:instructions/integrity-law.md",
-      "grade": "GATE",
-      "since": "2026-09-22",
-      "enforcedBy": {
-        "kind": "tool",
-        "ref": "tools/doctor/survey.ps1#survey-no-remote"
-      }
+      "grade": "HONOUR",
+      "since": "2026-09-22"
     },
     {
       "id": "VCS-02",
@@ -730,12 +735,8 @@
       "verb": "report-remote",
       "rule": "A remote you do not own is not a backup, and is reported as a different failure from having none.",
       "owner": "kit:instructions/integrity-law.md",
-      "grade": "GATE",
-      "since": "2026-09-22",
-      "enforcedBy": {
-        "kind": "tool",
-        "ref": "tools/doctor/survey.ps1#survey-foreign-remote"
-      }
+      "grade": "HONOUR",
+      "since": "2026-09-22"
     },
     {
       "id": "VCS-04",
@@ -743,12 +744,8 @@
       "verb": "back-up",
       "rule": "Committed is not backed up; pushed is.",
       "owner": "kit:instructions/integrity-law.md",
-      "grade": "GATE",
-      "since": "2026-09-22",
-      "enforcedBy": {
-        "kind": "tool",
-        "ref": "tools/doctor/survey.ps1#survey-unpushed"
-      }
+      "grade": "HONOUR",
+      "since": "2026-09-22"
     },
     {
       "id": "VCS-06",
@@ -821,12 +818,8 @@
       "verb": "unshallow",
       "rule": "A shallow clone cannot be backed up and the standard integrity check cannot see it; unshallow it before trusting it.",
       "owner": "kit:instructions/integrity-law.md",
-      "grade": "GATE",
-      "since": "2026-09-22",
-      "enforcedBy": {
-        "kind": "tool",
-        "ref": "tools/doctor/survey.ps1#survey-shallow"
-      }
+      "grade": "HONOUR",
+      "since": "2026-09-22"
     },
     {
       "id": "VCS-23",
@@ -990,7 +983,7 @@
       "verb": "gate-change",
       "rule": "The inner gate runs after every small verifiable change (verify, stop, show what changed and what it proves, wait), the outer gate runs at every chunk boundary, and only a trivial, reversible, owner-requested single-file edit is exempt.",
       "owner": "kit:workflows/coding.md",
-      "grade": "HOOK",
+      "grade": "ADVISE",
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
@@ -1055,11 +1048,11 @@
       "verb": "write-commit",
       "rule": "Commit messages are short, present tense and specific; the house writing standard governs the rest but not tense, so tense is specified in the owning file.",
       "owner": "kit:workflows/coding.md",
-      "grade": "GATE",
+      "grade": "BUILDABLE",
       "since": "2026-09-22",
       "enforcedBy": {
-        "kind": "tool",
-        "ref": "tools/vcs/law-claim.ps1#commit-message"
+        "kind": "planned",
+        "ref": "DECISIONS.md#2.7"
       }
     },
     {

@@ -1,14 +1,20 @@
 # fence.ps1 - design-first PreToolUse fence (Edit | Write | Bash | PowerShell).
 #
-# Chesterton's Fence + Goodhart gate. FENCE trips on NET DELETION and asks. GOODHART trips when an
-# edit to a measuring file (test | probe | spec | verify | assert in the path) removes or neuters an
+# Chesterton's Fence + Goodhart gate. FENCE trips on a deletion it can see (an Edit that empties a
+# block or removes three or more lines, a Write that keeps under three quarters of the bytes, a
+# destructive shell command from its list) and advises. GOODHART trips when an edit to a measuring
+# file (a folder or file name in the path holds, as a word part, a word that starts with test,
+# probe, verify or assert, or the word spec or specs; see Test-MeasuringPath) removes or neuters an
 # assertion.
 #
 # Two tiers, because a guard that covers one language is not a guard:
-#   PAREN form  - assert(...), self.assertEqual(...), expect(...)         -> DENIES
+#   PAREN form  - assert(...), self.assertEqual(...), expect(...) (not .expect(), a method call) -> DENIES
 #   LOOSE form  - Python bare `assert x == 1`, pytest.raises, Rust assert_eq! -> ADVISES
-# The loose pattern is broader and can misread a legitimate refactor, so it asks rather than denies.
-# Both fire only on a NET DECREASE inside a measuring path.
+# The loose pattern is broader and can misread a legitimate refactor, so it advises rather than
+# denies. Both tiers fire only on a NET DECREASE inside a measuring path. The '* 0' deny fires with
+# no decrease, and it is not reached when the same Edit or Write already got the loose-form advise.
+# An Edit is compared on its old and new strings; a Write on the file on disk and the new content.
+# A NotebookEdit is not fenced: the matcher in hooks.json does not send it here.
 #
 # Failure policy: an internal error ALLOWS the call, appends an ERROR line to the hooks log and says
 # so on both channels. Never silent.
@@ -20,7 +26,38 @@ $result = $null
 
 function Count-Asserts([string]$s) {
     if ([string]::IsNullOrEmpty($s)) { return 0 }
-    return ([regex]::Matches($s, '\bassert\w*\s*\(|\bexpect\w*\s*\(')).Count
+    # Workaround (CR-2026-10-15-GAPS review): a method call '.expect(' counted as an assertion, so a
+    # Rust test that swapped .expect("...") for '?' was denied. An expect( right after a '.' is a
+    # method call and does not count (chai.expect( is lost with it; see GATE-11's residual).
+    return ([regex]::Matches($s, '\bassert\w*\s*\(|(?<!\.)\bexpect\w*\s*\(')).Count
+}
+
+# The "* 0" idiom: a term multiplied by zero, '* 0', '* 0.', '* 0.0'. Workaround (CR-2026-10-15-GAPS
+# review): the pattern ended in \b, which also fires between '0' and '.5', so '* 0.5' was read as a
+# zero term and a test that halves a value was denied. The zero must not run on into a digit, a
+# letter or another '.', so '* 0.5' and '* 0x10' do not match. Workaround (CR-2026-10-15-GAPS second
+# review): the '*' that opens a C block comment matched too, so an Edit that wrote '/* 0 = off */'
+# in a test was denied. A '*' right after '/' (or after '/' and more '*', as in '/** 0') opens a
+# comment and is not a multiply.
+$ZeroTermRx = '(?<!/\**)\*\s*0(?:\.0*)?(?![.\w])'
+
+# A measuring file: a folder or file name in its path that holds a measuring word as a word part.
+# A name is cut into word parts at any character that is not a letter or a digit, at a change from
+# lower to upper case, and between letters and digits. A word part counts when it starts with test,
+# probe, verify or assert, or is spec or specs, so tests/, testdata/, spec/, test_x.py, x.test.js,
+# x_spec.rb, verify-build.ps1 and FooTest.java count. Workaround (CR-2026-10-15-GAPS review): the
+# test was a substring match on the whole path, so latest/, inspector/ and special/ were measuring
+# folders and a rewrite there that dropped an assertion was denied. 'spec' is matched whole (and
+# plural) and not as a start, because special, specific and species start with it.
+$MeasuringWordRx = '^(test\w*|specs?|probe\w*|verify\w*|assert\w*)$'
+function Test-MeasuringPath([string]$p) {
+    if ([string]::IsNullOrWhiteSpace($p)) { return $false }
+    foreach ($seg in ($p -split '[\\/]')) {
+        if (-not $seg) { continue }
+        $cut = $seg -creplace '(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|(?<=[A-Za-z])(?=\d)|(?<=\d)(?=[A-Za-z])', ' '
+        foreach ($w in ($cut -split '[^A-Za-z0-9]+')) { if ($w -and $w -match $MeasuringWordRx) { return $true } }
+    }
+    return $false
 }
 
 function Count-AssertsLoose([string]$s) {
@@ -104,13 +141,13 @@ try {
             $new = [string]$ti.new_string
             $fp  = [string]$ti.file_path
             if ([string]::IsNullOrEmpty($old)) { break }
-            if ($fp -match '(?i)(test|probe|spec|verify|assert)') {
+            if (Test-MeasuringPath $fp) {
                 $oldA = Count-Asserts $old; $newA = Count-Asserts $new
                 if ($newA -lt $oldA) { $result = New-Goodhart "$($oldA - $newA) assertion(s) removed" $fp; break }
                 $oldL = Count-AssertsLoose $old; $newL = Count-AssertsLoose $new
                 if ($newL -lt $oldL) { $result = New-GoodhartSoft "$($oldL - $newL) assertion(s) removed (Python/Rust form)" $fp; break }
                 # The "* 0.0" idiom: an assertion survives textually but its term is erased.
-                if ($new -match '\*\s*0(\.0+)?\b' -and $old -notmatch '\*\s*0(\.0+)?\b') {
+                if ($new -match $ZeroTermRx -and $old -notmatch $ZeroTermRx) {
                     $result = New-Goodhart "a '* 0' term introduced (an assertion may be erasing itself)" $fp; break
                 }
             }
@@ -123,6 +160,20 @@ try {
             if (-not (Test-Path -LiteralPath $p -PathType Leaf)) { break }
             $oldLen = (Get-Item -LiteralPath $p).Length
             if ($oldLen -le 0) { break }
+            # A Write to a measuring file is compared assertion by assertion, like an Edit: the file
+            # on disk is the old text and the content is the new. Workaround (CR-2026-10-15-GAPS D1):
+            # this branch compared bytes only, so a full rewrite that dropped assertions got at most
+            # a size advise, and none when it kept three quarters of the bytes.
+            if (Test-MeasuringPath $p) {
+                $old = [IO.File]::ReadAllText($p); $new = [string]$ti.content
+                $oldA = Count-Asserts $old; $newA = Count-Asserts $new
+                if ($newA -lt $oldA) { $result = New-Goodhart "$($oldA - $newA) assertion(s) removed by a Write" $p; break }
+                $oldL = Count-AssertsLoose $old; $newL = Count-AssertsLoose $new
+                if ($newL -lt $oldL) { $result = New-GoodhartSoft "$($oldL - $newL) assertion(s) removed by a Write (Python/Rust form)" $p; break }
+                if ($new -match $ZeroTermRx -and $old -notmatch $ZeroTermRx) {
+                    $result = New-Goodhart "a '* 0' term introduced by a Write (an assertion may be erasing itself)" $p; break
+                }
+            }
             $newLen = [Text.Encoding]::UTF8.GetByteCount([string]$ti.content)
             if ($newLen -lt ($oldLen * 0.75)) {
                 $pct = [int](100 - (($newLen / $oldLen) * 100))

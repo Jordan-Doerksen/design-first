@@ -8,9 +8,13 @@ Double-click `Doctor.bat` in your brain folder, or from any shell:
 
 ```
 pwsh -NoProfile -File <pluginRoot>\tools\doctor\doctor.ps1            # your brain and root
-pwsh -NoProfile -File <pluginRoot>\tools\doctor\doctor.ps1 -Kit       # the kit checks itself
+pwsh -NoProfile -File <kit checkout>\tools\doctor\doctor.ps1 -Kit   # the kit checks the tree this script sits in
 pwsh -NoProfile -File <pluginRoot>\tools\doctor\doctor.ps1 -Json      # one JSON document, no colour
 ```
+
+`-Kit` checks the copy of the kit that the script sits in. To check a change, run the checkout's
+script; `<pluginRoot>\tools\doctor\doctor.ps1 -Kit` and `Doctor.bat -Kit` check the copy the
+pointer's `pluginRoot` names, which is the installed copy unless the plugin runs from the checkout.
 
 Switches: `-Kit`, `-Json`, `-Quiet`, `-ConfigPath <file>`, `-ClaimsPath <file>`. `Doctor.bat` passes
 them through and pauses only when run with no arguments.
@@ -39,7 +43,7 @@ absent); state goes to `<kit>\state\`.
 |---|---|---|
 | **CLAIMS** | every claim in `claims.json`, plus the built-in config schema check | any `FAIL` = **RED, exit 1** |
 | **SURVEY** | repository, wiring and snapshot findings | **REPORTED, exit 0**. With `surveyStrict: true` in the config, `fail`-severity findings are RED (exit 1). `warn` and `info` never change the exit code. |
-| **COULD-NOT-LOOK** | anything the Doctor could not check, including every `UNKNOWN` claim | **exit 2. Never a pass.** It wins over RED. |
+| **COULD-NOT-LOOK** | anything the Doctor could not check, including every `UNKNOWN` claim and a crash of the Doctor itself | **exit 2. Never a pass.** It wins over RED. |
 
 `GREEN` means: no false claim, nothing it could not look at, and (if strict) no survey fail.
 A `GREEN` with survey findings printed is still exit 0; the verdict line says how many were
@@ -54,8 +58,24 @@ Each claim prints one line when it fails or cannot be evaluated:
 | `FAIL  <ID>  <detail>` then `why: ...` | A statement a law file depends on has gone false. | Read the `why`. Fix the document or fix the world. Never delete the claim to make it pass. |
 | `????  <ID>  <detail>` | The claim could not be evaluated (file missing, generator failed, hook not registered, unknown type). Counted in COULD-NOT-LOOK. | Make the thing checkable, or remove a claim that can never be. |
 | `FAIL  CONFIG-SCHEMA  MIGRATE: <config> is schema N; this Doctor expects schema 1` | The plugin was updated and your `doctor.config.json` is older (or has no `schema`). Every reader below assumes schema 1. | Follow the migration note in the kit README, then set `schema` to 1. |
+| `FAIL  BRAIN-LAW-01  <brain>\LAW.md differs from the generator's output` | Your brain's `LAW.md` is not what a fresh build of the kit's `law.json`, your overlay and `state\law-installed.json` gives. A plugin update changed the law, or someone edited `LAW.md` by hand. The route and subagent hooks read their law rows from this file, so sessions get the old law until it is rebuilt. | Rebuild it with the command under the table. Never edit `LAW.md` by hand; change the overlay. |
+| `????  BRAIN-LAW-01  installed missing: <brain>\state\law-installed.json` | The file `adopt` writes for the law build is gone (a fresh clone of the brain, or `state\` was deleted). | Run `/design-first:adopt` again; attach mode writes it and changes no file you edited. |
 | `every claim holds` | All claims PASS. | - |
 | `no claims to check` | The claims file has an empty `claims` array. | Add a claim whenever a law file states a fact about the disk. |
+
+Rebuild the brain's `LAW.md` with the same inputs `BRAIN-LAW-01` uses (adopt ships that claim in
+the brain's `claims.json`). Run it after every plugin update that changes the law, and after every
+overlay edit:
+
+```
+pwsh -NoProfile -File <pluginRoot>\tools\law\build-law.ps1 -Source <pluginRoot>\law.json -Overlay <brain>\law.overlay.json -Installed <brain>\state\law-installed.json -BrainRoot <brain> -Out <brain>\LAW.md
+```
+
+`state\law-installed.json` is written by `adopt`, not by the Doctor: every hook the kit's
+`hooks.json` registers (`true` when its script exists), whether root settings carry the kit's
+rules, and the pointer. A clause whose mechanism it records as `false` prints `HONOUR (mechanism
+not installed)`. A hook it does not name keeps the kit grade, so a hook that a later plugin
+version registers is not printed as missing.
 
 ### Claim types (SPEC 5.2)
 
@@ -91,7 +111,7 @@ snapshot) once the change is accepted. The claim never re-baselines itself, and 
 forgotten one into COULD-NOT-LOOK instead of a green that means nothing.
 
 ```
-pwsh -NoProfile -File <pluginRoot>	ools\doctor\snapshot.ps1 -Root <folder> -Out <file.json> [-Exclude a,b/c]
+pwsh -NoProfile -File <pluginRoot>\tools\doctor\snapshot.ps1 -Root <folder> -Out <file.json> [-Exclude a,b/c]
 ```
 
 The writer walks `Root` with the claim's own rule (`.git` and every `Exclude` path skipped) and
@@ -186,13 +206,14 @@ Finding kinds for `acceptedExceptions`: `noRemote`, `emptyRepo`, `foreignRemote`
 | `hooks.json could not be parsed` / `settings could not be parsed: <file>` / `fence log could not be read` | A file the Doctor reads is not readable. | Fix the file. |
 | `claim <ID> could not be evaluated: <detail>` | One `UNKNOWN` claim. | See the claim's `????` line. |
 | `WARNING: state could not be written to <dir>` | Not a band; printed when `state\` is not writable. The verdict stands. | Check permissions on the state folder. |
+| `COULD-NOT-LOOK: the Doctor stopped: <message> at <file>:<line>. No verdict was reached.` | The Doctor itself failed outside every check: a kit file that does not load, or a defect in a step. Nothing was judged, so this is exit 2 and never RED; `Doctor.bat` prints `COULD NOT LOOK`. Under `-Json` it is one document with `verdict`, `exitCode`, `reason` and `mode`. A crash up to and in the verdict step leaves `state\` as the previous run wrote it; a crash in the report comes after `state\` is written, so `last-run.json` then holds a verdict this run did not print. | Read the file and line. Re-install the plugin if a kit file is damaged; otherwise report the defect with that line. |
 
 ## Config: `<brain>\doctor.config.json` (SPEC 5.3)
 
 | key | reader | means |
 |---|---|---|
 | `schema` | doctor.ps1 | Must be 1. Mismatch is the `MIGRATE` claim. |
-| `surveyStrict` | report.ps1 | `true`: survey `fail` findings turn the verdict RED. Default `false`. |
+| `surveyStrict` | report.ps1 | `true`: survey `fail` findings turn the verdict RED. Default `false`, so the kit grades VCS-01, VCS-02 and VCS-22 HONOUR; with `true`, re-grade them to GATE in `law.overlay.json` on their survey anchors and add a `json_subset_equal` claim that holds `surveyStrict: true`. VCS-04 and DES-09 rest on `warn` findings and stay HONOUR. |
 | `maxDepth` | repos.ps1 | How deep to look for `.git` under root. |
 | `parallelGit` | repos.ps1 | How many repositories the sweep reads at a time. Default 8. Set 1 to read them one after another; the result is the same, only slower. |
 | `excludePathParts` | repos.ps1 | Repos whose path contains a part are not swept. |
@@ -214,14 +235,15 @@ Finding kinds for `acceptedExceptions`: `noRemote`, `emptyRepo`, `foreignRemote`
 | `readCeilingBytes` | hooks/guard.ps1 | The read check (DES-03). A write that grows a source file past this many bytes, about one Read, tells the agent once per file per session, on its context only, to list the file's subjects; it never asks for a split for size. Default 49152; 0 turns it off. |
 | `readCeilingExempt` | hooks/guard.ps1 | Path globs the read check skips. Only `*` is a wildcard (`**` is the same) and it matches across folders; brackets and other characters match literally, so a folder named `[slug]` needs no escaping. `${ROOT}`, `${BRAIN}` and `%USERPROFILE%` expand. A file whose first lines carry `@generated`, or a line with both "generated" and "do not edit", is skipped without a glob. |
 | `sourceExtensions` | hooks/guard.ps1, hooks/stop.ps1 | Which extensions count as source. Documents, config and data do not. |
-| `stopDocs` | hooks/stop.ps1 | File names that count as documents on the Stop card. A file under `docs/` counts too. |
-| `stopFromGit` | hooks/stop.ps1 | Default true: the Stop card reads the turn's changes from git, so a file a command changed is counted. False: the card counts Edit and Write calls only, as before 0.1.15. |
+| `stopDocs` | hooks/stop.ps1 | File names that count as documents on the Stop card. A file in a `docs/` folder inside the repository counts too, unless its extension is a source extension: `docs/build.ps1` is source. A `docs` folder above the repository does not count. |
+| `stopFromGit` | hooks/stop.ps1 | Default true: the Stop card reads the turn's changes from git in each repository under the root that a tool call this turn pointed at, so a file a command changed there is counted; a repository no call named, and a copy that keeps the old write time, are not seen. False, or no prompt time on record: the card counts Edit and Write calls only, as before 0.1.15; a turn that changed source only through commands gets no card, and an Edit or Write that a later hook or the owner refused still counts. |
+| `stopBudgetSeconds` | hooks/stop.ps1 | Default 15. The Stop card's time budget in seconds, under the host's 20-second Stop timeout. When it is spent, the hook reads git in no more repositories: it counts them from Edit and Write calls, logs a WARN line and names them on the card (or, with nothing to card, in a system message). A value outside (0, 18] keeps the default. |
 | `forbidScheduling` | hooks/guard.ps1 | Default false. True: guard rule 8 refuses a command that creates a scheduled task, a cron entry, a Run key, a service or a Startup-folder entry. |
 | `contentRules` | hooks/guard.ps1 | Default empty. A list of `{ id, under[], except[], exceptParts[], extensions[], pattern, shell, why }`. Guard rule 9 refuses an edit under `under` that adds a match of `pattern`. A rule needs `id`, `pattern` and one `under` path that resolves. |
-| `loopBranchPrefix` | hooks/guard.ps1 | Default `harness/`. A repository whose current branch starts with it is on the loop branch: guard rule 11 refuses `git push`, `merge` and `pull` there (AUTO-11), rule 12 refuses edits to the story ledger (AUTO-04). |
+| `loopBranchPrefix` | hooks/guard.ps1 | Default `harness/`. A repository whose current branch starts with it is on the loop branch, and so is a detached HEAD while a rebase of such a branch is stopped or a bisect that started on one runs (there rule 11 also refuses `rebase --quit`): guard rule 11 refuses `git push` (and `git send-pack`, the plumbing under it), `merge` and `pull` there, and a command that leaves it or moves another branch onto its work: a `checkout` or `switch` off it, a `worktree add` off it, a `rebase` that names a branch other than a local loop branch, a `bisect` that can check out a commit, a `fetch` into a local branch, a `branch -m`/`-M`/`-c`/`-C`/`-f`, `update-ref` and a `symbolic-ref` write (AUTO-11); rule 12 refuses edits to the story ledger (AUTO-04). From any branch, rule 11 refuses a push, merge or pull that names a branch with the prefix, a `push --all`, `--mirror` or glob refspec that covers one, a branch move or ref write that names one, and a `fetch` that writes one or writes a local branch from one or from a glob that can cover one. Any other git command or form that moves HEAD or a branch is a residual (`hooks/lib/guard-loop-rules.ps1`). |
 | `loopLedgerGlobs` | hooks/guard.ps1 | Default `docs/specs/*.tasks.json`, `specs/*.tasks.json`. Repository-relative globs of the story ledger rule 12 protects on the loop branch. |
 | `commitMessage` | tools/vcs/law-claim.ps1 | `{ maxSubject, pastTenseWords[], placeholders[] }`. Defaults 72, a built-in past-tense list, a built-in placeholder list. The commit-msg shim refuses a subject over the limit, a past-tense first word or a bare placeholder (VOICE-05); merges and reverts are exempt. |
-| `ask` (in `doctor.config.json`) | hooks/ask.ps1 | `{ minReason, equalPhrases[], recommendedMarker }` (OWN-04). Defaults 40 characters, a built-in list of equal-options phrases ("both are acceptable", "either is fine", "no wrong answer" and others), and `(?i)\brecommended\b` on the first option's label. A question is refused when an option's description is shorter than `minReason`, when its text holds a phrase from the list, or when its first option's label does not match the marker. `minReason` 0 or an empty marker turns that check off. |
+| `ask` (in `doctor.config.json`) | hooks/ask.ps1 | `{ minReason, equalPhrases[], recommendedMarker }` (OWN-04). Defaults 40 characters, a built-in list of equal-options phrases ("both are acceptable", "either is fine", "no wrong answer" and others), and `(?i)\brecommended\b` on the first option's label. A question is refused when an option's description is shorter than `minReason`, when its text holds a phrase from the list (a phrase that is negated, quoted, or in a sentence that also holds a contrast word such as 'but' does not count; see `instructions/working-with-the-owner.md`), or when its first option's label does not match the marker. `minReason` 0 or an empty marker turns that check off. |
 
 Keys that are no longer keys and are reported as dead if present: `root`, `stateDir`, `recordsDir`,
 `gitTimeoutSeconds`, `staleStateDays`, `_retiredUnversionedWatchlist`, `enforcement.settingsPath`,
@@ -237,7 +259,7 @@ reaches a brain only when it is added there by hand.
 
 | Key | Since | Effect |
 |---|---|---|
-| `alwaysForSessions` | 0.1.34 | Groups added to every session's first prompt, and again after a compaction, whatever the words and the folder (OWN-10). The template lists `OWN`. Absent: no group arrives without a matching word or folder, as before 0.1.34. These groups are not sent to subagents unless `alwaysForSubagents` lists them too. |
+| `alwaysForSessions` | 0.1.34 | Groups added to every session's first prompt, and again after a compaction or a clear, whatever the words and the folder (OWN-10). The template lists `OWN`. Absent: no group arrives without a matching word or folder, as before 0.1.34. These groups are not sent to subagents unless `alwaysForSubagents` lists them too. |
 
 To take a new key on an existing brain, copy its line from the template into the brain's
 `route-policy.json`.
@@ -251,7 +273,8 @@ Generated, never hand-edited. Byte-identical on a re-run with nothing changed, e
 | `repos.json` | every swept repo: remote, ownership, ahead, dirty, shallow, frozen, last commit; linked worktrees carry `worktree: true` and `parent` |
 | `repos.generated.md` | the same as a table, sorted, no timestamp; worktrees are not rows (folded into their parents) |
 | `last-run.json` | when it ran, the mode, the verdict, `repoCount`, `worktreeCount` and the band counts; the only file with a timestamp |
-| `ratchets.json` | one record per `ratchet` claim id: `value`, `recordedAt`, `acceptedUsed`. Rewritten only when a record moves. Deleting it resets every ratchet to a new baseline, so keep it in git when the brain is a repository. |
+| `ratchets.json` | one record per `ratchet` claim id: `value`, `recordedAt`, `acceptedUsed`. Rewritten only when a record moves. Deleting it, a fresh clone, or `/design-first:remove` resets every ratchet: the next run passes at any value and records it as the new baseline. When the brain is a repository, the `.gitignore` adopt writes ignores `state/` (adopt keeps a `.gitignore` that exists), so the record is local to this machine (`PRIN-04`, written limit in `instructions/principles.md`). |
+| `law-installed.json` | written by `adopt`, read by the law build and `BRAIN-LAW-01`: `hooks` (every hook `hooks.json` registers, `true` when its script exists), `rootSettings`, `pointer`. The Doctor never writes it. |
 
 All state files are UTF-8 without BOM, LF.
 
@@ -270,7 +293,14 @@ reported exactly once (one of them frozen and dirty, which must still trip), and
 0, 1 and 2, the `-Kit` and `-Json` paths and the `Doctor.bat` shim. The config cases
 (`selftest-config.ps1`, run by the same command) prove that every key in the reader table has a
 default, that a file which sets every key loads, and that a key with no default loads and does not
-throw. It never touches your real
+throw. The honesty cases (`selftest-truth.ps1`) crash a scratch copy of the Doctor twice, once
+while it loads its files and once in the verdict step under `-Json`, and require exit 2 with the
+reason, the file and the line; and they require a `hook_smoke` claim in the kit's own claims for
+every hook `hooks.json` registers. The law cases (`selftest-law.ps1`) run the kit's law build and
+docs build from scratch copies on planted inputs: the LAW.md legend for ADVISE, a clause on a hook
+script that `hooks.json` does not register or on a `lib\` file named like one it does (the build
+must fail), a script registered in a subfolder of `hooks\`, a kit with no `hooks.json`, and a
+DENY clause that the docs page must count as stopped and show on a coloured chip. It never touches your real
 folders. About a minute. Run it after any change to the Doctor: a check that cannot fail is worse
 than no check.
 
@@ -289,6 +319,11 @@ The shim finds the kit through the pointer on every commit, so it survives a plu
 add two claims so the Doctor proves it is there: `path_exists` on `${BRAIN}/.git/hooks/commit-msg`,
 and `file_contains` on the same file with the needle `tools\vcs\law-claim.ps1`.
 
+**Grades.** `adopt` does not install the shim, so the kit grades VCS-23 and VOICE-05 BUILDABLE
+(DECISIONS.md 2.7). With the shim installed and the two claims added, re-grade both to GATE in
+`law.overlay.json`: VCS-23 on `tools/vcs/law-claim.ps1#law-claim`, VOICE-05 on
+`tools/vcs/law-claim.ps1#commit-message`. Then rebuild `LAW.md`.
+
 **A law file** is every owning file the brain's `LAW.md` names as `brain:<path>`, plus
 `law.overlay.json`, plus `lawClaim.extraFiles`. The list is read from `LAW.md` at commit time.
 
@@ -296,7 +331,7 @@ and `file_contains` on the same file with the needle `tools\vcs\law-claim.ps1`.
 |---|---|---|
 | `design-first VCS-23: this commit changes a law file and carries no claim.` | A law file is in the commit, `claims.json` is not, and the message has no waiver. The commit was refused. | Stage the claim in `claims.json`. Or, when the change states no fact about the disk, add a line `No-Claim: <reason>` to the commit message. |
 | `The reason given ('...') is shorter than N characters` | The waiver line is there with no real reason. | Say why no claim is needed. |
-| `design-first law-claim: no pointer at <path>; VCS-23 was NOT checked` | The shim could not find the kit. The commit went through unchecked. | Start a session so `entry.ps1` writes the pointer, or run `/design-first:adopt`. |
+| `design-first law-claim: no pointer at <path>; VCS-23 was NOT checked` | The shim could not find the kit. The commit went through unchecked. | Run `/design-first:adopt`; it writes the pointer. A session start does not create one: `entry.ps1` only refreshes `pluginRoot` in a pointer that already exists. |
 | `design-first law-claim: pwsh is not on PATH; VCS-23 was NOT checked` | PowerShell 7 was not found. The commit went through unchecked. | `winget install Microsoft.PowerShell`. |
 | `design-first law-claim: internal error, VCS-23 was NOT checked` | The script failed. The commit went through, and an ERROR line is in the hooks log. | Read the log line; report it. |
 | nothing, and a law commit went through | The shim is not installed in this clone, or the commit used `--no-verify`. | Install it. The two Doctor claims catch a missing shim. |
@@ -321,8 +356,11 @@ waiver's reason is read by a person; a merge is not checked; `--no-verify` skips
   That is what the kit's hook self-tests are for.
 - `tree_free_of` reads the files named by `extensions` and nothing else. A leak in an unlisted
   extension is not seen; the pre-flip history scan has the same scope.
+- `state\law-installed.json` records what `adopt` saw. A hook script deleted after adopt still
+  reads as installed in the brain's `LAW.md`; the survey line `hook REGISTERED BUT MISSING` is
+  what catches it. Run `adopt` again after such a change and rebuild `LAW.md`.
 - It reports what is true now. It does not know what you intended.
 
 ## Anchors and grades
 
-A script anchor is a comment line `# anchor: <name>  mode: <deny|advise|gate>  verbs: <a,b>`. The law generator derives a clause's grade from the anchor it cites: `mode: deny` in a hook prints HOOK, `mode: advise` prints ADVISE, and `mode: gate` in a tool prints GATE. The Doctor carries one tool anchor, `could-not-look`, on the line that decides the COULD-NOT-LOOK verdict: a Doctor that could not look never reports green, and the clauses that say so cite that line.
+A script anchor is a comment line `# anchor: <name>  mode: <deny|advise|gate>  verbs: <a,b>`. The law generator checks a clause's grade against the anchor it cites: a HOOK clause needs `mode: deny` in a hook, an ADVISE clause `mode: advise` in a hook, and a GATE clause on a tool `mode: gate`. A hook clause's ref must name a script that `hooks\hooks.json` registers, by its path under `hooks\`; its anchor may sit in that script or in a `lib\` file beside it. A clause on a kit hook script that nothing registers fails the build, because that script never runs, and so does a ref to a `lib\` file: it runs only through the script that loads it, so name that script. The Doctor carries one tool anchor, `could-not-look`, on the line that decides the COULD-NOT-LOOK verdict: a Doctor that could not look never reports green, and the clauses that say so cite that line.

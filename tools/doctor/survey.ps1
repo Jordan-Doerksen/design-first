@@ -34,7 +34,10 @@ function Get-RepoFindings {
             $f += New-Finding 'fail' 'foreignRemote' $r.path ("FOREIGN remote: {0} -> {1}. Looks backed up; cannot be pushed." -f $r.path, $r.remote)
         }
         if ($null -ne $r.ahead -and $r.ahead -gt 0) {
-            # anchor: survey-unpushed  mode: gate  verbs: back-up
+            # A 'warn' never changes the verdict, so this anchor is advise and the law build refuses a
+            # GATE grade on it (CR-2026-10-15-GAPS second review: it declared gate, so an overlay could
+            # print VCS-04 as GATE on a finding that stops nothing).
+            # anchor: survey-unpushed  mode: advise  verbs: back-up
             $f += New-Finding 'warn' 'unpushed' $r.path ("{0} commits unpushed: {1}" -f $r.ahead, $r.path)
         }
         # git fsck CANNOT see a shallow clone - it honours the boundary. Only the marker file shows it.
@@ -46,8 +49,9 @@ function Get-RepoFindings {
             $f += New-Finding 'fail' 'frozenDirty' $r.path ("frozen reference has MOVED: {0} ({1} uncommitted entries)" -f $r.path, $r.dirty)
         }
         # Silent and cumulative rather than immediate, so a warn; a frozen tree is not edited to add one.
+        # A warn never changes the verdict, so the anchor is advise, as survey-unpushed's is (DES-09).
         if ($r.commits -gt 0 -and -not $r.hasAttrs -and -not $r.frozen) {
-            # anchor: survey-no-gitattributes  mode: gate  verbs: pin-bytes
+            # anchor: survey-no-gitattributes  mode: advise  verbs: pin-bytes
             $f += New-Finding 'warn' 'noGitattributes' $r.path ("no .gitattributes: {0} - core.autocrlf decides its bytes, not the repo" -f $r.path)
         }
     }

@@ -4,10 +4,14 @@
 # the most expensive model, briefs with no done-check, one session spawning 33.
 #   1. agent-brief  - DENY a spawn whose brief lacks the contract headings (Goal:, Files: or Area:,
 #                     Done when:, Ruled out:). Search-type agents need only Goal: and Done when:.
-#   2. agent-route  - when the call names no model, set one from the brain's role table
-#                     (updatedInput). A model named on the call always wins.
-#   3. agent-cap    - count spawns per turn (session_id + prompt_id); above the cap, ASK the owner,
-#                     naming the count and the models so far.
+#                     Only the headings are checked, not what follows them.
+#   2. agent-cap    - count spawns per turn (session_id + prompt_id; with no prompt_id, per clock
+#                     hour); above the cap, ASK the owner, naming the count and the models so far.
+#                     The cap is checked before routing, so the ask can name the models so far; a
+#                     spawn over the cap is not routed, and runs with no routed model if allowed.
+#   3. agent-route  - when the call names no model and the spawn is at or under the cap, set one
+#                     from the brain's role table (updatedInput). A model named on the call always
+#                     wins.
 # Tunables live in <brain>/agent-policy.json. With no brain the kit template is the policy, and the
 # hook says so once per session. Nested spawns (agent_id present) are checked and counted the same.
 #
@@ -112,7 +116,7 @@ try {
                           body  = "No brain policy, kit defaults in use: design-first found no <brain>\agent-policy.json, so the kit template at $($pol.source) is the policy for this session. Run /design-first:adopt, or copy the template into the brain, to tune routes and the cap." }
     }
 
-    # ---------------------------------------------------------------- 3. cap (counted before routing so the ask can list models)
+    # ---------------------------------------------------------------- 2. cap (counted before routing so the ask can list models)
     $cap = 0
     if ($policy.cap -and $policy.cap.PSObject.Properties['perTurn']) { [void][int]::TryParse([string]$policy.cap.perTurn, [ref]$cap) }
     $route = Get-Route $policy $type
@@ -138,7 +142,7 @@ try {
     Add-DfTextLine $counter ("{0}`t{1}" -f $effective, $type)
     $capText = if ($cap -gt 0) { "spawn $n of $cap this turn" } else { "spawn $n this turn, no cap" }
 
-    # ---------------------------------------------------------------- 2. routing (rewrite when the call names no model)
+    # ---------------------------------------------------------------- 3. routing (rewrite when the call names no model)
     if (-not $named -and $route -ne 'inherit') {
         $updated = [ordered]@{}
         foreach ($p in $ti.PSObject.Properties) { $updated[$p.Name] = $p.Value }

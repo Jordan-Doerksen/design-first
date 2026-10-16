@@ -196,7 +196,25 @@ A project drifts when an agent silently makes a "small" change that alters the a
 Change Request records: Proposed Change · Reason · Affected Areas · Risk (low/medium/high) ·
 Required Updates checklist (manifest · architecture map · config · tests · README · cross-check) ·
 Final Decision + Rationale. Approval is the owner's (`AUTO-01`). The approved change is appended
-to the manifest's Change Log; the Open Questions table is where an unresolved one waits.
+to the manifest's Change Log; the Open Questions table is where an unresolved one waits; a refused
+one leaves the locked decision standing, and the work changes to agree with it (`DES-02`).
+
+**Mechanism.** The Stop card (`hooks/stop.ps1#stop-done`) asks once in a turn that changed source;
+the brain's `sourceExtensions` decides what is source. A turn that changed only config, data or
+documents gets no card (the one exception is a repository whose git status lists more entries than
+the hook reads), so write the Change Request by hand. Every card asks whether the turn changed
+design, behaviour, config, risk, execution, data flow or dependencies and, if it did, for the name
+of its Change Request, and names GATE-06 on its first line (since the second review of
+CR-2026-10-15-GAPS; a fix round before it named GATE-06 only with the Change Log line, so a
+behaviour change that left `DECISIONS.md` alone got no GATE-06 at all). The card adds a Change Log
+line only when `DECISIONS.md` changed in a turn that also changed source and no dated table row
+was added: for a `DECISIONS.md` that git lists, the turn's diffs must add more dated rows than
+they remove; for one git does not list, and on a card counted from the calls, the guard's flag on an Edit or Write that
+added a row decides. The line needs `DECISIONS.md` to count as a document: the kit's default
+`stopDocs` list names it, and a brain list that leaves it out turns the line off for a
+`DECISIONS.md` outside a `docs` folder. That line does not see a behaviour change that leaves
+`DECISIONS.md` alone (the question on every card asks about it, and nothing checks the answer),
+and it sees a dated row, not the owner's approval. The grade is under GATE-07.
 
 ### GATE-07
 
@@ -208,10 +226,19 @@ creates no unresolved dependency · it contradicts no earlier decision · it sup
 it satisfies `instructions/observability-law.md` (it logs, it has no silent failure path, its bug
 plan exists) · its documents are updated (`DES-07`) · the result fits one screen of explanation.
 
+**Grade of GATE-05, GATE-06 and GATE-07: ADVISE** (since 2026-10-15, CR-2026-10-15-GAPS D4;
+HOOK before). Their machine part is the Stop card (`hooks/stop.ps1#stop-done`). In a turn that
+changed source it blocks the first stop once and hands over the card, which asks for the
+Change Request a change needs, the cross-check and part of the Definition of Done, and names at
+its top every clause it carries.
+The second stop passes whatever the answer says, and nothing grades the answer, so the hook
+advises; it does not refuse a skipped cross-check.
+
 ## The three deletion guards
 
-Three named failure modes about *removing* things. Obey them as agent rules; two of them are
-backed by the kit's `fence.ps1` hook, and the honest limits of that hook are written here.
+Three named failure modes about *removing* things. Obey them as agent rules; all three are backed
+by the kit's `fence.ps1` hook (GATE-13 only on a deletion the fence sees), and the honest limits of
+that hook are written here.
 
 ### GATE-11
 
@@ -219,17 +246,45 @@ backed by the kit's `fence.ps1` hook, and the honest limits of that hook are wri
 the code, not the measure.**
 
 Goodhart's law: a measure that becomes a target stops measuring. Never weaken a check to pass it.
-Any file under a `test|probe|spec|verify|assert` path is a measuring file.
+A file is a measuring file when a folder name or the file name in its path holds a measuring word
+as a word part. A name is cut into word parts at any character that is not a letter or a digit,
+at a change from lower to upper case, and between letters and digits. A word part counts when it
+starts with `test`, `probe`, `verify` or `assert`, or is `spec` or `specs`: `tests/`,
+`testutils/`, `spec/`, `test_x.py`, `x.test.js`, `x_spec.rb` and `FooTest.java` count; `latest/`,
+`inspector/` and `special/` do not. `spec` is matched whole, not as a start, because `special`,
+`specific` and `species` start with it (since 2026-10-15, CR-2026-10-15-GAPS review; before, any
+substring of the full path counted, and a rewrite under `latest/` that dropped an assertion was
+denied).
 
 **Mechanism.** The fence hook fires on a **net decrease** of assertions inside a measuring file,
 in two tiers. The **paren form blocks**: `assert(`, `self.assertEqual(`, `expect(` and their
-relatives return a deny, and the reason comes back to the agent to argue with the owner. The
+relatives return a deny, and the reason comes back to the agent to argue with the owner; an
+`expect(` right after a `.` is a method call (Rust's `.expect(`) and does not count. The
 **loose form advises**: a bare `assert x == y`, `pytest.raises`, `assert_eq!` / `assert!` (the `!`
 defeats a paren match) are detected and questioned, not denied, because the wider pattern can
-misread a legitimate refactor and a false positive on a blocking hook costs real work.
-**Residual:** the hook inspects tool calls, so an assertion removed by `sed`, a heredoc, or a script
-the agent writes is not seen. A test file made read-only for a fix chunk closes part of that gap; the
-written rule closes the rest, by making it a violation rather than an accident.
+misread a legitimate refactor and a false positive on a blocking hook costs real work. An Edit is
+compared on its old and new text; a Write to a measuring file that exists is compared the same way,
+the file on disk against the new content, and a Write that brings a `* 0` term into a file that had
+none is denied as an Edit that adds one is (since 2026-10-15, CR-2026-10-15-GAPS D1; before, a
+Write was compared on bytes only). A zero term is `* 0`, `* 0.` or `* 0.0`; the zero must not run
+on into a digit, a letter or another `.`, so `* 0.5` and `* 0x10` are not one, and a `*` right
+after `/` opens a C comment, so `/* 0 = off */` and `/** 0 */` are not one either (since the
+second review of CR-2026-10-15-GAPS; before, an Edit that wrote `/* 0 = off */` in a test was
+denied). **Residual:** the
+hook inspects tool calls, so an assertion removed by `sed`, a heredoc, or a script the agent writes
+is not seen. A NotebookEdit is not fenced at all: the fence's matcher in `hooks/hooks.json` does
+not send it to the hook. An assertion replaced by one that tests less keeps the count and is not
+seen; an assertion moved to another file is seen as a removal from the file it leaves. A measuring
+file whose name holds its word only inside or at the end of a longer word (`selftest.ps1`,
+`conftest.py`) is not read as one, unless a folder above it is; a word part that only starts with
+`test` (`testimonials.js`) is read as one. An assertion called as a method (`chai.expect(`,
+`pm.expect(`, Zig's `testing.expect(`) is not counted, and neither is one called on a module
+(`assert.equal(`), because the paren form needs the parenthesis right after the name. A zero
+written another way (`0.0f`, `0e0`, `* zero`) is not a zero term. A line inside a block comment,
+or a Markdown bullet in a `spec/` file, that starts with `* 0` is read as a zero term, and the edit
+that adds it is denied (a false deny; reword the line). A test file made read-only for a fix chunk
+closes part of that gap; the written rule closes the rest, by making it a violation rather than an
+accident.
 
 ### GATE-12
 
@@ -237,7 +292,12 @@ written rule closes the rest, by making it a violation rather than an accident.
 what breaks, and what evidence you checked.**
 
 Chesterton's fence: know why a thing exists before you remove it. **Mechanism.** The fence hook
-fires on any net deletion and injects the question; the edit proceeds. The answer is owed in the
+fires when an Edit empties a block or removes several lines, when a Write would keep too small a
+share of the file's bytes, and on a destructive shell command from its list (such as a forced or
+recursive delete, `git reset --hard` or `git clean -f`). It injects the question, and the edit
+proceeds. A smaller deletion is not seen, and neither is an Edit or Write to a measuring file that
+already got the Goodhart deny or advise (GATE-11); the thresholds and the list are in
+`hooks/fence.ps1`. The answer is owed in the
 reply, and "I don't know" is an answer that stops the deletion. Deleting, moving or consolidating a
 file is an owner decision in an autonomous loop (`AUTO-02`).
 
@@ -252,8 +312,10 @@ one.**
 
 The doorman fallacy: do not judge a thing by its most visible function. A doorman opens doors; he
 also watches who comes in. Before removing, automating or simplifying something, write down
-everything it does, then decide. This guard has no hook; it is the question the other two cannot
-ask for you.
+everything it does, then decide. Its machine part is the fence advise
+(`hooks/fence.ps1#fence-net-deletion`), which asks what the thing prevents and what breaks, on a
+deletion the fence sees (see GATE-12). An automation or a simplification that deletes nothing gets
+no advise, and listing the full function stays the agent's job.
 
 *Worked example.* A nightly script "just copies the export to the archive". Listing its full
 function: it also rotates the previous copy, fails loudly if the export is missing, and is the only

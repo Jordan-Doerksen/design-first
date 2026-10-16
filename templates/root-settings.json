@@ -28,7 +28,25 @@
       "Bash(uv sync)",
       "PowerShell(npm install)",
       "PowerShell(cargo install *)",
-      "PowerShell(uv sync)"
+      "PowerShell(uv sync)",
+      "Bash(npm add *)",
+      "Bash(pip3 install *)",
+      "Bash(python -m pip install *)",
+      "Bash(python3 -m pip install *)",
+      "Bash(py -m pip install *)",
+      "Bash(bun add *)",
+      "Bash(go get *)",
+      "Bash(poetry add *)",
+      "Bash(dotnet add package *)",
+      "PowerShell(npm add *)",
+      "PowerShell(pip3 install *)",
+      "PowerShell(python -m pip install *)",
+      "PowerShell(python3 -m pip install *)",
+      "PowerShell(py -m pip install *)",
+      "PowerShell(bun add *)",
+      "PowerShell(go get *)",
+      "PowerShell(poetry add *)",
+      "PowerShell(dotnet add package *)"
     ]
   }
 }

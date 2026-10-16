@@ -11,7 +11,16 @@ function Get-InstalledFlag($installed, $c) {
         'hook' {
             $name = [IO.Path]::GetFileNameWithoutExtension(($ref -split '#')[0])
             $hooks = Get-Prop $installed 'hooks'
-            return [bool](Get-Prop $hooks $name)
+            # A hook the installed state does not name keeps its kit grade; only a recorded false
+            # (adopt found the script missing) prints HONOUR. The state records the hooks adopt
+            # saw (state/law-installed.json, kept for the BRAIN-LAW-01 rebuild), so a hook that a
+            # later plugin version registers is absent from it, and an absent name read as false
+            # printed "(mechanism not installed)" over a hook that runs (CR-2026-10-15-GAPS D6).
+            # A kit hook script that hooks/hooks.json does not register never reaches this line:
+            # validate.ps1 fails the build for a clause that names one.
+            $flag = Get-Prop $hooks $name
+            if ($null -eq $flag) { return $null }
+            return [bool]$flag
         }
         'permission-rule' { return [bool](Get-Prop $installed 'rootSettings') }
         'doctor-claim'    { return [bool](Get-Prop $installed 'pointer') }
@@ -36,7 +45,10 @@ function Format-Law($groups, $clauses, $installed) {
     $L.Add('')
     $L.Add('- **DENY** a permission deny rule refuses unconditionally on its pattern')
     $L.Add('- **HOOK** a hook inspects the call and denies it; what it cannot see is written in the owning file')
-    $L.Add('- **ADVISE** a hook injects context and the call proceeds')
+    # The Stop hook is ADVISE too (CR-2026-10-15-GAPS D4): it holds the first stop of a turn once,
+    # with its card, and lets the turn end on the second. "Injects context and the call proceeds"
+    # was true of the other ADVISE hooks only.
+    $L.Add('- **ADVISE** a hook adds context or asks once; the call or the turn proceeds')
     $L.Add('- **GATE** a machine stops and asks, or the Doctor goes RED: an ask rule, a Doctor claim, a tool refusal')
     $L.Add('- **BUILDABLE** the mechanism is specified and not shipped')
     $L.Add('- **OWNER** a standing ruling; no mechanism, and none should try')

@@ -5,10 +5,12 @@
 #   - an option's description is shorter than the minimum (a label is not a reason: each option
 #     says what it gives, what it costs and who would pick it);
 #   - the question, a label or a description offers the options as equally fine (a negated or
-#     quoted phrase, or one in a sentence that says what tips it, is not a tie);
-#   - the first option's label is not the one marked recommended.
+#     quoted phrase, or one in a sentence that holds a contrast word, is not a tie);
+#   - the first option's label does not hold the recommended marker (a word match, so a label
+#     that says "not recommended" also passes).
 # A multi-select question is held to the same rules: each option carries its reason, and the
-# recommended options come first.
+# first option's label carries the recommended marker; the order of the other options is not
+# checked.
 # The minimum, the phrases and the marker are the brain's `ask` config (defaults in
 # lib\common.ps1, Get-DfAskDefaults). What this hook cannot see is written in the owning file:
 # reasons given in plain text or above a host's next-step box, and whether a reason is a good one.
@@ -16,7 +18,8 @@
 #
 # An allowed question also writes the session's interview marker (<markers>/<session>.asked), which
 # the Stop hook reads for GATE-01: a repository created this turn with no question asked this
-# session gets the interview line on the card.
+# session gets the interview line on the card. A call with no question is let through and writes
+# no marker.
 #
 # Failure policy: an internal error ALLOWS the call, logs an ERROR line and says so.
 #
@@ -99,8 +102,13 @@ try {
     }
 
     if (-not $title) {
-        $sessionId = if ($j.session_id) { [string]$j.session_id } else { 'unknown' }
-        Add-DfTextLine (Get-DfSessionFile $sessionId '.asked') (Get-DfIso)
+        # Only a call that carries one question writes the interview marker. Workaround
+        # (CR-2026-10-15-GAPS D5): a call with no question was let through and wrote it too, so a call
+        # that asked nothing cleared the GATE-01 line on the Stop card. It is still let through.
+        if ($n -eq 1) {
+            $sessionId = if ($j.session_id) { [string]$j.session_id } else { 'unknown' }
+            Add-DfTextLine (Get-DfSessionFile $sessionId '.asked') (Get-DfIso)
+        }
         exit 0
     }
     $owner = if ($ptr.brain) { Get-DfOwnerName $ptr.brain } else { 'The owner' }

@@ -24,7 +24,8 @@
 # The message check (VOICE-05, 0.1.25, CR-2026-10-13-HONOUR) runs first, in every repository the
 # shim is installed in, brain or not: the subject line is 72 characters or fewer (config
 # commitMessage.maxSubject), is not a past-tense first word (Added, Fixed, Updated...), and is not
-# a bare placeholder (Update, Fix, WIP, changes). A merge or a revert is exempt. It reads tense from
+# a bare placeholder (Update, Fix, WIP, changes). A merge or a revert is exempt, and so is git's own
+# 'fixup! <subject>' or 'squash! <subject>' (git commit --fixup or --squash). It reads tense from
 # the first word only; "specific" is a person's judgement and is not graded.
 #
 # anchor: commit-message  mode: gate  verbs: write-commit
@@ -76,7 +77,11 @@ try {
     $msgText = if (Test-Path -LiteralPath $MessageFile -PathType Leaf) { [IO.File]::ReadAllText($MessageFile) } else { '' }
     $subject = ''
     foreach ($line in ($msgText -split "`r?`n")) { if ($line -match '^\s*#') { continue }; if ($line.Trim()) { $subject = $line.Trim(); break } }
-    $exempt = ($subject -match '^(Merge|Revert|fixup!|squash!)\b')
+    # Workaround (CR-2026-10-15-GAPS review): the pattern was '^(Merge|Revert|fixup!|squash!)\b',
+    # and a \b after '!' needs a letter, a digit or an underscore next, so git's own 'fixup! <subject>'
+    # and 'squash! <subject>' were checked like any subject and refused when the prefix took them
+    # past the length limit. The prefixes now end at the '!' and a space.
+    $exempt = ($subject -match '^(?:(?:Merge|Revert)\b|(?:fixup|squash)!(?:\s|$))')
     if ($subject -and -not $exempt) {
         $fault = $null
         $first = ($subject -split '\s+')[0] -replace '[:.,;!]+$', ''

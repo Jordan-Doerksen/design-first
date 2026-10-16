@@ -6,7 +6,7 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 
 - **DENY** a permission deny rule refuses unconditionally on its pattern
 - **HOOK** a hook inspects the call and denies it; what it cannot see is written in the owning file
-- **ADVISE** a hook injects context and the call proceeds
+- **ADVISE** a hook adds context or asks once; the call or the turn proceeds
 - **GATE** a machine stops and asks, or the Doctor goes RED: an ask rule, a Doctor claim, a tool refusal
 - **BUILDABLE** the mechanism is specified and not shipped
 - **OWNER** a standing ruling; no mechanism, and none should try
@@ -50,9 +50,9 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | DES-04 | ADVISE | Every tunable value lives in a config file, never in logic; changing behaviour never requires changing code. | `kit:instructions/design-methodology.md` |
 | DES-05 | ADVISE | Build the smallest slice that works, then show the owner; never over-engineer the slice and never skip the design. | `kit:workflows/coding.md` |
 | DES-06 | ADVISE | During a chunk, edit only that chunk's files; no unrelated refactor. | `kit:instructions/design-methodology.md` |
-| DES-07 | HOOK | Documents are co-equal artifacts, updated before the work is called done; document debt is technical debt. | `kit:workflows/coding.md` |
+| DES-07 | ADVISE | Documents are co-equal artifacts, updated before the work is called done; document debt is technical debt. | `kit:workflows/coding.md` |
 | DES-08 | ADVISE | Every workaround carries an inline note saying what failed and why this is the fix, because an unexplained correction gets cleaned up and the defect returns. | `kit:lessons/lessons.md` |
-| DES-09 | GATE | Every repository carries its line-ending attributes file in its first commit; the bytes belong to the repository, not to a machine setting. | `kit:instructions/integrity-law.md` |
+| DES-09 | HONOUR | Every repository carries its line-ending attributes file in its first commit; the bytes belong to the repository, not to a machine setting. | `kit:instructions/integrity-law.md` |
 | DES-10 | GATE | Install with the fail-on-drift verb, never the resolve-fresh verb, and pin the toolchain as well as the dependencies. | `kit:workflows/coding.md` |
 | DES-11 | HOOK | A subagent starts only with a brief that names the goal, the files or area, the done-check and what is ruled out; its model follows the brain's role table unless the call names one; more spawns than the cap in one turn ask the owner. | `kit:workflows/coding.md` |
 | DES-12 | ADVISE | Match the task to an installed skill before building from an empty start, by reading the installed skills directory itself rather than a list in a law file. | `kit:workflows/coding.md` |
@@ -63,13 +63,13 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 
 | id | grade | rule | owner |
 |---|---|---|---|
-| GATE-01 | HOOK | Every requested addition gets the four-verdict pass of approve, redact, add and flavour, however detailed the prompt; a long request is a strong opening position, not a spec. | `kit:instructions/interview-every-add-law.md` |
+| GATE-01 | ADVISE | Every requested addition gets the four-verdict pass of approve, redact, add and flavour, however detailed the prompt; a long request is a strong opening position, not a spec. | `kit:instructions/interview-every-add-law.md` |
 | GATE-02 | ADVISE | Silence is not approval; full approval with nothing to cut is said out loud. | `kit:instructions/interview-every-add-law.md` |
 | GATE-03 | GATE | A new third-party package is an owner decision, never an addition the agent makes itself; name it exactly and wait. | `kit:instructions/interview-every-add-law.md` |
 | GATE-04 | ADVISE | The Programmer hat unlocks only after the interview pass is complete. | `kit:instructions/interview-every-add-law.md` |
-| GATE-05 | HOOK | After each chunk, run the cross-check against the manifest, the architecture and the core goal. | `kit:instructions/design-methodology.md` |
-| GATE-06 | HOOK | Any change to design, behaviour, config, risk, execution, data flow or dependencies needs a Change Request, and an approved one updates the Change Log. | `kit:instructions/design-methodology.md` |
-| GATE-07 | HOOK | Code that runs is not done; done is the Definition of Done checklist in the owning file. | `kit:instructions/design-methodology.md` |
+| GATE-05 | ADVISE | After each chunk, run the cross-check against the manifest, the architecture and the core goal. | `kit:instructions/design-methodology.md` |
+| GATE-06 | ADVISE | Any change to design, behaviour, config, risk, execution, data flow or dependencies needs a Change Request, and an approved one updates the Change Log. | `kit:instructions/design-methodology.md` |
+| GATE-07 | ADVISE | Code that runs is not done; done is the Definition of Done checklist in the owning file. | `kit:instructions/design-methodology.md` |
 | GATE-08 | HOOK | Work where a wrong output costs money, safety or a person's trust gets an adversarial gap review of the spec and the manifest before the repository exists. | `kit:workflows/design-gate.md` |
 | GATE-09 | HOOK | The gate is cleared when every finding is resolved or recorded, never because the review returned nothing; a review that finds nothing is a failed review. | `kit:workflows/design-gate.md` |
 | GATE-10 | ADVISE | When a tool fails later, check the spec first; a failure the spec did not predict is a spec failure, not only a code failure. | `kit:workflows/design-gate.md` |
@@ -93,22 +93,23 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | AUTO-08 | BUILDABLE | A green verify gate is the floor, not the proof; a green gate with no new probe covering this story's behaviour is a fail. | `kit:instructions/autonomy-law.md` |
 | AUTO-09 | OWNER | Where a story is about feel, motion or appearance, a person is the gate, because a read-only reviewer cannot look at a screen. | `kit:instructions/autonomy-law.md` |
 | AUTO-10 | BUILDABLE | Each story starts a fresh context; state lives on the disk, not in the context, and a reset beats a compaction. | `kit:instructions/autonomy-law.md` |
-| AUTO-11 | HOOK | The loop works on its own branch and never pushes and never merges; it ends with a state card and the push command for the owner. | `kit:instructions/autonomy-law.md` |
+| AUTO-11 | HOOK | The loop works on its own branch and never pushes and never merges. | `kit:instructions/autonomy-law.md` |
 | AUTO-12 | BUILDABLE | No verify gate, no loop; nor on a design-gated project, a chunk with open questions, or a dirty tree. | `kit:instructions/autonomy-law.md` |
+| AUTO-13 | BUILDABLE | The loop ends with a state card in HANDOFF.md and the exact push command for the owner. | `kit:instructions/autonomy-law.md` |
 
 ## VCS - Integrity
 
 | id | grade | rule | owner |
 |---|---|---|---|
-| VCS-01 | GATE | Every repository has a remote you own. | `kit:instructions/integrity-law.md` |
-| VCS-02 | GATE | A remote you do not own is not a backup, and is reported as a different failure from having none. | `kit:instructions/integrity-law.md` |
-| VCS-04 | GATE | Committed is not backed up; pushed is. | `kit:instructions/integrity-law.md` |
+| VCS-01 | HONOUR | Every repository has a remote you own. | `kit:instructions/integrity-law.md` |
+| VCS-02 | HONOUR | A remote you do not own is not a backup, and is reported as a different failure from having none. | `kit:instructions/integrity-law.md` |
+| VCS-04 | HONOUR | Committed is not backed up; pushed is. | `kit:instructions/integrity-law.md` |
 | VCS-06 | GATE | A backup is not a backup until it is proven by a logged restore drill. | `kit:instructions/integrity-law.md` |
 | VCS-07 | HOOK | No secret in a tracked file; a deliberate exception is registered, never silent. | `kit:instructions/integrity-law.md` |
 | VCS-12 | GATE | A retired but load-bearing folder gets a tombstone naming its status, its remaining consumers, and who may remove it. | `kit:instructions/integrity-law.md` |
 | VCS-14 | HOOK | A frozen reference stays byte-clean; a dirty frozen tree is a failure. | `kit:instructions/integrity-law.md` |
 | VCS-15 | GATE | A claim about the state of the disk is generated, never typed. | `kit:instructions/integrity-law.md` |
-| VCS-22 | GATE | A shallow clone cannot be backed up and the standard integrity check cannot see it; unshallow it before trusting it. | `kit:instructions/integrity-law.md` |
+| VCS-22 | HONOUR | A shallow clone cannot be backed up and the standard integrity check cannot see it; unshallow it before trusting it. | `kit:instructions/integrity-law.md` |
 | VCS-23 | BUILDABLE | When a law file states a fact about the disk, it gets a claim in the same commit. | `kit:instructions/integrity-law.md` |
 
 ## OBS - Observability
@@ -131,7 +132,7 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | id | grade | rule | owner |
 |---|---|---|---|
 | GAME-11 | ADVISE | State the hat you wear and wear one at a time; the Programmer hat stays locked until an owner-approved spec exists. | `kit:workflows/coding.md` |
-| GAME-12 | HOOK | The inner gate runs after every small verifiable change (verify, stop, show what changed and what it proves, wait), the outer gate runs at every chunk boundary, and only a trivial, reversible, owner-requested single-file edit is exempt. | `kit:workflows/coding.md` |
+| GAME-12 | ADVISE | The inner gate runs after every small verifiable change (verify, stop, show what changed and what it proves, wait), the outer gate runs at every chunk boundary, and only a trivial, reversible, owner-requested single-file edit is exempt. | `kit:workflows/coding.md` |
 | GAME-13 | ADVISE | A session on a game repository opens with a state card built from the repository's documents, never from memory, and a disagreement with the real state is raised before any work. | `kit:workflows/coding.md` |
 | GAME-14 | ADVISE | Cite the pattern or do not claim one; a pattern the cited reference does not contain is labelled as from memory, not from the reference. | `kit:workflows/coding.md` |
 
@@ -151,7 +152,7 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 
 | id | grade | rule | owner |
 |---|---|---|---|
-| VOICE-05 | GATE | Commit messages are short, present tense and specific; the house writing standard governs the rest but not tense, so tense is specified in the owning file. | `kit:workflows/coding.md` |
+| VOICE-05 | BUILDABLE | Commit messages are short, present tense and specific; the house writing standard governs the rest but not tense, so tense is specified in the owning file. | `kit:workflows/coding.md` |
 
 ## MAP - Canonical copies
 
@@ -164,10 +165,10 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | grade | count |
 |---|---|
 | DENY | 0 |
-| HOOK | 19 |
-| ADVISE | 30 |
-| GATE | 19 |
-| BUILDABLE | 12 |
+| HOOK | 13 |
+| ADVISE | 36 |
+| GATE | 13 |
+| BUILDABLE | 14 |
 | OWNER | 2 |
-| HONOUR | 0 |
-| total | 82 |
+| HONOUR | 5 |
+| total | 83 |

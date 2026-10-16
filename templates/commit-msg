@@ -4,7 +4,9 @@
 # (%USERPROFILE%\.claude\design-first.json, or DF_POINTER_PATH) and runs tools/vcs/law-claim.ps1,
 # which refuses a commit that changes a law file with no claim and no "No-Claim: <reason>" line.
 # The shim never refuses on its own: when pwsh, the pointer or the kit script is missing it says
-# so on stderr and lets the commit through. The Doctor claim on this file proves it is installed.
+# so on stderr and lets the commit through. Adopt does not install this file and ships no claim
+# for it; add the two claims in tools/MANUAL.md (The commit check) and the Doctor proves it is
+# installed.
 command -v pwsh >/dev/null 2>&1 || { echo "design-first law-claim: pwsh is not on PATH; VCS-23 was NOT checked" >&2; exit 0; }
 DF_COMMIT_MSG_FILE="$1" exec pwsh -NoProfile -Command '
 $ErrorActionPreference = "Stop"

@@ -14,6 +14,9 @@
 #                               the commit HEAD was on at the first such call (guard.ps1 appends;
 #                               "none" when the repository had no commit). A wrong nomination
 #                               costs a few git calls and changes nothing, because git is the judge.
+#   <markers>/<session>.guard-error  one line per call the guard failed on inside this turn, so it
+#                               recorded nothing for that call (guard.ps1's catch block appends;
+#                               route.ps1 clears it with the others). The card says the count may be short.
 #
 # A file counts as changed this turn when it is in a commit made since that first call (the
 # commits between the recorded HEAD and HEAD now, less any older than the prompt, which a pull
@@ -119,10 +122,11 @@ function Get-DfTurnStart([string]$sessionId) {
 $script:DfRowRx = '\|\s*\d{4}-\d{2}-\d{2}\s*\|'      # a dated table row: a Change Log entry
 
 # What changed in one repository since $since. Returns @{ ok; paths (repository-relative, forward
-# slashes); decisionsRow; capped }. ok is $false when git could not answer; the caller then counts
-# from the tool calls and says so.
+# slashes); decisionsRow; capped; cap }. ok is $false when git could not answer; the caller then counts
+# from the tool calls and says so. capped is $true when git status listed more than $cap entries and
+# the rest were not read: the caller names the repository and calls its count a floor.
 function Get-DfTurnChanges([string]$repo, [DateTimeOffset]$since, [string]$base = '', [int]$cap = 4000) {
-    $out = @{ ok = $false; paths = [Collections.Generic.List[string]]::new(); decisionsRow = $false; capped = $false }
+    $out = @{ ok = $false; paths = [Collections.Generic.List[string]]::new(); decisionsRow = $false; capped = $false; cap = $cap }
     $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
     $sinceUtc = $since.UtcDateTime
     # Which commits are this turn's. With a recorded HEAD: the range from it to HEAD now, less any
@@ -182,19 +186,35 @@ function Get-DfTurnChanges([string]$repo, [DateTimeOffset]$since, [string]$base 
         if ((Get-DfLeaf $rel) -ieq 'DECISIONS.md') { if ($xy -eq '??') { $decisionsNew += $rel } else { $decisionsDirty += $rel } }
     }
 
-    # 3. did a DECISIONS.md that changed this turn gain a dated row (a Change Log entry)?
+    # 3. did a DECISIONS.md that changed this turn gain a dated row (a Change Log entry)? Per file, the
+    # turn's diffs must add more dated rows than they remove. Workaround (CR-2026-10-15-GAPS D5): any
+    # added line that was a dated row counted, so an edit that reworded an old row (one row line out,
+    # one in) passed for a new Change Log entry and hid the GATE-06 line. A new file's rows are all added,
+    # and so are the rows of a file staged in a repository with no commit yet.
+    $net = @{}
     foreach ($rel in $decisionsNew) {
-        try { if ([IO.File]::ReadAllText((Join-Path $repo ($rel -replace '/', '\'))) -match ('(?m)^' + $script:DfRowRx)) { $out.decisionsRow = $true } } catch { }
+        try { $net[$rel] = [regex]::Matches([IO.File]::ReadAllText((Join-Path $repo ($rel -replace '/', '\'))), ('(?m)^' + $script:DfRowRx)).Count } catch { }
     }
     foreach ($rel in $decisionsDirty) {
-        if ($out.decisionsRow) { break }
         $d = Invoke-DfGit $repo @('diff', 'HEAD', '--', $rel)
-        if ($d.code -eq 0 -and (@($d.out) -join "`n") -match ('(?m)^\+' + $script:DfRowRx)) { $out.decisionsRow = $true }
+        if ($d.code -eq 0) { $net[$rel] = [int]$net[$rel] + (Get-DfRowNet (@($d.out) -join "`n")) }
+        elseif ((Invoke-DfGit $repo @('rev-parse', '-q', '--verify', 'HEAD')).code -ne 0) {
+            # No commit yet: a file staged in a new repository has no HEAD to diff against, so every
+            # row in it is added, as for an untracked file. Workaround (CR-2026-10-15-GAPS D5 check):
+            # uncounted, it made the card say "no Change Log row" over a manifest that had one, since
+            # git, not the ledger flag, decides for a file git lists.
+            try { $net[$rel] = [int]$net[$rel] + [regex]::Matches([IO.File]::ReadAllText((Join-Path $repo ($rel -replace '/', '\'))), ('(?m)^' + $script:DfRowRx)).Count } catch { }
+        }
     }
     foreach ($rel in $decisionsCommitted) {
-        if ($out.decisionsRow) { break }
         $d = Invoke-DfGit $repo (@('log', '-p', '--format=') + $revs + @('--', $rel))
-        if ($d.code -eq 0 -and (@($d.out) -join "`n") -match ('(?m)^\+' + $script:DfRowRx)) { $out.decisionsRow = $true }
+        if ($d.code -eq 0) { $net[$rel] = [int]$net[$rel] + (Get-DfRowNet (@($d.out) -join "`n")) }
     }
+    $out.decisionsRow = @($net.Values | Where-Object { $_ -gt 0 }).Count -gt 0
     return $out
+}
+
+# Dated rows a diff adds less the ones it removes. The '+++' and '---' file headers are not rows.
+function Get-DfRowNet([string]$diff) {
+    return ([regex]::Matches($diff, ('(?m)^\+' + $script:DfRowRx)).Count - [regex]::Matches($diff, ('(?m)^-' + $script:DfRowRx)).Count)
 }

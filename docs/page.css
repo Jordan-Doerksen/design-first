@@ -11,6 +11,7 @@
   --ok: #7fb37a;
   --bad: #e07a5f;
   --good: #9ad59a;
+  --g-deny: #8a2f2f;
   --g-hook: #1f6f4a;
   --g-gate: #2d5f8a;
   --g-advise: #7a5a1f;
@@ -141,7 +142,7 @@ main { display: block; }
   .ix li { grid-template-columns: 11ch minmax(0, 24ch) minmax(0, 12ch) minmax(0, 1fr); align-items: baseline; }
 }
 .g { display: inline-block; font-family: var(--sans); font-size: 11px; letter-spacing: 0.06em; padding: 1px 6px; border-radius: 6px; color: #fff; margin-right: 4px; white-space: nowrap; }
-.g-hook { background: var(--g-hook); } .g-gate { background: var(--g-gate); } .g-advise { background: var(--g-advise); }
+.g-deny { background: var(--g-deny); } .g-hook { background: var(--g-hook); } .g-gate { background: var(--g-gate); } .g-advise { background: var(--g-advise); }
 .g-owner { background: var(--g-owner); } .g-buildable { background: var(--g-buildable); } .g-honour { background: var(--g-honour); }
 
 /* the grade dial */

@@ -94,15 +94,27 @@ the agent is stopped and the owner is asked before any of them runs. The rules s
 and `PowerShell(...)` twins, because a rule that covers one shell is not a rule:
 
 ```
-npm install *   npm i *   pnpm add *   yarn add *
-pip install *   uv add *  cargo add *
+npm install *   npm i *   npm add *   pnpm add *   yarn add *   bun add *
+pip install *   pip3 install *   python -m pip install *
+python3 -m pip install *   py -m pip install *   uv add *   poetry add *
+cargo add *   go get *   dotnet add package *
 ```
 
-An `ask` rule prompts even when a more specific `allow` rule matches, and it matches inside
-subshells, command substitutions and loop bodies. **Residual:** an install performed by a script
-the agent writes and then executes is not a tool call on this pattern and is not asked. The rule
-above is a speed bump for an honest agent; the written rule is what makes a dishonest path a
-violation rather than an accident.
+Bare `npm install`, `uv sync` and `cargo install *` are asked as well (DES-10). An `ask` rule
+prompts even when a more specific `allow` rule matches, and it matches inside subshells, command
+substitutions and loop bodies. The list was widened on 2026-10-15 (CR-2026-10-15-GAPS D1): `npm
+add`, `pip3`, `python -m pip` and the other forms above were not asked before. An adopter that
+installed the template earlier copies the new lines from `templates/root-settings.json` into its
+root settings by hand: adopt never overwrites a settings file that exists, it shows the difference
+and keeps the file.
+**Residual:** an install performed by a script the agent writes and then executes is not a tool
+call on this pattern and is not asked. A verb or form not on the list is not asked either: for
+example `npx <package>`, `pipx install`, `uv pip install`, `gem install`, `composer require`,
+`conda install`, `dotnet add <project> package`, or an interpreter named by a path or a version
+(`python3.12 -m pip`, `py -3 -m pip`). The host matches the rule, not the kit, so no kit test can
+prove the match; the self-test proves only that the template carries every verb above as Bash and
+PowerShell twins. The rule above is a speed bump for an honest agent; the written rule is what
+makes a dishonest path a violation rather than an accident.
 
 ### GATE-04
 
@@ -116,11 +128,22 @@ loop never interprets a new request.
 
 ## The marker the Stop hook reads (0.1.23, CR-2026-10-13-HONOUR)
 
-GATE-01 is enforced by `hooks/stop.ps1#interview`. Every allowed AskUserQuestion call writes the
-session's interview marker (`<markers>/<session>.asked`, by `hooks/ask.ps1`). When a turn changed
-source in a repository whose `.git` was created since the prompt, and the session has no marker,
+GATE-01 is advised by `hooks/stop.ps1#interview`, once per turn, for a repository created this turn
+in a session with no question asked. The grade is ADVISE, not HOOK (since 2026-10-15,
+CR-2026-10-15-GAPS D4): the card blocks the first stop once, yields on the second whatever the
+answer says, and grades nothing. When the interview line is on the card, the card's first line
+names GATE-01 with the other clauses it carries. Every allowed AskUserQuestion call that carries
+one question writes the session's interview marker (`<markers>/<session>.asked`, by `hooks/ask.ps1`);
+a call with no question writes none. The marker lasts while the session is live: the entry hook's
+housekeeping deletes a session's markers only after none of them was written for a day, and never
+the markers of the session that starts. When a turn changed source in a repository whose `.git`
+was created since the prompt, and the session has no marker,
 the Stop card carries the interview line for that repository and refuses the stop once. The hook
-cannot grade the interview; it can see that none happened before a new repository got code.
+cannot grade the interview. It sees one case only: a repository whose `.git` was created since the
+prompt (a clone counts; a new folder inside an existing repository does not), in a session in
+which the question hook has allowed no AskUserQuestion call that carries a question, on any
+subject. `hooks/ask.ps1` writes the marker when it allows the call, before the owner answers. With
+no prompt time on record, the Stop hook does not check.
 
 ### GATE-14
 
@@ -133,7 +156,8 @@ step: the agent renders the candidates on one static page, side by side, in the 
 scratch or docs folder, opens it, and only then asks the one question. The chosen option is named
 in `DECISIONS.md` by its label on that page. A text-only taste question is a finding for the
 Reviewer, not a refusal: the mechanism is `hooks/subagent.ps1#advise-by-role`, which hands this
-clause to every subagent and makes the Reviewer name it as holding or as a finding.
+clause to every subagent (only its id when the advise block is over the size cap) and makes the
+Reviewer name it as holding or as a finding.
 
 ### GATE-15
 

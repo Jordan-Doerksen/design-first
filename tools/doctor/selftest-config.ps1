@@ -47,6 +47,12 @@ foreach ($live in 'readCeilingBytes', 'readCeilingExempt', 'sourceExtensions', '
     $b0 = Read-DoctorConfig -Path $barePath -Context $ctxT
     if ($b0.ok -and $b0.cfg.forbidScheduling -eq $false -and @($b0.cfg.contentRules).Count -eq 0) { Ok 'config: both switches default to off' } else { Bad 'config: switch defaults' ("forbidScheduling={0} contentRules={1}" -f $b0.cfg.forbidScheduling, @($b0.cfg.contentRules).Count) }
 
+    # The kit's own template sets only live keys, each with its _readers entry: adopt copies it into
+    # every new brain, so a key the hooks read and this Doctor does not know is reported dead there
+    # (CR-2026-10-15-GAPS D5 added stopBudgetSeconds to the template, both tables and _readers).
+    $tpl = Read-DoctorConfig -Path (Join-Path $here '..\..\templates\doctor.config.json') -Context $ctxT   # the real kit's template; $kit is the fixture kit
+    if ($tpl.ok -and @($tpl.deadKeys).Count -eq 0) { Ok 'config: the kit template sets no dead key' } else { Bad 'config: the kit template sets no dead key' ("ok={0} error='{1}' dead: {2}" -f $tpl.ok, $tpl.error, (@($tpl.deadKeys) -join ', ')) }
+
     # Planted: a live key with no default. The read must not throw (the comment on Read-DoctorConfig says so).
     $script:ConfigReaders['plantedNoDefault'] = 'selftest-config.ps1 (planted: a reader key with no default)'
     try {

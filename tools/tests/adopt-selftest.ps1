@@ -2,7 +2,9 @@
 # Run under pwsh:  pwsh -NoProfile -File tools/tests/adopt-selftest.ps1 [-KeepTemp]
 #
 # Cases: fresh adopt (root not a repo) -> every file exists, pointer valid, installed.json carries
-# sha256 + generated flags, LAW.md generated, Doctor ran and exited 0; second adopt (attach) ->
+# sha256 + generated flags, LAW.md generated, Doctor ran and exited 0; the brain LAW.md grades
+# every hook hooks.json registers, and the shipped BRAIN-LAW-01 passes, then goes RED on a hand
+# edit; the law build keeps the kit grade for a hook the installed state does not name; second adopt (attach) ->
 # nothing overwritten, diff printed for a file edited between runs; remove -> edited file kept and
 # listed, unedited + generated deleted, pointer gone; -DryRun writes nothing; root-is-repo ->
 # no snapshot pairs and settings.local.json when scope=personal.
@@ -19,8 +21,10 @@ $kit = [IO.Path]::GetFullPath((Join-Path $here '..\..')).TrimEnd('\')
 $adopt = Join-Path $kit 'tools\adopt.ps1'
 $remove = Join-Path $kit 'tools\remove.ps1'
 
-# Workaround: the folder name must not contain test|probe|spec|verify|assert, or the live fence
-# hook treats every fixture written here as a measuring file when this script is driven by an agent.
+# Workaround: no folder name in this path may hold a measuring word as a word part (a part that starts
+# with test, probe, verify or assert, or is spec or specs), or the live fence hook reads every fixture
+# written here as a measuring file when an agent drives this script (Test-MeasuringPath in
+# hooks\fence.ps1). 'df-adopt-st-' and a hex id hold none.
 $T = Join-Path $env:TEMP ('df-adopt-st-' + [guid]::NewGuid().ToString('N').Substring(0, 8))
 New-Item -ItemType Directory -Force -Path $T | Out-Null
 $T = (Resolve-Path $T).Path.TrimEnd('\')
@@ -107,6 +111,51 @@ try {
     Check 'fresh: snapshot is a byte copy of root CLAUDE.md' $snapOk
     Check 'fresh: Doctor ran and exited 0' ($r.out -match '(?m)^\s*Doctor exit\s+0\b') $r.out
     Check 'fresh: soft_deny line printed for the frozen path, never written' (($r.out -like '*Writes, edits, or deletions under*frozen*') -and ($r.out -like '*never writes that file*'))
+
+    # ---------------------------------------------------------------- 1b. the brain LAW.md tells the truth (CR-2026-10-15-GAPS D6)
+    # Before D6 adopt typed three hook names, so every clause on the stop, route, ask, agent and
+    # subagent hooks printed HONOUR "(mechanism not installed)"; and no shipped claim compared the
+    # brain LAW.md with a fresh build, so a plugin update left sessions reading old law rows.
+    Write-Host '-- the brain LAW.md: every registered hook graded, BRAIN-LAW-01 shipped'
+    $registered = @([regex]::Matches((Read-DfText (Join-Path $kit 'hooks\hooks.json')), 'hooks[\\/]+([A-Za-z0-9_-]+)\.ps1') | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)
+    $lawStatePath = Join-Path $brain 'state\law-installed.json'
+    $ls = if (Test-Path -LiteralPath $lawStatePath -PathType Leaf) { Read-DfJson $lawStatePath } else { $null }
+    $recorded = if ($ls -and $ls.hooks) { @($ls.hooks.PSObject.Properties | Where-Object { $_.Value -eq $true } | ForEach-Object { $_.Name }) } else { @() }
+    $unrecorded = @($registered | Where-Object { $recorded -notcontains $_ })
+    Check "fresh: state\law-installed.json records every hook hooks.json registers as installed ($($registered.Count))" ($registered.Count -ge 1 -and $unrecorded.Count -eq 0) ("not recorded as installed: " + ($unrecorded -join ', '))
+    $kitLaw = Read-DfJson (Join-Path $kit 'law.json')
+    $lawLines = @($law -split "`n")
+    $hookClauses = @($kitLaw.clauses | Where-Object { $_.enforcedBy -and $_.enforcedBy.kind -eq 'hook' })
+    $falseRows = @($hookClauses | Where-Object { $id = $_.id; @($lawLines | Where-Object { $_.StartsWith("| $id |") -and $_.Contains('(mechanism not installed)') }).Count -gt 0 } | ForEach-Object { $_.id })
+    Check "fresh: LAW.md prints no '(mechanism not installed)' row for a clause on a registered hook ($($hookClauses.Count) clauses)" ($hookClauses.Count -ge 1 -and $falseRows.Count -eq 0) ("rows: " + ($falseRows -join ', '))
+    $bl = @((Read-DfJson (Join-Path $brain 'claims.json')).claims | Where-Object { $_.id -eq 'BRAIN-LAW-01' })
+    Check 'fresh: the brain claims.json ships BRAIN-LAW-01 over LAW.md, built with the recorded installed state' ($bl.Count -eq 1 -and $bl[0].type -eq 'generated_matches' -and $bl[0].output -eq '${BRAIN}/LAW.md' -and $bl[0].installed -eq '${BRAIN}/state/law-installed.json' -and $bl[0].overlay -eq '${BRAIN}/law.overlay.json')
+    $doctorPs1 = Join-Path $kit 'tools\doctor\doctor.ps1'
+    $dj = Run $doctorPs1 @('-Json') $ptr1 $markers
+    $blStatus = try { [string](@(($dj.out | ConvertFrom-Json).bands.claims | Where-Object { $_.id -eq 'BRAIN-LAW-01' })[0].status) } catch { "unparsed: $($dj.out)" }
+    Check 'fresh: BRAIN-LAW-01 holds on the first Doctor run (adopt and the claim build the same LAW.md)' ($blStatus -eq 'PASS') $blStatus
+    $lawPath = Join-Path $brain 'LAW.md'
+    $lawBytes = [IO.File]::ReadAllBytes($lawPath)
+    Add-Content -LiteralPath $lawPath -Value "`n| HAND-01 | HOOK | a row typed by hand | ``me.md`` |`n" -Encoding utf8
+    $dj2 = Run $doctorPs1 @('-Json') $ptr1 $markers
+    $blStatus2 = try { [string](@(($dj2.out | ConvertFrom-Json).bands.claims | Where-Object { $_.id -eq 'BRAIN-LAW-01' })[0].status) } catch { "unparsed: $($dj2.out)" }
+    Check 'fresh: a hand-edited brain LAW.md turns BRAIN-LAW-01 RED (exit 1)' ($blStatus2 -eq 'FAIL' -and $dj2.code -eq 1) ("status $blStatus2, exit $($dj2.code)")
+    [IO.File]::WriteAllBytes($lawPath, $lawBytes)   # put it back: the attach case below compares every brain file
+
+    # The law build reads a hook the installed state does not name as no record (the kit grade
+    # stands); only a recorded false prints HONOUR. A hook a later plugin version registers is
+    # absent from an older state, and before D6 an absent name printed "(mechanism not installed)".
+    $partState = Join-Path $T 'law-installed-partial.json'
+    Put $partState "{ `"hooks`": { `"guard`": false }, `"rootSettings`": true, `"pointer`": true }`n"
+    $partLaw = Join-Path $T 'LAW-partial.md'
+    $rb = Run (Join-Path $kit 'tools\law\build-law.ps1') @('-Source', (Join-Path $kit 'law.json'), '-Overlay', (Join-Path $kit 'templates\law.overlay.json'), '-Installed', $partState, '-Out', $partLaw) $ptr1 $markers
+    $guardC = @($hookClauses | Where-Object { $_.enforcedBy.ref -like 'hooks/guard.ps1*' })[0]
+    $otherC = @($hookClauses | Where-Object { $_.enforcedBy.ref -notlike 'hooks/guard.ps1*' })[0]
+    $partLines = if (Test-Path -LiteralPath $partLaw -PathType Leaf) { @((Read-DfText $partLaw) -split "`n") } else { @() }
+    $guardRow = @($partLines | Where-Object { $_.StartsWith("| $($guardC.id) |") })[0]
+    $otherRow = @($partLines | Where-Object { $_.StartsWith("| $($otherC.id) |") })[0]
+    Check 'law build: a hook recorded as not installed prints HONOUR (mechanism not installed)' ($rb.code -eq 0 -and [string]$guardRow -like "| $($guardC.id) | HONOUR (mechanism not installed) |*") ("exit $($rb.code): $guardRow $($rb.out)")
+    Check 'law build: a hook the installed state does not name keeps its kit grade' ($rb.code -eq 0 -and [string]$otherRow -like "| $($otherC.id) | $($otherC.grade) |*") ("exit $($rb.code): $otherRow")
 
     # ---------------------------------------------------------------- 2. attach (second run, one file edited)
     Write-Host '-- attach (second adopt, me.md edited between runs)'

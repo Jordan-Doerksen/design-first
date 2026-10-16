@@ -22,8 +22,9 @@ $hooks = Join-Path $kit 'hooks'
 $casesFile = Join-Path $here 'guard-cases.json'
 
 $T = Join-Path $env:TEMP ('df-run-' + [guid]::NewGuid().ToString('N').Substring(0, 8))
-# Workaround: the folder name must not contain test|probe|spec|verify|assert, or the fence would
-# treat every fixture as a measuring file (that is the same path regex the live fence uses).
+# Workaround: no folder name in this path may hold a measuring word as a word part (a part that starts
+# with test, probe, verify or assert, or is spec or specs), or the fence reads every fixture as a
+# measuring file (Test-MeasuringPath in hooks\fence.ps1). 'df-run-' and a hex id hold none.
 New-Item -ItemType Directory -Force -Path $T | Out-Null
 $T = (Resolve-Path $T).Path.TrimEnd('\')
 $TFWD  = $T -replace '\\', '/'
@@ -147,6 +148,10 @@ RunGit $repoClean @('add', '-A'); RunGit $repoClean @('commit', '-q', '-m', 'led
 $repoTracked = NewRepo 'repo-tracked'
 Put (Join-Path $repoTracked '.env') 'TOKEN=tracked-by-mistake'
 RunGit $repoTracked @('add', '-A'); RunGit $repoTracked @('commit', '-q', '-m', 'init')
+# The tracked .env changed after the commit, as a shell write leaves it: the RESIDUAL stage-secret
+# cases assert that a wildcard add and git commit -a are not refused here (the probe lists untracked
+# files only).
+Put (Join-Path $repoTracked '.env') 'TOKEN=changed-by-a-shell-write'
 
 $pointerPath = Join-Path $T 'pointer.json'
 function WritePointer([string]$pluginRoot, [string]$kind) {
@@ -477,6 +482,11 @@ Record 'route: a new prompt clears the edit ledger' 'cleared' $(if (-not (Test-P
 . (Join-Path $here 'cases-own.ps1')
 . (Join-Path $here 'cases-size.ps1')
 . (Join-Path $here 'cases-loops.ps1')
+. (Join-Path $here 'cases-bypass.ps1')
+. (Join-Path $here 'cases-gate.ps1')
+. (Join-Path $here 'cases-truth.ps1')
+. (Join-Path $here 'cases-grades.ps1')
+. (Join-Path $here 'cases-wording.ps1')
 
 # ------------------------------------------------------------------ summary
 $passed = @($results | Where-Object pass).Count

@@ -11,6 +11,7 @@
 #   CLAIMS          a false claim in claims.json      -> RED, exit 1
 #   SURVEY          repo and wiring findings           -> REPORTED, exit 0, unless surveyStrict
 #   COULD-NOT-LOOK  something could not be checked     -> exit 2, never a pass
+#                   (a crash of the Doctor itself included: the trap below)
 #
 # Where it looks comes from the pointer %USERPROFILE%\.claude\design-first.json (DF_POINTER_PATH
 # overrides it, for tests): root, brain, pluginRoot. Nothing in this folder names a real path.
@@ -30,20 +31,11 @@ param(
 $ErrorActionPreference = 'Stop'
 try { [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false) } catch { }
 $here = $PSScriptRoot
-foreach ($f in 'context', 'repos', 'enforcement', 'survey', 'claims', 'claims-tree', 'claims-exec', 'claims-ratchet', 'claims-snapshot', 'report') {
-    . (Join-Path $here "$f.ps1")
-}
-
 $mode = if ($Kit) { 'kit' } else { 'brain' }
-$couldNotLook = @()
-$survey = @()
-$claims = @()
-$repos = @()
-$enf = $null
-$stamp = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
 
 function Stop-CouldNotLook {
-    # Used before a context exists: print the one reason and exit 2. Never silent, never 0.
+    # Used before a context exists, and by the trap below: print the one reason and exit 2. Never
+    # silent, never 0.
     param([string] $Reason)
     if ($Json) {
         Write-Output (([ordered]@{ verdict = 'COULD-NOT-LOOK'; exitCode = 2; reason = $Reason; mode = $mode } | ConvertTo-Json))
@@ -55,6 +47,31 @@ function Stop-CouldNotLook {
     }
     exit 2
 }
+
+# A crash is COULD-NOT-LOOK, never RED (CR-2026-10-15-GAPS D6; SAFE-04, OBS-07). What failed: an
+# exception outside every try below (a dot-sourced file that throws, a helper with a defect, the
+# verdict itself) ended the script with exit 1, and Doctor.bat prints exit 1 as "RED - findings
+# above" with no finding above it. Seen 2026-10-09 in config load (DECISIONS change log). Why this
+# is the fix: one trap at script scope catches every terminating error the try blocks do not, so
+# every crash gives one reason, the file and line, and exit 2. A trap covers its whole scope
+# wherever it stands, so a file that fails to load below is a crash too. Stop-CouldNotLook is
+# defined above the dot-sourcing because the trap calls it; a crash before it exists would exit 1.
+trap {
+    $inv = $_.InvocationInfo
+    $at = if ($null -ne $inv -and $inv.ScriptName) { '{0}:{1}' -f (Split-Path -Leaf $inv.ScriptName), $inv.ScriptLineNumber } else { 'an unknown line' }
+    Stop-CouldNotLook ("the Doctor stopped: {0} at {1}. No verdict was reached." -f $_.Exception.Message, $at)
+}
+
+foreach ($f in 'context', 'repos', 'enforcement', 'survey', 'claims', 'claims-tree', 'claims-exec', 'claims-ratchet', 'claims-snapshot', 'report') {
+    . (Join-Path $here "$f.ps1")
+}
+
+$couldNotLook = @()
+$survey = @()
+$claims = @()
+$repos = @()
+$enf = $null
+$stamp = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
 
 # ---------------------------------------------------------------- where (pointer -> context)
 $kitFromScript = Split-Path -Parent (Split-Path -Parent $here)   # tools\doctor -> tools -> kit

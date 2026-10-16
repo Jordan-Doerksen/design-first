@@ -40,15 +40,20 @@ The mechanism is `hooks/agent.ps1`, on every call to the Agent tool. The tunable
 **The brief contract.** Four headings, each at the start of its own line: `Goal:`, `Files:` (or
 `Area:`), `Done when:`, `Ruled out:`. A search-type agent (`Explore`, `claude-code-guide`) needs
 only `Goal:` and `Done when:`. A brief without them is refused with the missing headings named,
-and the spawn is re-issued in one turn. The brief is the only context a subagent has; it does not
-get the entry path, and it cannot see the reasoning that produced it.
+and the spawn is re-issued in one turn. The hook checks only that each heading starts a line; it
+does not read what follows, so an empty `Goal:` passes. The content under each heading is the
+agent's job. The brief is the only context a subagent has; it does not get the entry path, and it
+cannot see the reasoning that produced it.
 
-**Routing.** When the call names no model, the hook sets one from the role table: searches go to
-the fastest tier, routine builds to the middle tier, review, planning and anything design-shaped
-inherit the session model. A model named on the call always wins. The table is the owner's, and a
-change to it is a Change Request on the brain, not on this file.
+**Routing.** When the call names no model and the spawn is at or under the cap, the hook sets one
+from the role table: searches go to the fastest tier, routine builds to the middle tier, review,
+planning and anything design-shaped inherit the session model. A model named on the call always
+wins. A spawn over the cap that the owner allows runs with no routed model, because the cap is
+checked before routing. The table is the owner's, and a change to it is a Change Request on the
+brain, not on this file.
 
-**The cap.** Spawns are counted per turn. Above the cap the hook stops and asks, naming the count
+**The cap.** Spawns are counted per turn, by session id and prompt id; when the host sends no
+prompt id, they are counted per clock hour. Above the cap the hook stops and asks, naming the count
 and the models so far. The number is in the policy; the default is eight.
 
 **Why the old rule went.** Until 2026-10-08 this clause said *more than one file means more than
@@ -74,13 +79,21 @@ The mechanism is `hooks/route.ps1` on every prompt and `hooks/subagent.ps1` at e
 start; the tunables are `<brain>/route-policy.json` (the kit template until a brain has one).
 
 **How it routes.** Each prompt is matched, whole-word, against the words the policy lists per law
-group, and the session's working folder can name groups too. A group that becomes active is
-injected once: its rows from `LAW.md`, one clause per line with its grade, then the owning files
-resolved to real paths. Routes stick for the session, because most prompts are follow-ups that
-name nothing ("yes", "make it larger"); a later prompt adds only groups not yet active. The
-entry hook clears the session's routes on compaction so the next prompt re-injects. A subagent
-receives, before its first prompt, the groups active in the session that spawned it plus the
-groups the policy marks always-on (the prohibitions by default).
+group, and the session's working folder can name groups too. The groups the policy lists in
+`alwaysForSessions` (`OWN-10`) join the matches of every prompt and go first, so the size cap
+holds back a topic group before one of them. A group that becomes active is injected once: its
+rows from `LAW.md`, one clause per line with its grade, then the owning files resolved to real
+paths. A group that does not fit under the size cap is not recorded: the router names it only
+when another group printed, and it comes again on a later prompt, an always or folder group on the
+next one and a word group when its words come again. Routes stick for the session, because most
+prompts are follow-ups that name nothing ("yes", "make it larger"); a later prompt adds only groups
+not yet active. The entry hook clears the session's routes on a compaction or a clear so the next
+prompt re-injects; its housekeeping deletes only the markers of a session idle for a day. A
+subagent receives, before its first prompt, the groups the policy sends to every subagent
+(`alwaysForSubagents`, the prohibitions by default) and the groups active in the session that
+spawned it, less the groups the policy sends only to sessions (`alwaysForSessions`) unless
+`alwaysForSubagents` also lists them; the subagent hook names a group that does not fit under the
+size cap. With no pointer file, neither hook injects any law.
 
 **What stays at session start.** The entry path (`<brain>/entry.json`) now lists only what
 cannot be routed: the personal layer, who the owner is and how they write. Everything that is a
@@ -156,6 +169,19 @@ whole repository for the same claim before calling it fixed. *Example of the sha
 hand-off still said "chunk 0 built, next: core loop" weeks after five major systems had shipped, in
 the one place a fresh agent is told to trust.
 
+**Grade: ADVISE** (since 2026-10-15, CR-2026-10-15-GAPS D4; HOOK before). The Stop card
+(`hooks/stop.ps1#stop-done`) names DES-07 at its top in a turn that changed source, and asks which
+document carries the change when the turn touched none. It blocks the first stop once, yields on
+the second whatever the answer says, and grades nothing. A document, to the hook, is a file named on
+`stopDocs` (the brain's list, or the kit's default list when the brain sets none; the brain's list
+replaces the default, it does not add to it), or a file in a `docs` folder inside the repository
+whose extension is not a source extension. Any one of them removes the DES-07 line; the hook does
+not check that `HANDOFF.md` moved. Other Markdown, such as a kit's `instructions/` or `workflows/`
+files, is not a document to the hook. A name added to `stopDocs` counts as a document touched on a
+source turn; a turn that changes only documents, or only such other files, still gets no card,
+unless git status in a repository it touched lists more entries than the hook reads: that count is
+a floor, and the card comes.
+
 ## Commits
 
 ### VOICE-05
@@ -211,6 +237,15 @@ reversible, owner-requested single-file edit is exempt.**
 
 Speed is not a reason to skip a gate.
 
+**Grade: ADVISE** (since 2026-10-15, CR-2026-10-15-GAPS D4; HOOK before). The Stop card
+(`hooks/stop.ps1#stop-done`) names GAME-12 at its top in every turn that changed source, and its
+GAME-12 line asks for the repository's verify gate command and its output, pasted, for each small
+change, or for a statement that the edit was the exempt one. The hook runs no verify gate and does
+not see each small change: it asks once per turn, blocks the first stop once, yields on the second,
+and grades nothing. It cannot tell the exempt edit from any other source change, so the card still
+comes on that turn. The exception covers the inner gate only; the card's other lines still need
+an answer.
+
 ### GAME-13
 
 **A session on a game repository opens with a state card built from the repository's documents,
@@ -253,11 +288,19 @@ reference, read its own index (`SKIN-07`), never a count written in a law file.
 
 ## The commit message, checked at commit time (0.1.25, CR-2026-10-13-HONOUR)
 
-VOICE-05 is enforced by the commit-msg shim (`tools/vcs/law-claim.ps1#commit-message`) in every
+The commit-msg shim (`tools/vcs/law-claim.ps1#commit-message`) checks VOICE-05 in every
 repository the shim is installed in: the subject line is 72 characters or fewer, its first word is
 not past tense (Added, Fixed, Updated and their kind), and it is not a bare placeholder (Update,
 WIP, changes). A merge or a revert is exempt. "Specific" is not graded; a person reads that.
 Tunables: `commitMessage` in the brain's `doctor.config.json`.
+
+**Grade: BUILDABLE in the kit** (since 2026-10-15, CR-2026-10-15-GAPS D7; GATE before), for the
+reason VCS-23 is BUILDABLE (DECISIONS.md 2.7): `adopt` does not install the shim, so the kit cannot
+say that a given adopter has it, and a repository without the shim gets no check. The clause
+covers every commit, so one installed shim does not raise it. A brain re-grades VOICE-05 to GATE
+in its `law.overlay.json`, on the `commit-message` anchor, only when the shim (`tools/MANUAL.md`,
+the commit check) is in every repository the owner commits to, with a Doctor claim that checks
+that. Otherwise VOICE-05 stays BUILDABLE in the brain too, however many repositories have the shim.
 
 ### DES-14
 
@@ -269,8 +312,10 @@ next chat, so the next one does not start blind. Half of that was already here. 
 in the deliverable (DES-07, above), and the state card reads it at session start, but only inside
 a game repository (GAME-13). This clause widens both halves. **The card:** with
 `stateCard.anyRepoWithHandoff` on in the brain's `route-policy.json`, any git repository under the
-root that holds `HANDOFF.md` or `docs\HANDOFF.md` gets the card, whatever folder it sits in; the
-kit template ships the switch off, so an update changes nothing until the owner turns it on.
+root that holds `HANDOFF.md` or `docs\HANDOFF.md` gets the card, whatever folder it sits in, when
+the session starts inside that repository (the GAME-13 limit above: a session that starts at the
+root gets no card, and you build it by hand from the same documents); the kit template ships the
+switch off, so an update changes nothing until the owner turns it on.
 **The prompt:** `HANDOFF.md` ends with a section headed `## Next session` holding one paragraph or
 one fenced block, the exact opening prompt for the next session, rewritten at every chunk end and
 at the end of an autonomous loop (`instructions/autonomy-law.md`). The card prints it as

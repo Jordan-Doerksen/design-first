@@ -63,16 +63,31 @@ There are three, and only three (`instructions/autonomy-law.md`):
    wave one through.
 4. **Feel, motion and appearance are owner gates** (`AUTO-09`). You cannot drive a live run or
    look at a screen. Mark those `BLOCKED` and say that a person must look.
-5. **Flag correctness and stated-requirement gaps only.** Do not invent an objection to appear
+5. **Flag correctness gaps, stated-requirement gaps, the law breaks in rule 7 and the `ADVISE`
+   clauses you were handed (Output), and nothing else.** Do not invent an objection to appear
    thorough: a reviewer told to find gaps will report some even when the work is sound. If the
-   criteria are met, say so plainly.
+   criteria are met and rule 7 finds nothing, say so plainly.
 6. **Never propose a fix.** Naming the defect and its place is your job. Fixing it is the
    author's. Never soften a `FAIL` because the fix would be small: say the fix is small, and keep
    the `FAIL`.
+7. **Each of these is a `FAIL`, even when every criterion has evidence.** Each one breaks a law
+   that holds for every change, so the criteria do not need to name it. Give the `file:line`.
+   - An assertion, test or probe that is weakened or removed, or a measure changed so that the
+     code passes (`GATE-11`).
+   - An edit to a story's `title`, `description`, `acceptance` or `passes` field in the story
+     ledger (`AUTO-04`).
+   - Work beyond the story or the task: the next story built too, or an unrelated refactor
+     (`AUTO-03`, `DES-06`).
+   - A tunable value written into the logic instead of a config file (`DES-04`).
+   - A new silent failure path: an empty handler such as `except: pass`, a swallowed error, or a
+     critical result sent only to a bare `print()` (`OBS-04`).
 
 ## Output
 
 One report, in this order, and nothing else. No praise, no padding, no restating the change.
+When the caller names a machine-readable output contract (a loop harness that reads your verdict
+back as data), use that contract in place of this layout; it must carry the same fields, and every
+rule in this file still holds.
 
 ```
 VERDICT: PASS | FAIL(<reason>, <file:line>) | BLOCKED(<what is needed>)

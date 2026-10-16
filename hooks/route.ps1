@@ -5,22 +5,27 @@
 # active is injected ONCE per session as its rows from the generated LAW.md, with the owning files
 # named for the full text; later prompts in the same session add only groups not yet active.
 # Routes stick: a session about a game stays a game session when the next prompt is "yes please".
-# entry.ps1 clears the session's route file on compaction, so the next prompt re-injects.
+# entry.ps1 clears the session's route file on a compaction or a clear, so the next prompt re-injects.
 #
 # Output is plain stdout (the host adds it as context), capped under the host's 10,000-character
-# limit: groups that do not fit are named and left for the next prompt. Measured on the first
+# limit by the policy's maxChars. A group that does not fit is not recorded. When another group
+# printed, the printed line names it and says to mention the topic again; when no group fits, no
+# group is named. Nothing stores it: an always or folder group comes again on the next prompt, a
+# word group only when a later prompt holds its words. Measured on the first
 # instance before this hook existed: the eight-file entry path was ~35k tokens if read; a group's
 # rows are 150-900 tokens; routes that stick covered 91% of 1,985 prompts.
 #
-# Failure policy: an internal error prints nothing law-shaped, logs an ERROR line and says so.
+# Failure policy: an internal error prints nothing law-shaped, logs an ERROR line and says so. The
+# turn reset runs before the libraries load, so a failure after it cannot leave the last turn's
+# record and time for the Stop card.
 #
 # anchor: route-law  mode: advise  verbs: route-law
 #
 # always-route (OWN-10, CR-2026-10-14-OPTIONS): the groups the policy lists in alwaysForSessions
 # join the matches of every prompt, whatever its words and folder. They go first, so the size cap
 # defers a topic group before one of them (a policy that lists several large always groups can still
-# defer the later ones); the route file keeps them to once per session, and a compaction clears it, so
-# they arrive again after one. A rule about how every decision is asked and researched has no
+# defer the later ones); the route file keeps them to once per session, and a compaction or a clear
+# clears it, so they arrive again after one. A rule about how every decision is asked and researched has no
 # topic word to route on: before this key, no OWN row reached any session by route.
 #
 # anchor: always-route  mode: advise  verbs: rank
@@ -29,6 +34,8 @@
 # read from the skills directories themselves (root\.claude\skills and the profile's), never from
 # a list in a law file. A skill whose name or description shares a whole word with the typed text
 # is named once per session, with its path, so the task meets the skill before a build from nothing.
+# It counts as named only when its line printed: a block that does not fit under the cap is named
+# by a later prompt that matches it, and when no new group prints, the skills print alone.
 #
 # anchor: skills  mode: advise  verbs: match-skill
 
@@ -67,39 +74,41 @@ function Get-DfSkillMatches([string]$prompt, [string]$root, [string]$sessionId) 
         }
         if ($hits.Count -ge 5) { break }
     }
-    foreach ($h in $hits) { Add-DfTextLine $seenFile $h.name }
     return @($hits)
 }
 
 try {
-    . (Join-Path $PSScriptRoot 'lib\common.ps1')
-    . (Join-Path $PSScriptRoot 'lib\law-rows.ps1')
-    . (Join-Path $PSScriptRoot 'lib\turn-changes.ps1')
-
     $raw = ''
     try { if ([Console]::IsInputRedirected) { $raw = [Console]::In.ReadToEnd() } } catch { }
     $j = $null
     if (-not [string]::IsNullOrWhiteSpace($raw)) { try { $j = $raw | ConvertFrom-Json } catch { $j = $null } }
     $prompt    = if ($j -and $j.PSObject.Properties['prompt']) { [string]$j.prompt } else { '' }
     $sessionId = if ($j -and $j.session_id) { [string]$j.session_id } else { 'unknown' }
-    $cwd       = if ($j -and $j.cwd) { ConvertTo-DfFullPath ([string]$j.cwd) } else { (Get-Location).Path }
 
-    # A prompt from the owner is a turn boundary: the guard's edit ledger and its list of nominated
-    # repositories start over, and the time is written down, so stop.ps1 can ask git what changed
-    # since (lib\turn-changes.ps1). A background-task notice is NOT a boundary. The host hands it to
-    # this hook as a prompt in the middle of a turn; taking it for one made the card forget every
-    # edit before it. Seen 2026-10-08: two notices in one turn, each one routed as if typed.
+    # A prompt from the owner is a turn boundary: the guard's edit ledger, its list of nominated
+    # repositories and its failure count start over, and the time is written down, so stop.ps1 can ask
+    # git what changed since (lib\turn-changes.ps1). A background-task notice is NOT a boundary. The
+    # host hands it to this hook as a prompt in the middle of a turn; taking it for one made the card
+    # forget every edit before it. Seen 2026-10-08: two notices in one turn, each one routed as if typed.
+    # Workaround (CR-2026-10-15-GAPS D5): the reset ran after the libraries loaded, so a library that
+    # failed to load left the last turn's record and time in place, and the card judged this turn by
+    # them. It runs first now, on inline paths with the names Get-DfSessionFile gives.
     $isNotice = $prompt -match '(?is)<task-notification>.*?</task-notification>'
     if (-not $isNotice) {
-        foreach ($ext in '.edits', '.repos') {
-            $f = Get-DfSessionFile $sessionId $ext
+        $markerDir = if ($env:DF_MARKER_DIR) { $env:DF_MARKER_DIR } else { Join-Path $env:TEMP 'design-first' }
+        $safeId = $sessionId -replace '[^A-Za-z0-9_.-]', '_'
+        foreach ($ext in '.edits', '.repos', '.guard-error') {
+            $f = Join-Path $markerDir ($safeId + $ext)
             if (Test-Path -LiteralPath $f -PathType Leaf) { Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue }
         }
-        $turn = Get-DfSessionFile $sessionId '.turn'
-        $turnDir = Split-Path -Parent $turn
-        if (-not (Test-Path -LiteralPath $turnDir)) { New-Item -ItemType Directory -Force -Path $turnDir | Out-Null }
-        Set-Content -LiteralPath $turn -Value ([DateTimeOffset]::Now.ToString('o')) -Encoding utf8
+        if (-not (Test-Path -LiteralPath $markerDir)) { New-Item -ItemType Directory -Force -Path $markerDir | Out-Null }
+        Set-Content -LiteralPath (Join-Path $markerDir ($safeId + '.turn')) -Value ([DateTimeOffset]::Now.ToString('o')) -Encoding utf8
     }
+
+    . (Join-Path $PSScriptRoot 'lib\common.ps1')
+    . (Join-Path $PSScriptRoot 'lib\law-rows.ps1')
+    . (Join-Path $PSScriptRoot 'lib\turn-changes.ps1')
+    $cwd = if ($j -and $j.cwd) { ConvertTo-DfFullPath ([string]$j.cwd) } else { (Get-Location).Path }
 
     if ([string]::IsNullOrWhiteSpace($prompt)) { exit 0 }
     # The host can attach reminder blocks (skills lists, instructions) to the prompt it hands over.
@@ -123,13 +132,19 @@ try {
     $active  = Read-DfActiveRoutes $sessionId
     $new = @($matched | Where-Object { $active -notcontains $_ })
 
-    # skills (DES-12): named once per session each, after the law rows when there are any.
-    $skillLines = [Collections.Generic.List[string]]::new()
-    foreach ($h in (Get-DfSkillMatches $prompt $ptr.root $sessionId)) {
-        $skillLines.Add(("  - {0}: {1}  ({2})" -f $h.name, $h.desc, $h.path))
+    # skills (DES-12): named once per session each, after the law rows when there are any. A skill is
+    # marked as named (<session>.skills) only after its line printed. Workaround (CR-2026-10-15-GAPS
+    # D5): the match marked every hit before anything printed, so a skill block that did not fit
+    # under the cap, or a prompt whose new groups all failed to print, lost the skill for the session.
+    $skillHits = @(Get-DfSkillMatches $prompt $ptr.root $sessionId)
+    $skillText = ''
+    if ($skillHits.Count -gt 0) {
+        $skillText = "design-first skills (DES-12): the task may match an installed skill; read it before building from nothing.`n" +
+                     (($skillHits | ForEach-Object { "  - {0}: {1}  ({2})" -f $_.name, $_.desc, $_.path }) -join "`n")
     }
+    $skillFile = Get-DfSessionFile $sessionId '.skills'
     if ($new.Count -eq 0) {
-        if ($skillLines.Count -gt 0) { Write-Output ("design-first skills (DES-12): the task may match an installed skill; read it before building from nothing.`n" + ($skillLines -join "`n")) }
+        if ($skillText) { Write-Output $skillText; foreach ($h in $skillHits) { Add-DfTextLine $skillFile $h.name } }
         exit 0
     }
 
@@ -150,11 +165,16 @@ try {
         $src = if ($pol.fromBrain) { $pol.source } else { "$($pol.source) (kit template; no brain route-policy.json)" }
         [void]$out.AppendLine(("design-first route: {0} now active this session (policy {1}); index {2}." -f ($injected -join ', '), $src, $law))
         if ($deferred.Count -gt 0) { [void]$out.AppendLine(("Not injected yet, over the size cap: {0}. Mention the topic again, or open the index." -f ($deferred -join ', '))) }
-        if ($skillLines.Count -gt 0) {
-            $skillText = "design-first skills (DES-12): the task may match an installed skill; read it before building from nothing.`n" + ($skillLines -join "`n")
-            if (($out.Length + $skillText.Length + 2) -le $maxChars) { [void]$out.AppendLine(); [void]$out.AppendLine($skillText) }
-        }
+        $skillsFit = $skillText -and (($out.Length + $skillText.Length + 2) -le $maxChars)
+        if ($skillsFit) { [void]$out.AppendLine(); [void]$out.AppendLine($skillText) }
         Write-Output $out.ToString().TrimEnd()
+        # A skill block that did not fit is not marked, so a later prompt that matches it names it.
+        if ($skillsFit) { foreach ($h in $skillHits) { Add-DfTextLine $skillFile $h.name } }
+    }
+    elseif ($skillText) {
+        # No new group printed (each was over the cap or missing from LAW.md): the skills print alone.
+        Write-Output $skillText
+        foreach ($h in $skillHits) { Add-DfTextLine $skillFile $h.name }
     }
 }
 catch {

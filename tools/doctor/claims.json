@@ -169,7 +169,14 @@
       "type": "hook_smoke",
       "hook": "stop",
       "event": "Stop",
-      "why": "DES-07, GATE-05/06/07: the Stop hook is registered and starts. With no ledger for the smoke session it must exit 0 and print nothing."
+      "why": "DES-07, GATE-01, GATE-05/06/07, GAME-12: the Stop hook is registered and starts. With no ledger for the smoke session it must exit 0 and print nothing."
+    },
+    {
+      "id": "KIT-SMOKE-08",
+      "type": "hook_smoke",
+      "hook": "ask",
+      "event": "PreToolUse",
+      "why": "OWN-04, GATE-01: the question hook is registered for AskUserQuestion and must start. A hook that cannot start drops the OWN-04 deny and the interview marker silently, and until this claim the Doctor smoked every registered hook but this one. Run as hooks.json registers it with a harmless synthetic call (not a question, so it passes through): exit 0, reply with nothing or JSON. The Doctor self-test requires one hook_smoke claim here for every hook hooks.json registers."
     },
     {
       "id": "KIT-REVIEWER-01",
@@ -187,11 +194,23 @@
       "why": "The law gives the Reviewer three verdicts: PASS, FAIL, BLOCKED (instructions/autonomy-law.md). Until 0.1.16 this file returned a fourth, PASS WITH FINDINGS, and had no BLOCKED, so the kit's own agent broke the kit's own law. A softened pass must not come back."
     },
     {
+      "id": "KIT-REVIEWER-03",
+      "type": "file_contains",
+      "path": "${KIT}/agents/reviewer.md",
+      "needle": "7. **Each of these is a `FAIL`, even when every criterion has evidence.**",
+      "why": "AUTO-05, GATE-11, AUTO-04: rule 7 makes a weakened assertion, a ledger edit, work beyond the story, a hardcoded tunable and a new silent failure path a FAIL even when every acceptance line has evidence. A loop runner that builds its Reviewer from this file has no FAIL list of its own (CR-2026-10-15-GAPS review), so without the rule a Builder that weakens a test to pass it gets a PASS. The needle is the rule's own line: take the rule out and the kit Doctor goes RED."
+    },
+    {
       "id": "KIT-RATCHET-01",
       "type": "ratchet",
       "path": "${KIT}/LAW.md",
       "row": "HONOUR",
-      "why": "PRIN-04: the next misbehaviour produces a mechanism, not a paragraph. The HONOUR count in the generated LAW.md may only fall. A rise means a rule arrived with nothing to enforce it: give it a mechanism, give it the grade it really has, or sign the raise here (accepted: value, since, reason; it works once). The record is local state (state/ratchets.json), so a fresh checkout records its own baseline on the first run."
+      "why": "PRIN-04: the next misbehaviour produces a mechanism, not a paragraph. The HONOUR count in the generated LAW.md may only fall. A rise means a rule arrived with nothing to enforce it: give it a mechanism, give it the grade it really has, or sign the raise here (accepted: value, since, reason; it works once). The record is local state (state/ratchets.json), so a fresh checkout records its own baseline on the first run.",
+      "accepted": {
+        "value": 5,
+        "since": "2026-10-15",
+        "reason": "CR-2026-10-15-GAPS D7, owner approved: VCS-01, VCS-02, VCS-04, VCS-22 and DES-09 go from GATE to HONOUR. Their survey findings change the verdict only with surveyStrict on, which the template ships off (VCS-04 and DES-09 are warn and never change it), so GATE said a machine stops you and none did. A brain that runs strict re-grades VCS-01, VCS-02 and VCS-22 to GATE in its overlay. No rule lost a mechanism; the grade now says what the shipped config does."
+      }
     }
   ]
 }

@@ -1,6 +1,6 @@
 # adopt-plan.ps1 - turns templates + the adopter's answers into the list of files adopt.ps1 writes.
 # Dot-sourced by tools/adopt.ps1 after df-files.ps1; never run directly. Pure: nothing here
-# touches the disk except to READ templates and law.json.
+# touches the disk except to READ templates, law.json and hooks\hooks.json.
 #
 # A planned item is @{ path; bytes; generated; note }. adopt.ps1 decides, per item, whether the
 # path is missing (write it) or present (print a diff, leave it).
@@ -46,6 +46,20 @@ function ConvertTo-DfConfigPath([string] $p, [string] $root) {
     try { $full = [IO.Path]::GetFullPath($s).TrimEnd('\') } catch { return $s }
     if ($full.StartsWith($root + '\', [StringComparison]::OrdinalIgnoreCase)) { return '${ROOT}\' + $full.Substring($root.Length + 1) }
     return $full
+}
+
+# Every hook script the kit's hooks.json registers, read from that file and never typed (VCS-15):
+# an ordered map of name -> the script exists under hooks\. adopt.ps1 records it in
+# state\law-installed.json, and the law build grades each clause that rests on a hook from it
+# (tools/law/render.ps1). Before CR-2026-10-15-GAPS D6 adopt typed three names (guard, fence,
+# entry), so the first LAW.md printed HONOUR "(mechanism not installed)" for every clause on the
+# stop, route, ask, agent and subagent hooks, which ship and run.
+function Get-DfRegisteredHooks([string] $kit) {
+    $text = Read-DfText (Join-Path $kit 'hooks\hooks.json')
+    $names = @([regex]::Matches($text, 'hooks[\\/]+([A-Za-z0-9_-]+)\.ps1') | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique -Culture '')
+    $map = [ordered]@{}
+    foreach ($n in $names) { $map[$n] = [bool](Test-Path -LiteralPath (Join-Path $kit "hooks\$n.ps1") -PathType Leaf) }
+    return $map
 }
 
 function New-DfDoctorConfig([string] $templatePath, [string[]] $gitHubOwners, [string[]] $frozenPaths, [object[]] $snapshotPairs) {

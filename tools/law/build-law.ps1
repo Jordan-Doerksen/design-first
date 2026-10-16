@@ -7,7 +7,9 @@
 #
 # -BrainRoot   resolves brain: owners, overlay refs and the brain claims.json. Without it, brain: owners are not checked (warning).
 # -Installed   JSON { "hooks": { "guard": true, "fence": true, "entry": true }, "rootSettings": true, "pointer": true }.
-#              A clause whose mechanism is not installed prints HONOUR with a "(mechanism not installed)" note.
+#              A clause whose mechanism the file records as false prints HONOUR with a "(mechanism not installed)"
+#              note, and so does one on rootSettings or pointer when that key is absent. A hook the file does not
+#              name keeps its kit grade (render.ps1, CR-2026-10-15-GAPS D6).
 # Two checks here are law mechanisms (CR-2026-10-13-HONOUR), implemented in validate.ps1:
 # anchor: state-once  mode: gate  verbs: state-once
 #   a clause's "### ID" heading exists in exactly one law file, and that file is its owner (PRIN-05)

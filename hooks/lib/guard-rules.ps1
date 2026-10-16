@@ -80,6 +80,13 @@ function Test-DfStagingRule($call, [string[]]$exceptions, [string]$owner) {
             if (Test-DfException $full $exceptions) { continue }
             return (New-DfStageDeny $p $owner)
         }
+        # A pathspec with magic (':/', ':(top)', ':(glob)...', ':!x') is probed as typed, and git
+        # reads the magic: ':/' and ':(top)' cover the whole work tree from the top level, as -A
+        # does, and an exclusion keeps its meaning. It comes after the name test, so ':/.env' is
+        # still refused by name when git tracks or ignores that file. Workaround
+        # (CR-2026-10-15-GAPS review): such a pathspec is neither a wildcard nor a folder on disk,
+        # so it was never probed, and 'git add :/' staged an untracked .env with no refusal.
+        if ($p.StartsWith(':')) { $probes += $p; continue }
         $full = ConvertTo-DfFullPath $p $cwd
         if ($p -match '[*?\[]' -or ($full -and (Test-Path -LiteralPath $full -PathType Container))) { $probes += $p }
     }
@@ -218,9 +225,10 @@ function Test-DfPathRuleFile([string]$full, [string[]]$protected, [string]$owner
 
 # ============================================================================ (5) manifest before code
 # anchor: no-manifest  mode: advise  verbs: lock,unlock
-# A source write inside a git repository whose root has no DECISIONS.md asks, once per repository
-# per session (DES-02, GATE-04). Docs, config and data files are not source; the brain's
-# sourceExtensions list decides, with a built-in default when there is no brain.
+# A source write inside a git repository with no DECISIONS.md at its root or in docs/ advises on
+# both channels (a title on the owner's screen, the note in the agent's context); the call goes on.
+# Once per repository per session (DES-02, GATE-04). Docs, config and data files are not source;
+# the brain's sourceExtensions list decides, with a built-in default when there is no brain.
 $script:DfDefaultSourceExtensions = @('.py', '.js', '.ts', '.tsx', '.jsx', '.mjs', '.cjs', '.rs', '.go', '.cs', '.gd', '.ps1', '.sh', '.html', '.css', '.scss', '.vue', '.svelte', '.lua', '.c', '.h', '.cpp', '.java', '.kt', '.swift')
 
 function Get-DfRepoRoot([string]$full) {
@@ -242,6 +250,22 @@ function Get-DfLedgerRepo([string]$full, [string]$root) {
     return (Get-DfRepoRoot $full)
 }
 
+# The repository's manifest files: DECISIONS.md at the root, then docs\DECISIONS.md, the two places
+# the law permits (design-methodology.md, Phase 2). Both are returned when both exist. The name is
+# matched without case, so a 'decisions.md' counts on a case-sensitive disk too. Rules 5 and 10
+# read this list. Workaround (CR-2026-10-15-GAPS D2): both rules read only the root, so a
+# docs\ manifest got a false "no manifest" advise and its design gate line was never read.
+function Get-DfManifestPaths([string]$repoRoot) {
+    $out = @()
+    if (-not $repoRoot) { return $out }
+    foreach ($dir in @($repoRoot, (Join-Path $repoRoot 'docs'))) {
+        if (-not (Test-Path -LiteralPath $dir -PathType Container)) { continue }
+        $hit = Get-ChildItem -LiteralPath $dir -File -Force -ErrorAction SilentlyContinue | Where-Object { $_.Name -ieq 'DECISIONS.md' } | Select-Object -First 1
+        if ($hit) { $out += $hit.FullName }
+    }
+    return $out
+}
+
 function Test-DfManifestRule([string]$full, [string[]]$sourceExts, [string]$sessionId, [string]$owner, [string[]]$skipUnder) {
     if (-not $full) { return }
     $ext = [IO.Path]::GetExtension($full).ToLowerInvariant()
@@ -249,12 +273,11 @@ function Test-DfManifestRule([string]$full, [string[]]$sourceExts, [string]$sess
     foreach ($s in $skipUnder) { if ($s -and (Test-DfUnder $full $s)) { return } }
     $root = Get-DfRepoRoot $full
     if (-not $root) { return }
-    $manifest = Get-ChildItem -LiteralPath $root -File -Force -ErrorAction SilentlyContinue | Where-Object { $_.Name -ieq 'DECISIONS.md' } | Select-Object -First 1
-    if ($manifest) { return }
+    if (@(Get-DfManifestPaths $root).Count -gt 0) { return }
     $key = 'manifest-' + ([BitConverter]::ToString([Security.Cryptography.SHA1]::HashData([Text.Encoding]::UTF8.GetBytes($root.ToLowerInvariant()))) -replace '-', '').Substring(0, 12)
     if (-not (Test-DfFirstTime $sessionId $key)) { return }
     Add-DfAdvisory "no DECISIONS.md in $root" `
-        ("DES-02 / GATE-04: a subsystem is not coded until its decisions are locked in DECISIONS.md, and this repository has none at its root ($root). " +
+        ("DES-02 / GATE-04: a subsystem is not coded until its decisions are locked in DECISIONS.md, and this repository has none at its root or in docs\ ($root). " +
          "Interview $owner, write the manifest, then build; or, if this is a toy or a throwaway, say so and carry on. This notice appears once per repository per session.")
 }
 

@@ -41,9 +41,13 @@ not that they are not needed.
 
 *What the hook sees.* `hooks/ask.ps1` reads every multiple-choice call and refuses one that holds
 more than one question, an option whose description is shorter than the minimum length, a phrase
-that offers options as equally fine, or no recommended option first. A negated phrase ("not equally
-good"), a quoted one, or one in a sentence that goes on to say what tips it ("both are fine, but
-this one costs less") is not a tie. A multi-select question is held to the same rules. The
+that offers options as equally fine, or a first option whose label does not hold the recommended
+marker. The marker is a word match, so a label such as "X (not recommended)" also passes. A negated
+phrase ("not equally good"), a quoted one, or one in a sentence that also holds a contrast word
+such as "but" or "however", before or after the phrase, is not counted as a tie ("both are fine,
+but this one costs less"). The hook checks for the word; it does not check that the sentence says
+what tips it, which is the agent's job. A multi-select question is held to the same rules, and
+only its first option's label is checked for the marker. The
 minimum, the phrases and the recommended marker are config values; an unreadable config keeps the
 defaults. In a multiple-choice call the description is the reason's place even when reasons were
 also written above the question, because the description is the only part the hook can see. It
@@ -140,8 +144,8 @@ trivial call stays fast; research about nothing is overload too.
 
 *What delivers it.* No machine can see whether a rank was stated or research was done. The rule
 reaches every session because `hooks/route.ps1` adds the groups in the route policy's
-`alwaysForSessions` list to every session's first prompt, and again after a compaction; the
-template lists `OWN`. The owner judges it. A subagent does not receive it, because
+`alwaysForSessions` list to every session's first prompt, and again after a compaction or a clear;
+the template lists `OWN`. The owner judges it. A subagent does not receive it, because
 `hooks/subagent.ps1` leaves the session-only groups out of a subagent's injection; a brief that
 needs research says so itself. An existing brain gets the route only when its own
 `route-policy.json` carries the key: adopt copies the template once, and an upgrade does not edit

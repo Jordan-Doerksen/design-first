@@ -74,6 +74,15 @@ honours the shallow boundary and does not look past it, so the standard check is
 class. Only the marker file reveals it. Fix: `git fetch --unshallow <remote>`; that repository went
 from 2 commits to 118. The Doctor reports `shallow`.
 
+**Grades of the survey clauses** (since 2026-10-15, CR-2026-10-15-GAPS D7; GATE before). The
+survey reports `noRemote`, `foreignRemote` and `shallow` as `fail` findings, and `unpushed` as a
+`warn` finding. A survey finding changes the Doctor's verdict only when it is a `fail` and the
+brain config sets `surveyStrict`, which the kit's template ships off. So in the kit VCS-01, VCS-02,
+VCS-04 and VCS-22 grade HONOUR: no machine stops you by default. A brain that sets `surveyStrict`
+true re-grades VCS-01, VCS-02 and VCS-22 to GATE in its `law.overlay.json`, on the survey anchors
+`survey-no-remote`, `survey-foreign-remote` and `survey-shallow`, and holds the setting with a
+claim. VCS-04 stays HONOUR even then, because a `warn` never changes the verdict.
+
 ---
 
 ## Part 2 — Bytes (how work is quietly corrupted)
@@ -113,6 +122,10 @@ with CRLF while git stored and the host served LF, so the manifest stated a hash
 ever match, and the integrity check correctly refused that file forever. **Hash the bytes the
 server serves, not the bytes an editor left on disk**, and make the manifest builder *fail* on
 CRLF text instead of hashing it.
+
+**Grade: HONOUR** (since 2026-10-15, CR-2026-10-15-GAPS D7; GATE before). The Doctor's survey
+reports a repository with no `.gitattributes` as `noGitattributes`, a `warn` finding, and a `warn`
+never changes the verdict, with `surveyStrict` on or off. The survey line is a report, not a stop.
 
 ---
 
@@ -172,10 +185,23 @@ still reads it.**
 
 Retired as a product is not the same as unused. A folder may be forbidden to work in and still be
 read by a live config, a build step or a test. Removing it is an outage that looks like tidying.
-**Mechanism:** the guard hook denies Edit/Write/Bash/PowerShell calls that target a path listed in
-the brain's `frozenPaths` or `tombstonedPaths`. **Residual:** the path rules need a brain; without
+**Mechanism:** the guard hook denies an Edit, Write or NotebookEdit of a path listed in the
+brain's `frozenPaths` or `tombstonedPaths`, except a tombstoned folder's own `TOMBSTONE.md`, the
+record the tombstone claim reads. It also denies a Bash or PowerShell command that names such a
+path after a delete or move command from its list (such as `rm`, `del`, `mv`, `Remove-Item`,
+`Move-Item`, `Clear-Content`), or in `git clean`, `git restore`, `git rm` or `git checkout`. A shell
+write into such a path (a redirect, `Set-Content`, `Out-File`, `cp`, `Copy-Item`) is not
+inspected. For a git repository at or under a frozen path, the Doctor survey reports an
+uncommitted write as `frozenDirty` after it is made (`VCS-14`; RED only with `surveyStrict`). A
+write in a frozen folder that holds no repository, or that sits inside a repository the list does
+not freeze as a whole, and a write that is then committed, are not found. **Residual:** the path rules need a brain; without
 one the guard runs its inline rules and gives one advisory per session that path rules are off. A
 move performed by a script the agent writes, or inside a nested shell string, is not inspected.
+Path spellings (2026-10-15, CR-2026-10-15-GAPS): `\\?\`, `\\.\`, `\\?\UNC\`, an admin share on
+`localhost` or `127.0.0.1`, and a PowerShell `FileSystem::` provider path are mapped to the plain
+path before the compare. Not mapped: 8.3 short names, junctions and symbolic links, `subst` or
+mapped drives, `\\?\Volume{...}`, the machine by its own name or another address, and a
+PowerShell parameter written with the path glued on (`-LiteralPath:<path>`).
 
 ### VCS-12
 
@@ -240,19 +266,46 @@ nothing stopped the first one.
 **Mechanism (the guard hook's staging rule).** On `git add` or `git commit -a`, every argument is
 tested against `*.env`, `*.env.*` (not `*.env.example`), `*.key`, `*.pem`, `*.p12`, `*.pfx`; a
 wildcard add (`.`, `-A`, `-u`, a directory) lists the untracked, un-ignored files under it and tests
-each. The write rule denies writing a `.env` that is not ignored, or that is already tracked (with
+each. A pathspec with magic, one that starts with `:` (`:/`, `:(top)`, `:(glob)…`, `:!x`), is listed
+the same way and git reads the magic, so `git add :/` from any folder covers the whole work tree
+from the top level, as `-A` does (since 2026-10-15, CR-2026-10-15-GAPS review; before, such a
+pathspec was neither a wildcard nor a folder, was never listed, and staged an untracked `.env`). The
+rule reads the folder the git command runs in: a `cd`, `Set-Location`, `sl`, `pushd`,
+`Push-Location` or `chdir` earlier in the same command line moves it to a folder that exists, so
+`cd <repo> && git add -A` is probed in that repository (since 2026-10-15, CR-2026-10-15-GAPS D1;
+before, the probe ran in the tool call's folder and missed the secret). A target the hook cannot
+find (a variable, a substitution, a folder the same command makes) leaves the folder where it was,
+so `cd "$(git rev-parse --show-toplevel)" && git add -A` is still probed from the tool call's
+folder. The write rule denies writing a `.env` that is not ignored, or that is already tracked (with
 the untrack remedy). A deliberate exception — one tracked secrets file by owner ruling — is listed
-in the brain's `secretExceptions`, and the Doctor pins the root's Read denies on secret paths.
+in the brain's `secretExceptions`, and the Doctor pins the root's Read denies on secret paths. The
+clause record names `hooks/guard.ps1#stage-secret`; the write rule is the separate anchor
+`#env-write`, and no clause record names it.
 
 **Residual, written here so nobody believes otherwise:** the guard tokenises the command it is
 given. `cmd /c "…"`, `pwsh -c "…"`, `bash -c "…"` nested strings, `xargs`, `$(…)`, backticks, user
-git aliases, and scripts the agent writes and then runs are **not inspected**. The self-tests assert
-these as *not denied*. The honest grade is therefore HOOK, not DENY.
+git aliases, and scripts the agent writes and then runs are **not inspected**. A folder change by
+any other route (`popd`, `Pop-Location`, a `cd` inside a nested shell) is not followed, and a file
+the same command line creates before a wildcard `git add` does not exist yet when the hook probes.
+The write rule reads Edit, Write and NotebookEdit calls only: a `.env` that a shell command writes
+(a redirect, `Set-Content`, `cp`) is not inspected there. The staging rule catches a new one when
+it is staged by name or by a wildcard add. A `.env` that git already tracks is in no untracked
+list, so a wildcard add or `git commit -a` that stages a change to it is not refused; only a
+`git add` that names it is. A pathspec read from a file (`--pathspec-from-file`) is not read. The
+history rule reads `git push`; `git send-pack` (a force or a remote branch delete) is read only by
+rule 11, on a loop branch, so off a loop branch it is not refused. The
+self-tests assert the nested forms, the shell write and the tracked wildcard add as *not denied*.
+The honest grade is therefore HOOK, not DENY.
 
 **The proof step after a first push.** Local checks — `.gitignore` covers it, the staged list omits
 it, a scan finds no secret string — are hygiene, not evidence of what landed on the remote. Query
 the remote's own file listing and confirm the secrets file is absent. That one step is the
 evidence.
+
+**Also in the guard, under no clause.** The guard refuses history destruction
+(`hooks/guard.ps1#git-history`: `gc --prune`, `reflog expire`, a force push, a remote branch
+delete). No clause in `law.json` names this rule. It is a kit default, so it is not in the
+`LAW.md` grades.
 
 ---
 

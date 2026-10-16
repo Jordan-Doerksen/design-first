@@ -86,3 +86,16 @@ Record 'message: short, present tense, specific -> committed' 'committed' (Verdi
 Put (Join-Path $repoClean 'src\main.py') 'print(5)'; RunGit $repoClean @('add', '-A')
 $r = GitTry $repoClean @('commit', '-m', "Merge branch 'x' into main")
 Record 'message: a merge subject is exempt' 'committed' (VerdictV $r) $r.out
+# git's own 'fixup! <subject>' and 'squash! <subject>' are exempt (CR-2026-10-15-GAPS review). The
+# pattern put \b after the '!', which never matches before the space git writes, so a subject that
+# the prefix took past the limit was refused. Each subject below is over 72 characters only by its
+# prefix. 'Merged' holds the other side: the exemption is the word Merge, not a word that starts so.
+$fxBase = 'Correct the fence claim so the record ' + ('x' * 30)
+Put (Join-Path $repoClean 'src\main.py') 'print(6)'; RunGit $repoClean @('add', '-A')
+$r = GitTry $repoClean @('commit', '-m', 'Merged the fence branch')
+Record "message: 'Merged ...' is past tense, not a merge subject -> refused" 'refused' (VerdictV $r) $r.out
+$r = GitTry $repoClean @('commit', '-m', ('fixup! ' + $fxBase))
+Record "message: a 'fixup! <subject>' over the limit only by its prefix -> exempt" 'committed' (VerdictV $r) $r.out
+Put (Join-Path $repoClean 'src\main.py') 'print(7)'; RunGit $repoClean @('add', '-A')
+$r = GitTry $repoClean @('commit', '-m', ('squash! ' + $fxBase))
+Record "message: a 'squash! <subject>' over the limit only by its prefix -> exempt" 'committed' (VerdictV $r) $r.out

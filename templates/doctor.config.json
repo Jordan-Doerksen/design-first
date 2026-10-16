@@ -23,8 +23,9 @@
     "readCeilingBytes": "hooks/guard.ps1 rule 6 (the read check, DES-03) - a write that grows a source file past this many bytes (about one Read) tells the agent once per file per session to list the file's subjects; it never asks for a split for size; 0 turns it off",
     "readCeilingExempt": "hooks/guard.ps1 rule 6 - path globs the read check skips; only * is a wildcard (** is the same), ${ROOT} and ${BRAIN} expand",
     "sourceExtensions": "hooks/guard.ps1 rules 5 and 6 - which extensions count as source for the manifest rule and the read check; docs, config and data are not source",
-    "stopDocs": "hooks/stop.ps1 - file names that count as documents for the Stop card (DES-07); anything under a docs/ folder counts too",
-    "stopFromGit": "hooks/stop.ps1 - true: the Stop card reads the turn's changes from git (commits made and files written since the prompt), so a file a command changed is counted; false: Edit and Write calls only"
+    "stopDocs": "hooks/stop.ps1 - file names that count as documents for the Stop card (DES-07); a file in a docs/ folder inside the repository counts too, unless its extension is a source extension",
+    "stopFromGit": "hooks/stop.ps1 - true: the Stop card reads the turn's changes from git (commits made and files written since the prompt), so a file a command changed is counted; false: Edit and Write calls only",
+    "stopBudgetSeconds": "hooks/stop.ps1 - the Stop card's time budget in seconds, under the host's 20 s Stop timeout; past it no more repositories are read from git and the card names them; a value outside (0, 18] keeps the default 15"
   },
   "surveyStrict": false,
   "maxDepth": 3,
@@ -90,6 +91,7 @@
   },
   "readCeilingBytes": 49152,
   "stopFromGit": true,
+  "stopBudgetSeconds": 15,
   "sourceExtensions": [
     ".py",
     ".js",
