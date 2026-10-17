@@ -73,8 +73,8 @@ function childEnv(home, pointer) {
     if (pointer) env.DF_POINTER_PATH = pointer;
     return env;
 }
-function run(cmd, args, env) {
-    const r = spawnSync(cmd, args, { encoding: 'utf8', windowsHide: true, env, maxBuffer: 64 * 1024 * 1024 });
+function run(cmd, args, env, extra = {}) {
+    const r = spawnSync(cmd, args, { encoding: 'utf8', windowsHide: true, env, maxBuffer: 64 * 1024 * 1024, ...extra });
     return { out: (r.stdout || '') + (r.stderr || ''), code: r.status == null ? -1 : r.status };
 }
 const invokeDoctor = (args, home, pointer = '') => run(process.execPath, [doctor, ...args], childEnv(home, pointer));
@@ -528,7 +528,10 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
         say('  Run G: Doctor.bat shim', 36);
         const bat = path.join(brain, 'Doctor.bat');
         fs.copyFileSync(path.join(templates, 'Doctor.bat'), bat);
-        g = run(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', `""${bat}" -Quiet"`], childEnv(fakeHome, ''));
+        // Workaround: without windowsVerbatimArguments Node escapes each " in the argument as \" before
+        // cmd sees it, cmd does not unescape, so it looked for a program literally named with those
+        // quotes, exited 1 and never ran the shim (both G cases failed on Windows with no state written).
+        g = run(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', `""${bat}" -Quiet"`], childEnv(fakeHome, ''), { windowsVerbatimArguments: true });
     } else {
         say('  Run G: doctor.sh shim', 36);
         const sh = path.join(brain, 'doctor.sh');
