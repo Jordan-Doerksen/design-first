@@ -456,6 +456,17 @@ const sub = (session, type) => invokeHook('subagent.mjs', hookJson({ session_id:
     let ctxText = subText(r);
     record(`subagent: a kit at a ${longKit.length}-character path still sends the Reviewer the ADVISE text`, 'advised', /ADVISE clauses, \d+ rules/.test(ctxText) && /You are the Reviewer/.test(ctxText) && /group DES/.test(ctxText) ? 'advised' : 'dropped', r.out);
     record('subagent: the long kit folder is named once in the whole injection', 'once', ctxText.split(longKit).length - 1 === 1 ? 'once' : `${ctxText.split(longKit).length - 1} times`, r.out);
+    // CR-2026-10-17-ADVISE-FIRST: the four-group measure above left about 226 characters under the
+    // cap, and a usual session routes five (VOICE) or more. The groups were admitted first and the
+    // ADVISE block last, so one more group dropped the Reviewer's text. Six active groups here: the
+    // block is reserved first, the groups that do not fit beside it are deferred by name, and the
+    // Reviewer keeps the text. On the previous hook all six groups went in and the block was dropped.
+    put(path.join(process.env.DF_MARKER_DIR, 'r6.routes'), ['SAFE', 'DES', 'VCS', 'OBS', 'VOICE', 'GATE'].join('\n') + '\n');
+    r = sub('r6', 'design-first:reviewer');
+    ctxText = subText(r);
+    record('subagent: six active groups, the Reviewer still gets the ADVISE text', 'advised', /ADVISE clauses, \d+ rules/.test(ctxText) && /You are the Reviewer/.test(ctxText) && /group SAFE/.test(ctxText) && /group DES/.test(ctxText) ? 'advised' : 'dropped', r.out);
+    record('subagent: the group that does not fit beside the ADVISE block is deferred by name', 'deferred', /Over the size cap, not injected: [^\n]*GATE/.test(ctxText) && !/group GATE/.test(ctxText) ? 'deferred' : 'not-deferred', r.out);
+    record('subagent: the six-group injection stays under the cap', 'under', ctxText.length <= 9500 ? 'under' : `${ctxText.length} chars`, r.out);
     // A brain-owned clause: its file is named under the brain folder, and it opens there.
     const ownBrain = path.join(T, 'brain-owned');
     const lawText = readText(path.join(kit, 'LAW.md')).replace('| `kit:instructions/integrity-law.md` |', '| `brain:prohibitions.md` |');

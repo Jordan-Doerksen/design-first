@@ -93,12 +93,15 @@ prompt re-injects; its housekeeping deletes only the markers of a session idle f
 subagent receives, before its first prompt, the groups the policy sends to every subagent
 (`alwaysForSubagents`, the prohibitions by default) and the groups active in the session that
 spawned it, less the groups the policy sends only to sessions (`alwaysForSessions`) unless
-`alwaysForSubagents` also lists them; the subagent hook names a group that does not fit under the
-size cap. With no pointer file, neither hook injects any law.
+`alwaysForSubagents` also lists them). The subagent hook sizes the advise-by-role block first and
+reserves its room, then admits groups into what is left and names a group that does not fit; the
+block is what a Reviewer answers for, the group rows the session already read. With no pointer
+file, neither hook injects any law.
 
 **What stays at session start.** The entry path (`<brain>/entry.json`) now lists only what
 cannot be routed: the personal layer, who the owner is and how they write. Everything that is a
-clause arrives by route; the full text is one path away in the injected block.
+clause arrives by route; the full text is a folder the injected block names once plus the path
+each group's line gives.
 
 **Why.** Measured on the first instance on 2026-10-08: the entry path was eight files, 1,848
 lines, roughly 35k tokens if read, and a model either spent that before opening the code or

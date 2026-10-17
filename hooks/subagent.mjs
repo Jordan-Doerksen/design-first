@@ -5,9 +5,10 @@
 // This hook reads the session's route file (written by route.mjs) and injects, before the
 // subagent's first prompt, the rows of the groups the policy marks alwaysForSubagents (the
 // prohibitions by default) and of every group active in the session, except the alwaysForSessions
-// groups (unless alwaysForSubagents also lists them). Same cap as the router: a group past the cap
-// is named without its rows. With no pointer file it injects nothing. The host re-injects after the
-// subagent's own compaction.
+// groups (unless alwaysForSubagents also lists them). Same cap as the router: the advise-by-role
+// block below is sized first and its room reserved, then a group past the cap is named without its
+// rows. With no pointer file it injects nothing. The host re-injects after the subagent's own
+// compaction.
 //
 // advise-by-role (CR-2026-10-13-HONOUR): every clause whose enforcedBy ref names this anchor is
 // read from the kit's law.json (and the brain's overlay when there is one) and injected with one
@@ -97,6 +98,19 @@ try {
         }
 
         let out = `You are a design-first subagent (${agentType}). The brief is your spec; these are the law groups active in the session that spawned you. Cite ids; open the owning file for the full text. ${L.lawFoldersLine(ptr, kit)}\n\n`;
+
+        // advise-by-role is sized first and its room reserved before any group is admitted.
+        // Workaround (CR-2026-10-17-ADVISE-FIRST): the groups were admitted greedily and the ADVISE
+        // block appended last into what was left, so with five routed groups (SAFE, DES, VCS, OBS and
+        // VOICE, the usual session) the block, about 3,150 characters, did not fit and the Reviewer
+        // got twenty ids with no text, the thing GATE-09 and AUTO-05 lean on. A group that does not
+        // fit beside the block is deferred instead; its rows are the per-session half and the session
+        // already read them.
+        const advise = readAdviseClauses(C, kit, ptr.brain);
+        const adviseText = advise.length > 0 ? formatAdvise(advise, isReviewer) : '';
+        const adviseFits = adviseText && out.length + adviseText.length + 2 <= maxChars;
+        const reserved = adviseFits ? adviseText.length + 2 : 0;
+
         const injected = []; const deferred = [];
         if (wanted.length > 0) {
             const law = L.lawPath(ptr, kit);
@@ -105,19 +119,17 @@ try {
                 const grp = L.findGroup(groups, g);
                 if (!grp) continue;
                 const text = L.formatLawGroup(g, grp, ptr, kit);
-                if (out.length + text.length + 2 > maxChars) { deferred.push(g); continue; }
+                if (out.length + text.length + 2 + reserved > maxChars) { deferred.push(g); continue; }
                 out += text + '\n\n'; injected.push(g);
             }
             if (deferred.length > 0) out += `Over the size cap, not injected: ${deferred.join(', ')}; index at ${law}.\n\n`;
         }
 
-        // advise-by-role: after the groups, inside the same cap. Over the cap, the ids are named so
-        // the Reviewer still knows what it must answer for.
-        const advise = readAdviseClauses(C, kit, ptr.brain);
+        // advise-by-role: after the groups, in the room reserved above. Over the cap (the block alone
+        // does not fit under it), the ids are named so the Reviewer still knows what it must answer for.
         let adviseInjected = false;
         if (advise.length > 0) {
-            const text = formatAdvise(advise, isReviewer);
-            if (out.length + text.length + 2 <= maxChars) out += text + '\n';
+            if (adviseFits && out.length + adviseText.length + 2 <= maxChars) out += adviseText + '\n';
             else out += `ADVISE clauses over the size cap, not injected; the ids a Reviewer must answer for: ${advise.map((c) => c.id).join(', ')}. Full text in ${path.join(kit, 'law.json')}.\n`;
             adviseInjected = true;
         }
