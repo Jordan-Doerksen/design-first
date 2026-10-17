@@ -39,7 +39,7 @@ adopter's private layer), `pluginRoot` and its kind (checkout or cache).
 | `templates/` | root and brain files | — | — | copied or filled by `adopt.ps1`, never edited in place |
 | `instructions/`, `workflows/`, `lessons/` | the rule text | `LAW.md` | — | one subject per file; every clause has a `### ID` heading in its owner |
 | `LOOPS.md` | the loops and gates, drawn | `README.md` | — | hand-drawn charts at most 64 columns, plain ASCII, a numbered list after each; `tools/tests/cases-loops.ps1` fails on an unknown clause id, a wide line, a tab or non-ASCII, or a chart with no list (CR-2026-10-15-CHART) |
-| `docs/` | the public page | `build.ps1` | `src/template.html`, `src/transcript-*.txt` | `index.html` is generated from the kit's own files (DECISIONS 3.3); `publish.ps1` copies the output to the owner's site; `page.css`, `page.js` are hand-written |
+| `docs/` | the public page | `build.ps1` | `src/template.html`, `src/transcript-*.txt` | `index.html` is generated from the kit's own files (DECISIONS 3.3; the README's method list and the `LOOPS.md` overview among them, 3.8); `publish.ps1` copies the output to the owner's site; `page.css`, `page.js` are hand-written |
 
 ## Key design decisions
 

@@ -1,7 +1,8 @@
 # build.ps1 - renders docs/index.html from docs/src/template.html and the kit's own files.
 # Nothing on the page is typed (DECISIONS 3.3): counts, clauses, hooks, claim types, commands,
-# the README's grade table, limits and install block, the adopt questions, and the recorded
-# transcripts all come from the files named below. Deterministic: same inputs, same bytes (LF).
+# the README's method list, grade table, limits and install block, the LOOPS.md overview chart
+# and its steps, the adopt questions, and the recorded transcripts all come from the files named
+# below. Deterministic: same inputs, same bytes (LF).
 #
 #   pwsh -NoProfile -File docs/build.ps1          # writes docs/index.html
 #   pwsh -NoProfile -File docs/build.ps1 -Check   # exit 1 if docs/index.html differs from a fresh render
@@ -37,6 +38,7 @@ $hooks   = ReadText (Join-Path $kit 'hooks\hooks.json') | ConvertFrom-Json
 $claims  = ReadText (Join-Path $kit 'tools\doctor\claims.json') | ConvertFrom-Json
 $readme  = ReadText (Join-Path $kit 'README.md')
 $arch    = ReadText (Join-Path $kit 'ARCHITECTURE.md')
+$loops   = ReadText (Join-Path $kit 'LOOPS.md')
 $adoptMd = ReadText (Join-Path $kit 'commands\adopt.md')
 $license = (ReadText (Join-Path $kit 'LICENSE')) -split "`n" | Select-Object -First 1
 $templatePath = if ($Source) { $Source } else { Join-Path $src 'template.html' }
@@ -131,6 +133,39 @@ function MdCode([string] $block) {
     if ($block -notmatch '(?s)```[a-z]*\n(.*?)```') { throw 'no code block' }
     "<pre><code>$(Esc $Matches[1].TrimEnd())</code></pre>"
 }
+function MdInline([string] $s) {
+    # bold and code only; the README's method list and the LOOPS.md overview use nothing else
+    ((Esc $s) -replace '\*\*([^*]+)\*\*', '<b>$1</b>') -replace '`([^`]+)`', '<code>$1</code>'
+}
+function MdNumbered([string] $block) {
+    # "1. text" starts an item; an indented line continues the one before it
+    $acc = @()
+    foreach ($l in ($block -split "`n")) {
+        if ($l -match '^\d+\.\s+(.*)$') { $acc += $Matches[1] }
+        elseif ($l -match '^\s+\S' -and $acc.Count) { $acc[-1] += ' ' + $l.Trim() }
+    }
+    if ($acc.Count -eq 0) { throw 'no numbered list' }
+    ($acc | ForEach-Object { "<li>$(MdInline $_)</li>" }) -join "`n"
+}
+# A clause id in running text links to its row in the clause table, when law.json has the id.
+$clauseIds = @{}; foreach ($c in $clauses) { $clauseIds[[string] $c.id] = $true }
+function LinkIds([string] $html) {
+    [regex]::Replace($html, '\b([A-Z]+-\d{2})\b', { param($m) if ($clauseIds.ContainsKey($m.Value)) { "<a href=""#$($m.Value)"">$($m.Value)</a>" } else { $m.Value } })
+}
+$method = LinkIds (MdNumbered (Section $readme 'The method, on one page'))
+# The template's own drawings and prose may cite clause ids; one that has left the law fails the build.
+$typedIds = @([regex]::Matches($template, '\b(SAFE|PRIN|OWN|DES|GATE|AUTO|VCS|OBS|WEB|GAME|DISP|SKIN|VOICE|MAP)-\d{2}\b') | ForEach-Object { $_.Value } | Select-Object -Unique)
+$unknownIds = @($typedIds | Where-Object { -not $clauseIds.ContainsKey($_) })
+if ($unknownIds.Count) { throw "template cites a clause id that is not in law.json: $($unknownIds -join ', ')" }
+
+# LOOPS.md, "The overview": one sentence, one ```text chart, one numbered list (its lint is
+# tools/tests/cases-loops.ps1). The chart is shown as drawn; clause ids in both link to the table.
+$ov = Section $loops 'The overview'
+if ($ov -notmatch '(?s)^(.*?)\n```text\n(.*?)```\n(.*)$') { throw 'LOOPS.md overview: expected a sentence, a ```text chart and a list' }
+$loopsIntro = MdInline $Matches[1].Trim()
+$loopsChart = LinkIds (Esc $Matches[2].TrimEnd())
+$loopsSteps = LinkIds (MdNumbered $Matches[3])
+
 $gradeTable = MdTable (Section $readme 'What a grade means')
 $limits     = MdList  (Section $readme 'Limits, stated up front')
 $install    = MdCode  (Section $readme 'Install')
@@ -190,6 +225,10 @@ $fill = [ordered] @{
     AGENT_DESC     = Esc $agentDesc
     QUESTIONS      = ($questions -join "`n")
     CORE_FLOW      = $coreFlow
+    METHOD         = $method
+    LOOPS_INTRO    = $loopsIntro
+    LOOPS_CHART    = $loopsChart
+    LOOPS_STEPS    = $loopsSteps
     LIMITS         = $limits
     INSTALL        = $install
     LICENSE        = Esc $license
