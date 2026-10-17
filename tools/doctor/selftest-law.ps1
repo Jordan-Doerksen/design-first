@@ -98,7 +98,7 @@ Write-Host '  Run M: the docs build with a planted DENY clause' -ForegroundColor
 # no machine stops (not DENY, HOOK or GATE) re-graded DENY, so a DENY that is not counted as stopped
 # shows as a count one short.
 $dk = NewDir (Join-Path $T 'docskit')
-foreach ($rel in '.claude-plugin\plugin.json', 'hooks\hooks.json', 'tools\doctor\claims.json', 'README.md', 'ARCHITECTURE.md', 'agents\reviewer.md', 'LICENSE', 'docs\build.ps1') {
+foreach ($rel in '.claude-plugin\plugin.json', 'hooks\hooks.json', 'tools\doctor\claims.json', 'README.md', 'ARCHITECTURE.md', 'LOOPS.md', 'agents\reviewer.md', 'LICENSE', 'docs\build.ps1') {
     $to = Join-Path $dk $rel; $null = NewDir (Split-Path -Parent $to)
     Copy-Item -LiteralPath (Join-Path $lawKit $rel) -Destination $to
 }

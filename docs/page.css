@@ -109,6 +109,28 @@ main { display: block; }
 .term .hd { color: var(--stage-dim); text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.9em; margin-top: 4px; }
 .qs { font-family: var(--sans); font-size: 14px; margin: 0; padding-left: 20px; display: grid; gap: 6px; max-width: 60ch; }
 
+/* the method, the gates, the words (DECISIONS 3.8). The figures use the grade colours: a refusal
+   is the accent red, a gate is the GATE blue, a build step is the HOOK green. */
+:root { --fig-no: var(--accent); --fig-gate: var(--g-gate); --fig-yes: var(--g-hook); --fig-box: #ece9e0; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --fig-box: #26292e; --fig-gate: #5b93c4; --fig-yes: #4fa37a; } }
+:root[data-theme="dark"] { --fig-box: #26292e; --fig-gate: #5b93c4; --fig-yes: #4fa37a; }
+.fig { margin: 16px 0 28px; }
+.fig svg { display: block; width: 100%; height: auto; color: var(--ink-2); }
+.fig.narrow svg { max-width: 520px; }
+.fig figcaption { font-family: var(--sans); font-size: 14px; color: var(--ink-2); margin-top: 8px; max-width: var(--measure); }
+.method-rules { margin: 0; padding-left: 24px; max-width: var(--measure); display: grid; gap: 10px; }
+.method-rules b { font-weight: 600; }
+.chart { min-height: 0; white-space: pre; overflow-x: auto; max-width: 100%; }
+.loop-steps { margin-top: 14px; max-width: var(--measure); }
+.gloss { margin: 0; max-width: var(--measure); }
+.gloss dt { font-weight: 600; margin-top: 1.1em; }
+.gloss dd { margin: 0.3em 0 0; }
+.gloss .not { display: block; margin-top: 4px; color: var(--accent); }
+.gloss .not::before { content: "Not: "; font-weight: 600; }
+.nots { list-style: none; margin: 12px 0 0; padding: 0; max-width: var(--measure); }
+.nots li { position: relative; padding: 10px 12px 10px 36px; margin: 8px 0; background: var(--fig-box); border-radius: 6px; }
+.nots li::before { content: "\2715"; position: absolute; left: 12px; top: 10px; color: var(--accent); font-weight: 700; }
+
 @media (min-width: 960px) {
   .rail { position: sticky; top: 0; background: var(--paper); z-index: 2; padding: 10px 0; border-bottom: 1px solid var(--rule); }
   .scrolly { grid-template-columns: minmax(0, 36ch) minmax(0, 1fr); gap: clamp(32px, 5vw, 80px); }

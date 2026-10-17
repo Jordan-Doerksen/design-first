@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>design-first</title>
-<meta name="description" content="A working method for building with coding agents, packaged as a Claude Code plugin. Every rule has an id and an honest enforcement grade; a Doctor checks the disk instead of trusting prose.">
+<meta name="description" content="A working method for building with coding agents, packaged as a Claude Code plugin. Interview every add, lock decisions in a manifest, build one domain at a time and cross-check it against all of it. Every rule has an id and an honest enforcement grade; a Doctor checks the disk instead of trusting prose.">
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="page.css">
 </head>
@@ -21,6 +21,9 @@
 <nav class="rail" data-chrome="orientation_progress" aria-label="Chapters">
   <ol>
     <li><a href="#promise">The claim</a></li>
+    <li><a href="#method">The method</a></li>
+    <li><a href="#gates">The gates</a></li>
+    <li><a href="#words">The words</a></li>
     <li><a href="#flow">The flow</a></li>
     <li><a href="#parts">The parts</a></li>
     <li><a href="#grades">The grades</a></li>
@@ -34,8 +37,308 @@
 <section class="chapter promise" id="promise">
   <p class="kicker">A working method for building with coding agents</p>
   <h1>A rule is only a rule when something on the disk can stop you.</h1>
-  <p class="lede">design-first is a Claude Code plugin. It asks before it builds, locks each decision in a manifest, and gives every rule an id and a grade that says whether a machine enforces it. A Doctor checks the disk and prints what it found, never what a document says.</p>
+  <p class="lede">design-first is a Claude Code plugin. It interviews every request before it builds, locks each decision in a manifest, builds one domain at a time and cross-checks it against all of them, and gives every rule an id and a grade that says whether a machine enforces it. A Doctor checks the disk and prints what it found, never what a document says.</p>
   <p class="figs"><b>{{TOTAL}}</b> rules in the kit. <b>{{HOOKS_N}}</b> stopped by a hook, <b>{{GATES_N}}</b> by a gate, <b>{{HONOUR}}</b> by nothing but the reader. The page says so because the law file says so, and this page is generated from it.</p>
+</section>
+
+<section class="chapter method" id="method">
+  <h2>The method</h2>
+  <p class="intro">Decide all of it, then build one domain at a time. The eight rules below are read from the README, so the page cannot say one thing while the kit says another. A clause id links to its grade.</p>
+
+  <h3>The shape of it</h3>
+  <p>Two ways to split a build. The left one is the thing people have been burned by: each part interviewed and built on its own, so the parts meet only at the end. The right one is what the kit does.</p>
+  <figure class="fig">
+    <svg viewBox="0 0 720 330" role="img" aria-label="Left, marked not this: four department columns, each interviewed then built end to end, one after another, with no shared design above them. Right, marked this: one band across the top where the whole request is interviewed, the manifest locked and every domain mapped with its config; below it four domain columns, the first built as a slice, with a cross-check against the map before each next domain." xmlns="http://www.w3.org/2000/svg">
+      <g font-family="var(--sans)" font-size="12">
+        <text x="20" y="22" fill="var(--fig-no)" font-weight="700">NOT THIS: interview one, build one, repeat</text>
+        <rect x="20" y="40" width="70" height="250" rx="4" fill="var(--fig-no)" fill-opacity=".12" stroke="var(--fig-no)"/>
+        <rect x="100" y="40" width="70" height="250" rx="4" fill="none" stroke="var(--rule)" stroke-dasharray="4 4"/>
+        <rect x="180" y="40" width="70" height="250" rx="4" fill="none" stroke="var(--rule)" stroke-dasharray="4 4"/>
+        <rect x="260" y="40" width="70" height="250" rx="4" fill="none" stroke="var(--rule)" stroke-dasharray="4 4"/>
+        <line x1="20" y1="100" x2="90" y2="100" stroke="var(--fig-no)"/>
+        <text x="55" y="75" text-anchor="middle" fill="var(--ink)">interview</text>
+        <text x="55" y="200" text-anchor="middle" fill="var(--ink)">build it all,</text>
+        <text x="55" y="216" text-anchor="middle" fill="var(--ink)">every detail</text>
+        <text x="135" y="170" text-anchor="middle" fill="var(--ink-2)">then</text>
+        <text x="215" y="170" text-anchor="middle" fill="var(--ink-2)">then</text>
+        <text x="295" y="170" text-anchor="middle" fill="var(--ink-2)">then</text>
+        <text x="55" y="312" text-anchor="middle" fill="var(--ink)">part A</text>
+        <text x="135" y="312" text-anchor="middle" fill="var(--ink-2)">part B</text>
+        <text x="215" y="312" text-anchor="middle" fill="var(--ink-2)">part C</text>
+        <text x="295" y="312" text-anchor="middle" fill="var(--ink-2)">part D</text>
+        <line x1="360" y1="30" x2="360" y2="320" stroke="var(--rule)"/>
+        <text x="390" y="22" fill="var(--fig-yes)" font-weight="700">THIS: decide all of it, then one domain at a time</text>
+        <rect x="390" y="40" width="310" height="74" rx="4" fill="var(--fig-yes)" fill-opacity=".12" stroke="var(--fig-yes)"/>
+        <text x="545" y="62" text-anchor="middle" fill="var(--ink)">interview the whole request</text>
+        <text x="545" y="79" text-anchor="middle" fill="var(--ink)">lock every decision in the manifest</text>
+        <text x="545" y="96" text-anchor="middle" fill="var(--ink)">map every domain and its config</text>
+        <rect x="390" y="130" width="70" height="160" rx="4" fill="var(--fig-yes)" fill-opacity=".12" stroke="var(--fig-yes)"/>
+        <rect x="470" y="130" width="70" height="160" rx="4" fill="none" stroke="var(--rule)" stroke-dasharray="4 4"/>
+        <rect x="550" y="130" width="70" height="160" rx="4" fill="none" stroke="var(--rule)" stroke-dasharray="4 4"/>
+        <rect x="630" y="130" width="70" height="160" rx="4" fill="none" stroke="var(--rule)" stroke-dasharray="4 4"/>
+        <text x="425" y="200" text-anchor="middle" fill="var(--ink)">smallest</text>
+        <text x="425" y="216" text-anchor="middle" fill="var(--ink)">slice</text>
+        <text x="465" y="205" text-anchor="middle" fill="var(--fig-gate)" font-weight="700">✓</text>
+        <text x="545" y="205" text-anchor="middle" fill="var(--fig-gate)" font-weight="700">✓</text>
+        <text x="625" y="205" text-anchor="middle" fill="var(--fig-gate)" font-weight="700">✓</text>
+        <text x="545" y="245" text-anchor="middle" fill="var(--ink-2)">✓ = cross-check against the map</text>
+        <text x="545" y="261" text-anchor="middle" fill="var(--ink-2)">and every other domain first</text>
+        <text x="425" y="312" text-anchor="middle" fill="var(--ink)">domain 1</text>
+        <text x="505" y="312" text-anchor="middle" fill="var(--ink-2)">domain 2</text>
+        <text x="585" y="312" text-anchor="middle" fill="var(--ink-2)">domain 3</text>
+        <text x="665" y="312" text-anchor="middle" fill="var(--ink-2)">domain 4</text>
+      </g>
+    </svg>
+    <figcaption>On the left nothing above the columns is shared, so part C can break a detail set in part A and nobody sees it until the parts meet. On the right every domain exists on the map before the first is built, each chunk is checked against the others before the next starts, and a tunable value lives in config, so a detail is set once.</figcaption>
+  </figure>
+
+  <h3>On one page</h3>
+  <ol class="method-rules">
+{{METHOD}}
+  </ol>
+
+  <h3>A worked example</h3>
+  <p>The owner says: build a tool that watches a weather feed and posts to a chat channel when the temperature crosses a threshold. The interview asks, one at a time: runtime mode (real-time, recommended), where thresholds live (a config file, recommended), what the tool must never do (never post more than N times an hour; go silent when the feed is stale, recommended). The manifest records fail-closed, the hourly cap, and that the webhook lives in an ignored secrets file. The map shows feed, rules, notify and config, one row per domain, each with its entry point and its JSON. The agent builds the feed domain first and cross-checks it (does it fail closed on a dead feed?), then rules, then notify. Six months later the owner changes the cap by editing one number in config.</p>
+</section>
+
+<section class="chapter gates" id="gates">
+  <h2>The gates and the loops</h2>
+  <p class="intro">{{LOOPS_INTRO}} The drawings below are the kit's own overview, redrawn: first the straight path, then each loop on its own with what it costs, then both together. The dashed line is the point past which nothing runs until the decisions above it are locked.</p>
+
+  <h3>The straight path</h3>
+  <figure class="fig narrow">
+    <svg viewBox="0 0 520 770" role="img" aria-label="Flowchart, top to bottom: interview every add; lock the manifest and map the domains; stakes test and design gate; the gate line; build one slice of one chunk; inner gate; outer gate; change request; next chunk or done." xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+      <g font-family="var(--sans)" font-size="12" fill="currentColor" stroke="currentColor" stroke-width="1.2">
+        <text x="260" y="14" text-anchor="middle" stroke="none" fill="var(--ink-2)">owner: an idea or an addition</text>
+        <line x1="260" y1="20" x2="260" y2="34" marker-end="url(#ar1)"/>
+        <rect x="90" y="36" width="340" height="60" rx="6" fill="var(--fig-box)"/>
+        <text x="260" y="56" text-anchor="middle" stroke="none" font-weight="700">1  Interview every add</text>
+        <text x="260" y="73" text-anchor="middle" stroke="none" fill="var(--ink-2)">one verdict per element · rank, research</text>
+        <text x="260" y="88" text-anchor="middle" stroke="none" fill="var(--ink-2)">one question at a time · frontier first</text>
+        <line x1="260" y1="96" x2="260" y2="124" marker-end="url(#ar1)"/>
+        <rect x="90" y="126" width="340" height="46" rx="6" fill="var(--fig-box)" stroke="var(--fig-gate)" stroke-width="2"/>
+        <text x="260" y="145" text-anchor="middle" stroke="none" font-weight="700" fill="var(--fig-gate)">2  Lock DECISIONS.md · map ARCHITECTURE.md</text>
+        <text x="260" y="162" text-anchor="middle" stroke="none" fill="var(--ink-2)">every domain named, with its config</text>
+        <line x1="260" y1="172" x2="260" y2="200" marker-end="url(#ar1)"/>
+        <rect x="90" y="202" width="340" height="60" rx="6" fill="var(--fig-box)"/>
+        <text x="260" y="222" text-anchor="middle" stroke="none" font-weight="700">3  Stakes? The design gate</text>
+        <text x="260" y="239" text-anchor="middle" stroke="none" fill="var(--ink-2)">money, safety or trust: gap review first</text>
+        <text x="260" y="254" text-anchor="middle" stroke="none" fill="var(--ink-2)">source writes denied until findings resolved</text>
+        <line x1="10" y1="296" x2="510" y2="296" stroke="var(--fig-gate)" stroke-width="2" stroke-dasharray="8 5"/>
+        <text x="10" y="288" stroke="none" fill="var(--fig-gate)" font-weight="700">THE GATE</text>
+        <text x="510" y="288" text-anchor="end" stroke="none" fill="var(--fig-gate)">nothing below runs until locked</text>
+        <text x="510" y="312" text-anchor="end" stroke="none" fill="var(--ink-2)">Programmer hat stays locked until here</text>
+        <line x1="260" y1="262" x2="260" y2="326" marker-end="url(#ar1)"/>
+        <rect x="90" y="328" width="340" height="46" rx="6" fill="var(--fig-yes)" fill-opacity=".12" stroke="var(--fig-yes)"/>
+        <text x="260" y="347" text-anchor="middle" stroke="none" font-weight="700">4  Build one slice of one chunk</text>
+        <text x="260" y="364" text-anchor="middle" stroke="none" fill="var(--ink-2)">one domain · smallest slice first</text>
+        <line x1="260" y1="374" x2="260" y2="402" marker-end="url(#ar1)"/>
+        <rect x="90" y="404" width="340" height="46" rx="6" fill="var(--fig-box)"/>
+        <text x="260" y="423" text-anchor="middle" stroke="none" font-weight="700">5  Inner gate</text>
+        <text x="260" y="440" text-anchor="middle" stroke="none" fill="var(--ink-2)">verify · stop · say what it proves · wait</text>
+        <line x1="260" y1="450" x2="260" y2="478" marker-end="url(#ar1)"/>
+        <rect x="90" y="480" width="340" height="46" rx="6" fill="var(--fig-box)"/>
+        <text x="260" y="499" text-anchor="middle" stroke="none" font-weight="700">6  Outer gate</text>
+        <text x="260" y="516" text-anchor="middle" stroke="none" fill="var(--ink-2)">cross-check vs manifest, map, subsystems, goal</text>
+        <line x1="260" y1="526" x2="260" y2="554" marker-end="url(#ar1)"/>
+        <polygon points="260,556 400,596 260,636 120,596" fill="var(--fig-box)"/>
+        <text x="260" y="592" text-anchor="middle" stroke="none" font-weight="700">7  Must a locked</text>
+        <text x="260" y="608" text-anchor="middle" stroke="none" font-weight="700">decision change?</text>
+        <line x1="260" y1="636" x2="260" y2="664" marker-end="url(#ar1)"/>
+        <text x="268" y="656" stroke="none" fill="var(--fig-yes)" font-weight="700">NO</text>
+        <rect x="90" y="666" width="340" height="46" rx="6" fill="var(--fig-box)"/>
+        <text x="260" y="685" text-anchor="middle" stroke="none" font-weight="700">8  Next chunk, or done</text>
+        <text x="260" y="702" text-anchor="middle" stroke="none" fill="var(--ink-2)">update the timeline and the hand-off</text>
+        <text x="260" y="738" text-anchor="middle" stroke="none" fill="var(--ink-2)">next chunk: back to 1 for its decisions,</text>
+        <text x="260" y="754" text-anchor="middle" stroke="none" fill="var(--ink-2)">or straight to 4 when they are already locked</text>
+      </g>
+    </svg>
+    <figcaption>The straight path, every loop removed. Three steps of words, one gate, five steps of work. Step 3 is skipped when a wrong output costs nobody money, safety or trust.</figcaption>
+  </figure>
+
+  <h3>The five loops</h3>
+  <p>Each one lands on a cheaper step than the one that failed. That is what makes a wrong answer survivable.</p>
+  <figure class="fig">
+    <svg viewBox="0 0 960 250" role="img" aria-label="Five small panels. Redact: a verdict sends an element back into the interview; costs a paragraph. Gate open: a source write is denied until the gate record clears; costs a document. Inner gate fails: back to the slice; costs one small change. Outer gate fails: back to the slice; costs part of one chunk. Change request: a locked decision goes back through the interview; costs a review and a dated row." xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+      <g font-family="var(--sans)" font-size="12" fill="currentColor" stroke="currentColor" stroke-width="1.2">
+        <text x="100" y="18" text-anchor="middle" stroke="none" fill="var(--fig-no)" font-weight="700">REDACT</text>
+        <rect x="10" y="30" width="180" height="40" rx="6" fill="var(--fig-box)"/>
+        <text x="100" y="54" text-anchor="middle" stroke="none" font-weight="700">Verdict on an element</text>
+        <line x1="100" y1="70" x2="100" y2="148" marker-end="url(#ar2)"/>
+        <text x="108" y="113" stroke="none" fill="var(--ink-2)">cut, with the cost</text>
+        <rect x="10" y="150" width="180" height="40" rx="6" fill="var(--fig-box)"/>
+        <text x="100" y="174" text-anchor="middle" stroke="none" font-weight="700">Interview</text>
+        <text x="100" y="222" text-anchor="middle" stroke="none" fill="var(--ink-2)">costs: a paragraph</text>
+        <text x="290" y="18" text-anchor="middle" stroke="none" fill="var(--fig-no)" font-weight="700">GATE OPEN</text>
+        <rect x="200" y="30" width="180" height="40" rx="6" fill="var(--fig-box)"/>
+        <text x="290" y="54" text-anchor="middle" stroke="none" font-weight="700">Source write</text>
+        <line x1="290" y1="70" x2="290" y2="148" marker-end="url(#ar2)"/>
+        <text x="298" y="106" stroke="none" fill="var(--ink-2)">denied until</text>
+        <text x="298" y="121" stroke="none" fill="var(--ink-2)">the record clears</text>
+        <rect x="200" y="150" width="180" height="40" rx="6" fill="var(--fig-box)"/>
+        <text x="290" y="174" text-anchor="middle" stroke="none" font-weight="700">Resolve the findings</text>
+        <text x="290" y="222" text-anchor="middle" stroke="none" fill="var(--ink-2)">costs: a document</text>
+        <text x="480" y="18" text-anchor="middle" stroke="none" fill="var(--fig-no)" font-weight="700">INNER GATE FAILS</text>
+        <rect x="390" y="30" width="180" height="40" rx="6" fill="var(--fig-box)"/>
+        <text x="480" y="54" text-anchor="middle" stroke="none" font-weight="700">Verify, stop, show</text>
+        <line x1="480" y1="70" x2="480" y2="148" marker-end="url(#ar2)"/>
+        <text x="488" y="106" stroke="none" fill="var(--ink-2)">red, or the</text>
+        <text x="488" y="121" stroke="none" fill="var(--ink-2)">owner says no</text>
+        <rect x="390" y="150" width="180" height="40" rx="6" fill="var(--fig-yes)" fill-opacity=".12" stroke="var(--fig-yes)"/>
+        <text x="480" y="174" text-anchor="middle" stroke="none" font-weight="700">The slice</text>
+        <text x="480" y="222" text-anchor="middle" stroke="none" fill="var(--ink-2)">costs: one small change</text>
+        <text x="670" y="18" text-anchor="middle" stroke="none" fill="var(--fig-no)" font-weight="700">OUTER GATE FAILS</text>
+        <rect x="580" y="30" width="180" height="40" rx="6" fill="var(--fig-box)"/>
+        <text x="670" y="54" text-anchor="middle" stroke="none" font-weight="700">Cross-check</text>
+        <line x1="670" y1="70" x2="670" y2="148" marker-end="url(#ar2)"/>
+        <text x="678" y="113" stroke="none" fill="var(--ink-2)">Proceed: no</text>
+        <rect x="580" y="150" width="180" height="40" rx="6" fill="var(--fig-yes)" fill-opacity=".12" stroke="var(--fig-yes)"/>
+        <text x="670" y="174" text-anchor="middle" stroke="none" font-weight="700">The slice</text>
+        <text x="670" y="222" text-anchor="middle" stroke="none" fill="var(--ink-2)">costs: part of one chunk</text>
+        <text x="860" y="18" text-anchor="middle" stroke="none" fill="var(--fig-gate)" font-weight="700">CHANGE REQUEST</text>
+        <rect x="770" y="30" width="180" height="40" rx="6" fill="var(--fig-box)" stroke="var(--fig-gate)" stroke-width="2"/>
+        <text x="860" y="54" text-anchor="middle" stroke="none" font-weight="700" fill="var(--fig-gate)">Locked decision</text>
+        <line x1="860" y1="70" x2="860" y2="148" stroke-dasharray="5 4" marker-end="url(#ar2)"/>
+        <text x="868" y="106" stroke="none" fill="var(--ink-2)">owner says yes:</text>
+        <text x="868" y="121" stroke="none" fill="var(--ink-2)">dated row</text>
+        <rect x="770" y="150" width="180" height="40" rx="6" fill="var(--fig-box)"/>
+        <text x="860" y="174" text-anchor="middle" stroke="none" font-weight="700">Interview</text>
+        <text x="860" y="222" text-anchor="middle" stroke="none" fill="var(--ink-2)">costs: a review and a row</text>
+      </g>
+    </svg>
+    <figcaption>The five loops, each on its own. Two live above the gate and cost words. Two land on the slice, so a failure costs one small change or one chunk, never a cascade. The last goes back through the interview, so a changed decision is argued before it is built.</figcaption>
+  </figure>
+
+  <h3>Married</h3>
+  <figure class="fig">
+    <svg viewBox="0 0 900 770" role="img" aria-label="The straight path with the loops drawn on. Redact loops from the interview back to itself. The stakes test branches right into the design gate, which denies source writes until its record clears and then joins the build. Below the gate line, inner gate and outer gate failures loop left back to the slice. A change request loops from step seven up the far left back into the interview. A next chunk whose decisions are already locked loops from step eight up the right back to the build." xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+      <g font-family="var(--sans)" font-size="12" fill="currentColor" stroke="currentColor" stroke-width="1.2">
+        <text x="400" y="14" text-anchor="middle" stroke="none" fill="var(--ink-2)">owner: an idea or an addition</text>
+        <line x1="400" y1="20" x2="400" y2="34" marker-end="url(#ar3)"/>
+        <rect x="230" y="36" width="340" height="60" rx="6" fill="var(--fig-box)"/>
+        <text x="400" y="56" text-anchor="middle" stroke="none" font-weight="700">1  Interview every add</text>
+        <text x="400" y="73" text-anchor="middle" stroke="none" fill="var(--ink-2)">one verdict per element · rank, research</text>
+        <text x="400" y="88" text-anchor="middle" stroke="none" fill="var(--ink-2)">one question at a time · frontier first</text>
+        <polyline points="570,80 640,80 640,52 572,52" fill="none" marker-end="url(#ar3)"/>
+        <text x="648" y="62" stroke="none" fill="var(--fig-no)" font-weight="700">REDACT</text>
+        <text x="648" y="77" stroke="none" fill="var(--ink-2)">element goes back</text>
+        <line x1="400" y1="96" x2="400" y2="124" marker-end="url(#ar3)"/>
+        <rect x="230" y="126" width="340" height="46" rx="6" fill="var(--fig-box)" stroke="var(--fig-gate)" stroke-width="2"/>
+        <text x="400" y="145" text-anchor="middle" stroke="none" font-weight="700" fill="var(--fig-gate)">2  Lock DECISIONS.md · map ARCHITECTURE.md</text>
+        <text x="400" y="162" text-anchor="middle" stroke="none" fill="var(--ink-2)">every domain named, with its config</text>
+        <line x1="400" y1="172" x2="400" y2="200" marker-end="url(#ar3)"/>
+        <polygon points="400,202 520,232 400,262 280,232" fill="var(--fig-box)"/>
+        <text x="400" y="228" text-anchor="middle" stroke="none" font-weight="700">3  Stakes?</text>
+        <text x="400" y="244" text-anchor="middle" stroke="none" fill="var(--ink-2)">money, safety, trust</text>
+        <line x1="520" y1="232" x2="598" y2="232" marker-end="url(#ar3)"/>
+        <text x="530" y="224" stroke="none" fill="var(--fig-gate)" font-weight="700">YES</text>
+        <rect x="600" y="196" width="280" height="72" rx="6" fill="var(--fig-box)" stroke="var(--fig-gate)"/>
+        <text x="740" y="216" text-anchor="middle" stroke="none" font-weight="700">The design gate</text>
+        <text x="740" y="233" text-anchor="middle" stroke="none" fill="var(--ink-2)">adversarial gap review of the spec</text>
+        <text x="740" y="248" text-anchor="middle" stroke="none" fill="var(--ink-2)">source writes denied until every</text>
+        <text x="740" y="262" text-anchor="middle" stroke="none" fill="var(--ink-2)">finding is resolved or recorded</text>
+        <polyline points="740,268 740,353 572,353" fill="none" marker-end="url(#ar3)"/>
+        <text x="748" y="330" stroke="none" fill="var(--ink-2)">cleared</text>
+        <line x1="400" y1="262" x2="400" y2="328" marker-end="url(#ar3)"/>
+        <text x="408" y="282" stroke="none" fill="var(--fig-yes)" font-weight="700">NO</text>
+        <line x1="20" y1="300" x2="880" y2="300" stroke="var(--fig-gate)" stroke-width="2" stroke-dasharray="8 5"/>
+        <text x="20" y="292" stroke="none" fill="var(--fig-gate)" font-weight="700">THE GATE</text>
+        <text x="730" y="292" text-anchor="end" stroke="none" fill="var(--fig-gate)">nothing below runs until locked</text>
+        <text x="730" y="316" text-anchor="end" stroke="none" fill="var(--ink-2)">Programmer hat locked above this line</text>
+        <rect x="230" y="330" width="340" height="46" rx="6" fill="var(--fig-yes)" fill-opacity=".12" stroke="var(--fig-yes)"/>
+        <text x="400" y="349" text-anchor="middle" stroke="none" font-weight="700">4  Build one slice of one chunk</text>
+        <text x="400" y="366" text-anchor="middle" stroke="none" fill="var(--ink-2)">one domain · smallest slice first</text>
+        <line x1="400" y1="376" x2="400" y2="404" marker-end="url(#ar3)"/>
+        <rect x="230" y="406" width="340" height="46" rx="6" fill="var(--fig-box)"/>
+        <text x="400" y="425" text-anchor="middle" stroke="none" font-weight="700">5  Inner gate</text>
+        <text x="400" y="442" text-anchor="middle" stroke="none" fill="var(--ink-2)">verify · stop · show · wait</text>
+        <polyline points="230,429 190,429 190,343 228,343" fill="none" marker-end="url(#ar3)"/>
+        <text x="182" y="392" text-anchor="end" stroke="none" fill="var(--fig-no)" font-weight="700">FAIL</text>
+        <line x1="400" y1="452" x2="400" y2="480" marker-end="url(#ar3)"/>
+        <rect x="230" y="482" width="340" height="46" rx="6" fill="var(--fig-box)"/>
+        <text x="400" y="501" text-anchor="middle" stroke="none" font-weight="700">6  Outer gate</text>
+        <text x="400" y="518" text-anchor="middle" stroke="none" fill="var(--ink-2)">cross-check · Definition of Done</text>
+        <polyline points="230,505 150,505 150,360 228,360" fill="none" marker-end="url(#ar3)"/>
+        <text x="142" y="440" text-anchor="end" stroke="none" fill="var(--fig-no)" font-weight="700">PROCEED: NO</text>
+        <line x1="400" y1="528" x2="400" y2="556" marker-end="url(#ar3)"/>
+        <polygon points="400,558 540,598 400,638 260,598" fill="var(--fig-box)"/>
+        <text x="400" y="594" text-anchor="middle" stroke="none" font-weight="700">7  Must a locked</text>
+        <text x="400" y="610" text-anchor="middle" stroke="none" font-weight="700">decision change?</text>
+        <polyline points="260,598 100,598 100,66 228,66" fill="none" stroke-dasharray="5 4" marker-end="url(#ar3)"/>
+        <text x="92" y="620" text-anchor="end" stroke="none" fill="var(--fig-gate)" font-weight="700">CHANGE</text>
+        <text x="92" y="635" text-anchor="end" stroke="none" fill="var(--fig-gate)" font-weight="700">REQUEST</text>
+        <text x="108" y="150" stroke="none" fill="var(--ink-2)">owner yes:</text>
+        <text x="108" y="165" stroke="none" fill="var(--ink-2)">dated row,</text>
+        <text x="108" y="180" stroke="none" fill="var(--ink-2)">back to 1</text>
+        <line x1="400" y1="638" x2="400" y2="666" marker-end="url(#ar3)"/>
+        <text x="408" y="658" stroke="none" fill="var(--fig-yes)" font-weight="700">NO</text>
+        <rect x="230" y="668" width="340" height="46" rx="6" fill="var(--fig-box)"/>
+        <text x="400" y="687" text-anchor="middle" stroke="none" font-weight="700">8  Next chunk, or done</text>
+        <text x="400" y="704" text-anchor="middle" stroke="none" fill="var(--ink-2)">update the timeline and the hand-off</text>
+        <polyline points="570,691 820,691 820,378" fill="none" stroke-dasharray="5 4" marker-end="url(#ar3)"/>
+        <text x="812" y="520" text-anchor="end" stroke="none" fill="var(--ink-2)">next chunk,</text>
+        <text x="812" y="535" text-anchor="end" stroke="none" fill="var(--ink-2)">decisions</text>
+        <text x="812" y="550" text-anchor="end" stroke="none" fill="var(--ink-2)">already locked</text>
+        <text x="400" y="748" text-anchor="middle" stroke="none" fill="var(--ink-2)">a next chunk whose decisions are not locked yet goes back to 1</text>
+      </g>
+    </svg>
+    <figcaption>The straight path and the loops together. Above the dashed line nothing exists but words, so a redact costs a paragraph. Below it each failure lands on the slice, and a changed decision goes back through the interview before it is built.</figcaption>
+  </figure>
+
+  <h3>As drawn in the repository</h3>
+  <p>The drawings above are a redraw. This is the source, <code>LOOPS.md</code>, read at build time: the chart as it is kept, and its steps with the clause id that owns each one. The lint in <code>tools/tests/cases-loops.ps1</code> fails the kit's tests when a cited id leaves the law.</p>
+  <pre class="mono chart">{{LOOPS_CHART}}</pre>
+  <ol class="qs loop-steps">
+{{LOOPS_STEPS}}
+  </ol>
+</section>
+
+<section class="chapter words" id="words">
+  <h2>The words, and what they are not</h2>
+  <p class="intro">Most misreads of this method come from loading a familiar meaning onto one of these. Each is defined with the meaning it does not carry.</p>
+  <dl class="gloss">
+    <dt>Interview</dt>
+    <dd>The agent interviewing the request, with the owner. Restate it, split it into elements, give each a verdict, name the conflicts, state the cost, then ask the real forks one question at a time. Facts about the disk or the environment are the agent's to find, never the owner's to supply. <span class="not">a round of stakeholder interviews. Not requirements gathering. Nothing is collected and handed to a build team.</span></dd>
+    <dt>Verdict</dt>
+    <dd>One of four, on every element of a request: approve, redact, add or flavour. Silence is not approval. Full approval is said out loud.</dd>
+    <dt>Chunk</dt>
+    <dd>One domain, built after every decision is locked and every domain is already on the map. A chunk ends at the outer gate, where it is cross-checked against the manifest and every other subsystem. <span class="not">one department built end to end. Not a sprint. Not a time box.</span></dd>
+    <dt>Slice</dt>
+    <dd>The smallest piece of a chunk that works. Build it, verify it, show the owner, wait. Then the next slice.</dd>
+    <dt>Decision</dt>
+    <dd>One answered question in the manifest: the chosen answer, the rationale, the date locked, what it affects, and the rule for changing it. Written as behaviour, not as a feature. <span class="not">a ticket. Not a user story. Not a wish.</span></dd>
+    <dt>Manifest</dt>
+    <dd><code>DECISIONS.md</code>. The one record: core goal, non-negotiables, decisions in chapters, the build timeline, the open questions, the change log. Written for the next agent, not maintained by hand. <span class="not">a backlog. Not a spec that gets handed off and forgotten.</span></dd>
+    <dt>Map</dt>
+    <dd><code>ARCHITECTURE.md</code>. One page. Every domain with its purpose, entry point and config file, and how to modify one. The first thing a chunk is cross-checked against.</dd>
+    <dt>Design gate</dt>
+    <dd>The stricter pass for work where a wrong output costs money, safety or trust: an adversarial gap review of the spec before the repository exists, and a guard that refuses source writes until every finding is resolved or recorded. A review that finds nothing is a failed review. <span class="not">the ordinary case. A game does not get it. Every project still gets the interview, the manifest and the cross-check.</span></dd>
+    <dt>Cross-check</dt>
+    <dd>At every chunk boundary: the chunk against the manifest, the map, the existing subsystems, the config, the tests and the core goal, ending in Proceed yes or no. After parallel agents, one more agent gets the manifest and the whole diff.</dd>
+    <dt>Change Request</dt>
+    <dd>The only way a locked decision changes: the change, the reason, the affected areas, the risk, the required updates, the final decision. The owner decides. Yes adds a dated row to the change log. No leaves the decision standing and the work moves to agree with it.</dd>
+    <dt>Council</dt>
+    <dd>A variant of the interview for a pitch: fixed seats, each arguing one concern, run in parallel, then one verdict per element and one question at a time. Its record is kept beside the decision. <span class="not">a committee that decides. The owner decides. The council makes the trade-offs visible.</span></dd>
+    <dt>Hat</dt>
+    <dd>A named role the agent wears one at a time and announces when it changes. Creative Director, Designer, UI/UX, QA, Programmer. The Programmer hat stays locked until the others have produced an owner-approved spec.</dd>
+    <dt>Owner</dt>
+    <dd>The one person who says yes. Every slice is shown to them. Nothing is locked until they say so, and nothing is built until it is locked. <span class="not">a product manager relaying other people's asks.</span></dd>
+    <dt>Locked</dt>
+    <dd>Sealed in the manifest with a date. Superseded only by a Change Request that names its successor. Never edited in place.</dd>
+  </dl>
+
+  <h3>What this method is not</h3>
+  <ul class="nots">
+    <li><b>Not vertical slices by department.</b> Every domain is on the one-page map, with its config, before the first is built. A chunk is one of those domains, and it is cross-checked against all the others before the next starts.</li>
+    <li><b>Not requirements gathering and hand-off.</b> The interview is the agent reading the scars and asking the owner only what only the owner can decide. Nobody collects a wish list for someone else to build.</li>
+    <li><b>Not agile sprints.</b> A chunk is a domain and a review boundary, not a time box. There is no velocity, no backlog, no burndown.</li>
+    <li><b>Not big design up front and then silence.</b> Decisions change, but through a Change Request that names what it supersedes, so the collision is caught in the manifest, not in the code.</li>
+    <li><b>Not "the agent decides."</b> The agent interviews, researches, argues the seats, drafts and builds. The owner locks. Nothing goes in the manifest until the owner says yes.</li>
+    <li><b>Not a promise that a machine checks every step.</b> Every rule is graded honestly: some are denied by a hook, some only advised, some are law text that nothing checks. The grades are the chapter below the flow.</li>
+  </ul>
 </section>
 
 <section class="chapter flow" id="flow">
