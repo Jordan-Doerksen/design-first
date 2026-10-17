@@ -90,7 +90,7 @@ requires care; it does not authorise extra scope.
 
 ## The record the guard reads (0.1.23, CR-2026-10-13-HONOUR)
 
-GATE-08 and GATE-09 are enforced by guard rule 10 (`hooks/guard.ps1#design-gate`) inside an
+GATE-08 and GATE-09 are enforced by guard rule 10 (`hooks/guard.mjs#design-gate`) inside an
 existing git repository, at a source Edit, Write or NotebookEdit and at an Edit or Write of the
 manifest. The guard cannot see a repository being created, or a source write in a folder with no
 git yet: keeping the review ahead of `git init` is law text. Once the repository exists, the rule
@@ -107,7 +107,7 @@ While that line stands and `records/gate-cleared.md` is absent, every Edit, Writ
 of a source file in the repository is refused; documents, config and data stay writable, because
 the gate is cleared by writing documents. Rule 10 reads no shell command at all, so a source file
 that a shell command writes (a redirect, `Set-Content`, `cp`, or a script the agent runs) passes.
-The guard's written residual (`hooks/guard.ps1`) names this gap, and a self-test case asserts
+The guard's written residual (`hooks/guard.mjs`) names this gap, and a self-test case asserts
 that such a write is not denied. The guard reads both places the manifest may live, the root `DECISIONS.md`
 and `docs/DECISIONS.md`; when both exist, a gate line in either one holds the gate.
 

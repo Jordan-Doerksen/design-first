@@ -156,7 +156,7 @@ This is the rule that stops the rot returning. A claim is cheap: `path_exists`, 
   absent, confirm the verdict flips and the exit code follows, then restore. A claim that cannot
   fail is not a claim.
 
-**The mechanism** is a git `commit-msg` check, `tools/vcs/law-claim.ps1`, for a brain that is a
+**The mechanism** is a git `commit-msg` check, `tools/vcs/law-claim.mjs`, for a brain that is a
 repository. A commit that changes a law file (an owning file named in `LAW.md`, or the overlay) is
 refused unless `claims.json` is in the same commit, or the message carries a line
 `No-Claim: <reason>`. The waiver exists because most law edits state no fact about the disk: a
@@ -234,7 +234,7 @@ state — modified, untracked, ahead — and stops. An autonomous loop does not 
 (`AUTO-12`). A sweep that would touch many repositories (adding a `.gitattributes`, say) skips the
 dirty ones and says so, then revisits each as its tree comes clean.
 
-**Mechanism:** guard rule 7 (`hooks/guard.ps1#dirty-tree`) refuses `reset --hard`/`--merge`/`--keep`,
+**Mechanism:** guard rule 7 (`hooks/guard.mjs#dirty-tree`) refuses `reset --hard`/`--merge`/`--keep`,
 `checkout -- <path>` (or `-f`, or `.`, or a path that exists), `restore` without `--staged`,
 `clean -f`, `switch --discard-changes` and `stash` while `git status --porcelain` in the command's
 folder is not empty, and `stash drop` / `stash clear` always. It follows a `cd` earlier in the same
@@ -279,7 +279,7 @@ so `cd "$(git rev-parse --show-toplevel)" && git add -A` is still probed from th
 folder. The write rule denies writing a `.env` that is not ignored, or that is already tracked (with
 the untrack remedy). A deliberate exception — one tracked secrets file by owner ruling — is listed
 in the brain's `secretExceptions`, and the Doctor pins the root's Read denies on secret paths. The
-clause record names `hooks/guard.ps1#stage-secret`; the write rule is the separate anchor
+clause record names `hooks/guard.mjs#stage-secret`; the write rule is the separate anchor
 `#env-write`, and no clause record names it.
 
 **Residual, written here so nobody believes otherwise:** the guard tokenises the command it is
@@ -303,7 +303,7 @@ the remote's own file listing and confirm the secrets file is absent. That one s
 evidence.
 
 **Also in the guard, under no clause.** The guard refuses history destruction
-(`hooks/guard.ps1#git-history`: `gc --prune`, `reflog expire`, a force push, a remote branch
+(`hooks/guard.mjs#git-history`: `gc --prune`, `reflog expire`, a force push, a remote branch
 delete). No clause in `law.json` names this rule. It is a kit default, so it is not in the
 `LAW.md` grades.
 
@@ -320,7 +320,7 @@ COULD-NOT-LOOK, that is not a pass.**
 
 ## No count in a rule, checked by the generator (0.1.25, CR-2026-10-13-HONOUR)
 
-SKIN-07 is enforced by the law generator (`tools/law/build-law.ps1#no-count`): a clause's rule
+SKIN-07 is enforced by the law generator (`tools/law/build-law.mjs#no-count`): a clause's rule
 text may not carry a count, a number followed by a plural noun (`94 repositories`, `18 sites`),
 nor any number of two or more digits. A bare single digit still warns, so a threshold is seen
 before it is accepted. The scope is the rule text and the generated `LAW.md`; prose in an owning

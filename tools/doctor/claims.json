@@ -1,11 +1,11 @@
 {
   "schema": 1,
-  "_comment": "The KIT's own claims, run by `doctor.ps1 -Kit`. ${KIT} is this checkout; relative paths are kit-relative. These are facts about the kit tree, never about any adopter's disk. Type reference: SPEC 5.2 / tools/MANUAL.md.",
+  "_comment": "The KIT's own claims, run by `doctor.mjs -Kit`. ${KIT} is this checkout; relative paths are kit-relative. These are facts about the kit tree, never about any adopter's disk. Type reference: SPEC 5.2 / tools/MANUAL.md.",
   "claims": [
     {
       "id": "KIT-LAW-01",
       "type": "generated_matches",
-      "generator": "tools/law/build-law.ps1",
+      "generator": "tools/law/build-law.mjs",
       "source": "law.json",
       "output": "LAW.md",
       "why": "Kit LAW.md is GENERATED from law.json (C5). A hand edit to LAW.md drifts the grades away from the mechanisms that justify them; this claim makes that drift a RED run instead of a quiet lie. Compared as bytes after CRLF->LF only."
@@ -13,7 +13,7 @@
     {
       "id": "KIT-DOCS-01",
       "type": "generated_matches",
-      "generator": "docs/build.ps1",
+      "generator": "docs/build.mjs",
       "source": "docs/src/template.html",
       "output": "docs/index.html",
       "why": "DECISIONS 3.3: nothing on the public page is typed. docs/index.html is rendered from the template and the kit's own files (law.json, hooks.json, this file, the commands, the README sections, four recorded runs). A hand edit of index.html is a count or a sentence nobody generated; this claim makes it a RED run. Compared as bytes after CRLF->LF only."
@@ -56,7 +56,8 @@
       "extensions": [
         ".md",
         ".json",
-        ".ps1",
+        ".mjs",
+        ".sh",
         ".bat",
         ".txt",
         ".html",
@@ -88,19 +89,19 @@
           ]
         },
         {
-          "path": "tools/doctor/selftest.ps1",
+          "path": "tools/doctor/selftest.mjs",
           "words": [
             "Jordan-Doerksen"
           ]
         },
         {
-          "path": "docs/build.ps1",
+          "path": "docs/build.mjs",
           "words": [
             "Jordan-Doerksen"
           ]
         },
         {
-          "path": "docs/publish.ps1",
+          "path": "docs/publish.mjs",
           "words": [
             "Jordan-Doerksen",
             "jordan-doerksen"
@@ -127,7 +128,7 @@
       "type": "hook_smoke",
       "hook": "guard",
       "event": "PreToolUse",
-      "why": "F15, C4: a hook that never reaches its first line (pwsh missing, Mark-of-the-Web refusal, parse error) is invisible to every in-body check. Runs the guard exactly as hooks.json registers it with a harmless synthetic tool call; it must exit 0 and reply with nothing or JSON."
+      "why": "F15, C4: a hook that never reaches its first line (node missing, a syntax error, a library that fails to load) is invisible to every in-body check. Runs the guard exactly as hooks.json registers it with a harmless synthetic tool call; it must exit 0 and reply with nothing or JSON."
     },
     {
       "id": "KIT-SMOKE-02",
@@ -182,8 +183,7 @@
       "id": "KIT-REVIEWER-01",
       "type": "file_contains",
       "path": "${KIT}/agents/reviewer.md",
-      "needle": "tools: Read, Grep, Glob
----",
+      "needle": "tools: Read, Grep, Glob\n---",
       "why": "AUTO-05: the Reviewer has no edit access, and that is a permission, not a sentence. The tool list in this file is what makes it real. If the line changes, a Reviewer can write to the thing it is grading. The needle is the whole line and the line that closes the front matter: without the line end, a list with one more tool on it (Glob, Edit) still held the needle."
     },
     {

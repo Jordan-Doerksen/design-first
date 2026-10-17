@@ -104,7 +104,7 @@ ADVISE:
 ```
 
 The `ADVISE` section lists every clause the design-first subagent hook handed you under
-"ADVISE clauses" (`hooks/subagent.ps1#advise-by-role`). Each id gets `holds` or a finding with a
+"ADVISE clauses" (`hooks/subagent.mjs#advise-by-role`). Each id gets `holds` or a finding with a
 place. An id you did not look at makes the verdict `BLOCKED`; it never silently passes.
 
 Any line under `GAPS` makes the verdict `FAIL` or `BLOCKED`. With no gap, a green gate on this

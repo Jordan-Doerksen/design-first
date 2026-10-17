@@ -39,7 +39,7 @@ text written before the call, and the box carries the question only. A surface's
 to keep its field short is not an instruction to drop the reasons; it says where they cannot go,
 not that they are not needed.
 
-*What the hook sees.* `hooks/ask.ps1` reads every multiple-choice call and refuses one that holds
+*What the hook sees.* `hooks/ask.mjs` reads every multiple-choice call and refuses one that holds
 more than one question, an option whose description is shorter than the minimum length, a phrase
 that offers options as equally fine, or a first option whose label does not hold the recommended
 marker. The marker is a word match, so a label such as "X (not recommended)" also passes. A negated
@@ -143,10 +143,10 @@ trivial call stays fast; research about nothing is overload too.
 - **Research informs the slice; it does not replace it** (`DES-05`). The smallest slice still ships.
 
 *What delivers it.* No machine can see whether a rank was stated or research was done. The rule
-reaches every session because `hooks/route.ps1` adds the groups in the route policy's
+reaches every session because `hooks/route.mjs` adds the groups in the route policy's
 `alwaysForSessions` list to every session's first prompt, and again after a compaction or a clear;
 the template lists `OWN`. The owner judges it. A subagent does not receive it, because
-`hooks/subagent.ps1` leaves the session-only groups out of a subagent's injection; a brief that
+`hooks/subagent.mjs` leaves the session-only groups out of a subagent's injection; a brief that
 needs research says so itself. An existing brain gets the route only when its own
 `route-policy.json` carries the key: adopt copies the template once, and an upgrade does not edit
 the brain.

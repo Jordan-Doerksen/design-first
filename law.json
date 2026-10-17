@@ -26,7 +26,7 @@
       "grade": "HOOK",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/guard.ps1#stage-secret"
+        "ref": "hooks/guard.mjs#stage-secret"
       },
       "since": "2026-09-22"
     },
@@ -39,7 +39,7 @@
       "grade": "GATE",
       "enforcedBy": {
         "kind": "tool",
-        "ref": "tools/doctor/report.ps1#could-not-look"
+        "ref": "tools/doctor/report.mjs#could-not-look"
       },
       "since": "2026-09-22"
     },
@@ -52,7 +52,7 @@
       "grade": "HOOK",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/guard.ps1#dirty-tree"
+        "ref": "hooks/guard.mjs#dirty-tree"
       },
       "since": "2026-09-22"
     },
@@ -65,7 +65,7 @@
       "grade": "HOOK",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/guard.ps1#frozen-path"
+        "ref": "hooks/guard.mjs#frozen-path"
       },
       "since": "2026-09-22"
     },
@@ -114,7 +114,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "tool",
-        "ref": "tools/law/build-law.ps1#state-once"
+        "ref": "tools/law/build-law.mjs#state-once"
       }
     },
     {
@@ -127,7 +127,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/ask.ps1#ask-shape"
+        "ref": "hooks/ask.mjs#ask-shape"
       }
     },
     {
@@ -140,7 +140,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/subagent.ps1#advise-by-role"
+        "ref": "hooks/subagent.mjs#advise-by-role"
       }
     },
     {
@@ -153,7 +153,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/subagent.ps1#advise-by-role"
+        "ref": "hooks/subagent.mjs#advise-by-role"
       }
     },
     {
@@ -166,7 +166,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/subagent.ps1#advise-by-role"
+        "ref": "hooks/subagent.mjs#advise-by-role"
       }
     },
     {
@@ -179,7 +179,7 @@
       "since": "2026-10-14",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/route.ps1#always-route"
+        "ref": "hooks/route.mjs#always-route"
       }
     },
     {
@@ -205,7 +205,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/guard.ps1#no-manifest"
+        "ref": "hooks/guard.mjs#no-manifest"
       }
     },
     {
@@ -218,7 +218,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/guard.ps1#file-size"
+        "ref": "hooks/guard.mjs#file-size"
       }
     },
     {
@@ -231,7 +231,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/subagent.ps1#advise-by-role"
+        "ref": "hooks/subagent.mjs#advise-by-role"
       }
     },
     {
@@ -244,7 +244,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/subagent.ps1#advise-by-role"
+        "ref": "hooks/subagent.mjs#advise-by-role"
       }
     },
     {
@@ -257,7 +257,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/subagent.ps1#advise-by-role"
+        "ref": "hooks/subagent.mjs#advise-by-role"
       }
     },
     {
@@ -270,7 +270,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/stop.ps1#stop-done"
+        "ref": "hooks/stop.mjs#stop-done"
       }
     },
     {
@@ -283,7 +283,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/subagent.ps1#advise-by-role"
+        "ref": "hooks/subagent.mjs#advise-by-role"
       }
     },
     {
@@ -318,7 +318,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/agent.ps1#agent-brief"
+        "ref": "hooks/agent.mjs#agent-brief"
       }
     },
     {
@@ -331,7 +331,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/route.ps1#skills"
+        "ref": "hooks/route.mjs#skills"
       }
     },
     {
@@ -343,7 +343,7 @@
       "grade": "ADVISE",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/route.ps1#route-law"
+        "ref": "hooks/route.mjs#route-law"
       },
       "since": "2026-10-08"
     },
@@ -357,7 +357,7 @@
       "since": "2026-10-14",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/entry.ps1#state-card"
+        "ref": "hooks/entry.mjs#state-card"
       }
     },
     {
@@ -370,7 +370,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/stop.ps1#interview"
+        "ref": "hooks/stop.mjs#interview"
       }
     },
     {
@@ -383,7 +383,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/subagent.ps1#advise-by-role"
+        "ref": "hooks/subagent.mjs#advise-by-role"
       }
     },
     {
@@ -409,7 +409,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/guard.ps1#no-manifest"
+        "ref": "hooks/guard.mjs#no-manifest"
       }
     },
     {
@@ -422,7 +422,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/stop.ps1#stop-done"
+        "ref": "hooks/stop.mjs#stop-done"
       }
     },
     {
@@ -435,7 +435,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/stop.ps1#stop-done"
+        "ref": "hooks/stop.mjs#stop-done"
       }
     },
     {
@@ -448,7 +448,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/stop.ps1#stop-done"
+        "ref": "hooks/stop.mjs#stop-done"
       }
     },
     {
@@ -461,7 +461,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/guard.ps1#design-gate"
+        "ref": "hooks/guard.mjs#design-gate"
       }
     },
     {
@@ -474,7 +474,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/guard.ps1#design-gate"
+        "ref": "hooks/guard.mjs#design-gate"
       }
     },
     {
@@ -487,7 +487,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/subagent.ps1#advise-by-role"
+        "ref": "hooks/subagent.mjs#advise-by-role"
       }
     },
     {
@@ -499,7 +499,7 @@
       "grade": "HOOK",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/fence.ps1#goodhart-paren"
+        "ref": "hooks/fence.mjs#goodhart-paren"
       },
       "since": "2026-09-22"
     },
@@ -512,7 +512,7 @@
       "grade": "ADVISE",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/fence.ps1#fence-net-deletion"
+        "ref": "hooks/fence.mjs#fence-net-deletion"
       },
       "since": "2026-09-22"
     },
@@ -526,7 +526,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/fence.ps1#fence-net-deletion"
+        "ref": "hooks/fence.mjs#fence-net-deletion"
       }
     },
     {
@@ -539,7 +539,7 @@
       "since": "2026-10-14",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/subagent.ps1#advise-by-role"
+        "ref": "hooks/subagent.mjs#advise-by-role"
       }
     },
     {
@@ -552,7 +552,7 @@
       "since": "2026-10-15",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/subagent.ps1#advise-by-role"
+        "ref": "hooks/subagent.mjs#advise-by-role"
       }
     },
     {
@@ -565,7 +565,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/subagent.ps1#advise-by-role"
+        "ref": "hooks/subagent.mjs#advise-by-role"
       }
     },
     {
@@ -591,7 +591,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/subagent.ps1#advise-by-role"
+        "ref": "hooks/subagent.mjs#advise-by-role"
       }
     },
     {
@@ -604,7 +604,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/guard.ps1#ledger"
+        "ref": "hooks/guard.mjs#ledger"
       }
     },
     {
@@ -630,7 +630,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/subagent.ps1#advise-by-role"
+        "ref": "hooks/subagent.mjs#advise-by-role"
       }
     },
     {
@@ -691,7 +691,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/guard.ps1#loop-no-push"
+        "ref": "hooks/guard.mjs#loop-no-push"
       }
     },
     {
@@ -769,7 +769,7 @@
       "grade": "HOOK",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/guard.ps1#stage-secret"
+        "ref": "hooks/guard.mjs#stage-secret"
       },
       "since": "2026-09-22"
     },
@@ -795,7 +795,7 @@
       "grade": "HOOK",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/guard.ps1#frozen-path"
+        "ref": "hooks/guard.mjs#frozen-path"
       },
       "since": "2026-09-22"
     },
@@ -857,7 +857,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/subagent.ps1#advise-by-role"
+        "ref": "hooks/subagent.mjs#advise-by-role"
       }
     },
     {
@@ -870,7 +870,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/subagent.ps1#advise-by-role"
+        "ref": "hooks/subagent.mjs#advise-by-role"
       }
     },
     {
@@ -909,7 +909,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/subagent.ps1#advise-by-role"
+        "ref": "hooks/subagent.mjs#advise-by-role"
       }
     },
     {
@@ -921,7 +921,7 @@
       "grade": "GATE",
       "enforcedBy": {
         "kind": "tool",
-        "ref": "tools/doctor/report.ps1#could-not-look"
+        "ref": "tools/doctor/report.mjs#could-not-look"
       },
       "since": "2026-09-22"
     },
@@ -961,7 +961,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/subagent.ps1#advise-by-role"
+        "ref": "hooks/subagent.mjs#advise-by-role"
       }
     },
     {
@@ -974,7 +974,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/subagent.ps1#advise-by-role"
+        "ref": "hooks/subagent.mjs#advise-by-role"
       }
     },
     {
@@ -987,7 +987,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/stop.ps1#stop-done"
+        "ref": "hooks/stop.mjs#stop-done"
       }
     },
     {
@@ -1000,7 +1000,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/entry.ps1#state-card"
+        "ref": "hooks/entry.mjs#state-card"
       }
     },
     {
@@ -1013,7 +1013,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/subagent.ps1#advise-by-role"
+        "ref": "hooks/subagent.mjs#advise-by-role"
       }
     },
     {
@@ -1039,7 +1039,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "tool",
-        "ref": "tools/law/build-law.ps1#no-count"
+        "ref": "tools/law/build-law.mjs#no-count"
       }
     },
     {
@@ -1065,7 +1065,7 @@
       "since": "2026-09-22",
       "enforcedBy": {
         "kind": "hook",
-        "ref": "hooks/guard.ps1#frozen-path"
+        "ref": "hooks/guard.mjs#frozen-path"
       }
     }
   ]

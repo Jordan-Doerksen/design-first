@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "_comment": "The entry path: what entry.ps1 prints on SessionStart when the session starts under root, in this order. `kit:` is a path under the plugin root; `brain:` is a path under this brain. Root CLAUDE.md is not listed because Claude Code loads it itself. An entry whose file is absent prints as MISSING: and is never skipped silently. Since DES-13 (2026-10-08) only what cannot be routed belongs here: the personal layer. Every clause arrives by route (hooks/route.ps1, <brain>/route-policy.json) with its owning file named.",
+  "_comment": "The entry path: what entry.mjs prints on SessionStart when the session starts under root, in this order. `kit:` is a path under the plugin root; `brain:` is a path under this brain. Root CLAUDE.md is not listed because Claude Code loads it itself. An entry whose file is absent prints as MISSING: and is never skipped silently. Since DES-13 (2026-10-08) only what cannot be routed belongs here: the personal layer. Every clause arrives by route (hooks/route.mjs, <brain>/route-policy.json) with its owning file named.",
   "entries": [
     "brain:me.md",
     "brain:voice.md"

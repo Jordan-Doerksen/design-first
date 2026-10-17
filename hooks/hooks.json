@@ -6,8 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "shell": "powershell",
-            "command": "pwsh -NoProfile -File \"${CLAUDE_PLUGIN_ROOT}/hooks/guard.ps1\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/guard.mjs\"",
             "timeout": 10
           }
         ]
@@ -17,8 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "shell": "powershell",
-            "command": "pwsh -NoProfile -File \"${CLAUDE_PLUGIN_ROOT}/hooks/fence.ps1\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/fence.mjs\"",
             "timeout": 10
           }
         ]
@@ -28,8 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "shell": "powershell",
-            "command": "pwsh -NoProfile -File \"${CLAUDE_PLUGIN_ROOT}/hooks/ask.ps1\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/ask.mjs\"",
             "timeout": 10
           }
         ]
@@ -39,8 +36,7 @@
         "hooks": [
           {
             "type": "command",
-            "shell": "powershell",
-            "command": "pwsh -NoProfile -File \"${CLAUDE_PLUGIN_ROOT}/hooks/agent.ps1\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/agent.mjs\"",
             "timeout": 10
           }
         ]
@@ -51,8 +47,7 @@
         "hooks": [
           {
             "type": "command",
-            "shell": "powershell",
-            "command": "pwsh -NoProfile -File \"${CLAUDE_PLUGIN_ROOT}/hooks/route.ps1\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/route.mjs\"",
             "timeout": 10
           }
         ]
@@ -63,8 +58,7 @@
         "hooks": [
           {
             "type": "command",
-            "shell": "powershell",
-            "command": "pwsh -NoProfile -File \"${CLAUDE_PLUGIN_ROOT}/hooks/stop.ps1\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/stop.mjs\"",
             "timeout": 20
           }
         ]
@@ -75,8 +69,7 @@
         "hooks": [
           {
             "type": "command",
-            "shell": "powershell",
-            "command": "pwsh -NoProfile -File \"${CLAUDE_PLUGIN_ROOT}/hooks/subagent.ps1\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/subagent.mjs\"",
             "timeout": 10
           }
         ]
@@ -88,8 +81,7 @@
         "hooks": [
           {
             "type": "command",
-            "shell": "powershell",
-            "command": "pwsh -NoProfile -File \"${CLAUDE_PLUGIN_ROOT}/hooks/entry.ps1\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/entry.mjs\"",
             "timeout": 10
           }
         ]
@@ -99,8 +91,7 @@
         "hooks": [
           {
             "type": "command",
-            "shell": "powershell",
-            "command": "pwsh -NoProfile -File \"${CLAUDE_PLUGIN_ROOT}/hooks/entry.ps1\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/entry.mjs\"",
             "timeout": 10
           }
         ]
@@ -110,8 +101,7 @@
         "hooks": [
           {
             "type": "command",
-            "shell": "powershell",
-            "command": "pwsh -NoProfile -File \"${CLAUDE_PLUGIN_ROOT}/hooks/entry.ps1\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/entry.mjs\"",
             "timeout": 10
           }
         ]
@@ -121,8 +111,7 @@
         "hooks": [
           {
             "type": "command",
-            "shell": "powershell",
-            "command": "pwsh -NoProfile -File \"${CLAUDE_PLUGIN_ROOT}/hooks/entry.ps1\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/entry.mjs\"",
             "timeout": 10
           }
         ]

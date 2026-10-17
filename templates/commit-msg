@@ -1,25 +1,24 @@
 #!/bin/sh
 # design-first law-claim shim (VCS-23). Copy this file to <brain>/.git/hooks/commit-msg.
 # Git runs it with the path of the commit message file. It finds the kit through the pointer
-# (%USERPROFILE%\.claude\design-first.json, or DF_POINTER_PATH) and runs tools/vcs/law-claim.ps1,
-# which refuses a commit that changes a law file with no claim and no "No-Claim: <reason>" line.
-# The shim never refuses on its own: when pwsh, the pointer or the kit script is missing it says
+# (~/.claude/design-first.json, or DF_POINTER_PATH) and runs tools/vcs/law-claim.mjs, which
+# refuses a commit that changes a law file with no claim and no "No-Claim: <reason>" line.
+# The shim never refuses on its own: when node, the pointer or the kit script is missing it says
 # so on stderr and lets the commit through. Adopt does not install this file and ships no claim
 # for it; add the two claims in tools/MANUAL.md (The commit check) and the Doctor proves it is
-# installed.
-command -v pwsh >/dev/null 2>&1 || { echo "design-first law-claim: pwsh is not on PATH; VCS-23 was NOT checked" >&2; exit 0; }
-DF_COMMIT_MSG_FILE="$1" exec pwsh -NoProfile -Command '
-$ErrorActionPreference = "Stop"
+# installed. Works wherever git runs hooks with sh: Linux, macOS, and Git for Windows.
+command -v node >/dev/null 2>&1 || { echo "design-first law-claim: node is not on PATH; VCS-23 was NOT checked" >&2; exit 0; }
+exec node -e '
+const fs = require("fs"), path = require("path"), os = require("os"), url = require("url");
+const skip = (why) => { process.stderr.write("design-first law-claim: " + why + "; VCS-23 was NOT checked\n"); process.exit(0); };
+let script;
 try {
-    $p = if ($env:DF_POINTER_PATH) { $env:DF_POINTER_PATH } else { Join-Path $env:USERPROFILE ".claude\design-first.json" }
-    if (-not (Test-Path -LiteralPath $p -PathType Leaf)) { throw "no pointer at $p" }
-    $kit = [string](Get-Content -LiteralPath $p -Raw | ConvertFrom-Json).pluginRoot
-    $script = Join-Path $kit "tools\vcs\law-claim.ps1"
-    if (-not (Test-Path -LiteralPath $script -PathType Leaf)) { throw "no tools\vcs\law-claim.ps1 under $kit" }
-} catch {
-    [Console]::Error.WriteLine("design-first law-claim: " + $_.Exception.Message + "; VCS-23 was NOT checked")
-    exit 0
-}
-& $script -MessageFile $env:DF_COMMIT_MSG_FILE
-exit $LASTEXITCODE
-'
+    const p = process.env.DF_POINTER_PATH || path.join(os.homedir(), ".claude", "design-first.json");
+    if (!fs.existsSync(p)) throw new Error("no pointer at " + p);
+    const kit = String(JSON.parse(fs.readFileSync(p, "utf8").replace(/^\uFEFF/, "")).pluginRoot || "");
+    script = path.join(kit, "tools", "vcs", "law-claim.mjs");
+    if (!kit || !fs.existsSync(script)) throw new Error("no tools/vcs/law-claim.mjs under " + kit);
+} catch (e) { skip(e.message); }
+process.argv = [process.execPath, script, "-MessageFile", process.argv[1]];
+import(url.pathToFileURL(script).href).catch((e) => skip(e.message));
+' -- "$1"

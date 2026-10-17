@@ -105,21 +105,21 @@
     "name": "Edit inside a frozen reference",
     "hook": "guard",
     "tool": "Edit",
-    "path": "${T}\\root\\frozen\\x.py",
+    "path": "${T}/root/frozen/x.py",
     "expect": "deny"
   },
   {
     "name": "Edit inside a tombstoned path",
     "hook": "guard",
     "tool": "Edit",
-    "path": "${T}\\root\\tomb\\x.md",
+    "path": "${T}/root/tomb/x.md",
     "expect": "deny"
   },
   {
     "name": "Write TOMBSTONE.md directly inside a tombstoned path -> allowed (VCS-12, the record itself)",
     "hook": "guard",
     "tool": "Write",
-    "path": "${T}\\root\\tomb\\TOMBSTONE.md",
+    "path": "${T}/root/tomb/TOMBSTONE.md",
     "content": "status: retired\nconsumers: one\nremove: the owner\n",
     "expect": "allow"
   },
@@ -127,7 +127,7 @@
     "name": "Write TOMBSTONE.md one folder down inside a tombstoned path -> denied",
     "hook": "guard",
     "tool": "Write",
-    "path": "${T}\\root\\tomb\\sub\\TOMBSTONE.md",
+    "path": "${T}/root/tomb/sub/TOMBSTONE.md",
     "content": "status: retired\n",
     "expect": "deny"
   },
@@ -135,7 +135,7 @@
     "name": "Write TOMBSTONE.md inside a FROZEN path -> denied (frozen gets no tombstone)",
     "hook": "guard",
     "tool": "Write",
-    "path": "${T}\\root\\frozen\\TOMBSTONE.md",
+    "path": "${T}/root/frozen/TOMBSTONE.md",
     "content": "status: retired\n",
     "expect": "deny"
   },
@@ -143,14 +143,14 @@
     "name": "Edit an ordinary project file",
     "hook": "guard",
     "tool": "Edit",
-    "path": "${T}\\root\\ordinary\\x.gd",
+    "path": "${T}/root/ordinary/x.gd",
     "expect": "allow"
   },
   {
     "name": "Write a credential file (not ignored)",
     "hook": "guard",
     "tool": "Write",
-    "path": "${T}\\root\\repo-plain\\.env",
+    "path": "${T}/root/repo-plain/.env",
     "expect": "deny",
     "contains": ".gitignore first"
   },
@@ -158,7 +158,7 @@
     "name": "Write the RECORDED-EXCEPTION .env",
     "hook": "guard",
     "tool": "Write",
-    "path": "${T}\\root\\repo-plain\\allowed\\.env",
+    "path": "${T}/root/repo-plain/allowed/.env",
     "expect": "allow"
   },
   {
@@ -186,7 +186,7 @@
     "name": "no pointer: ordinary edit advises once",
     "hook": "guard",
     "tool": "Edit",
-    "path": "${T}\\root\\ordinary\\x.gd",
+    "path": "${T}/root/ordinary/x.gd",
     "pointer": "none",
     "session": "s-nobrain-2",
     "expect": "advise",
@@ -196,7 +196,7 @@
     "name": "no pointer: second call, same session, silent allow",
     "hook": "guard",
     "tool": "Edit",
-    "path": "${T}\\root\\ordinary\\x.gd",
+    "path": "${T}/root/ordinary/x.gd",
     "pointer": "none",
     "session": "s-nobrain-2",
     "expect": "allow"
@@ -223,14 +223,14 @@
     "name": ".env ignored -> write allowed",
     "hook": "guard",
     "tool": "Write",
-    "path": "${T}\\root\\repo-ignored\\.env",
+    "path": "${T}/root/repo-ignored/.env",
     "expect": "allow"
   },
   {
     "name": ".env not ignored -> deny with ignore remedy",
     "hook": "guard",
     "tool": "Edit",
-    "path": "${T}\\root\\repo-plain\\.env",
+    "path": "${T}/root/repo-plain/.env",
     "expect": "deny",
     "contains": "not ignored"
   },
@@ -239,14 +239,14 @@
     "hook": "guard",
     "tool": "PowerShell",
     "cmd": "Set-Content .env 'X=1'",
-    "cwd": "${T}\\root\\repo-plain",
+    "cwd": "${T}/root/repo-plain",
     "expect": "allow"
   },
   {
     "name": ".env outside any repo -> advise",
     "hook": "guard",
     "tool": "Write",
-    "path": "${T}\\outside\\.env",
+    "path": "${T}/outside/.env",
     "expect": "advise",
     "contains": "outside any git repo"
   },
@@ -254,28 +254,28 @@
     "name": ".env in secretExceptions -> allowed",
     "hook": "guard",
     "tool": "Edit",
-    "path": "${T}\\root\\repo-plain\\allowed\\.env",
+    "path": "${T}/root/repo-plain/allowed/.env",
     "expect": "allow"
   },
   {
     "name": ".env.example -> allowed",
     "hook": "guard",
     "tool": "Write",
-    "path": "${T}\\root\\repo-plain\\.env.example",
+    "path": "${T}/root/repo-plain/.env.example",
     "expect": "allow"
   },
   {
     "name": ".env.local not ignored -> deny",
     "hook": "guard",
     "tool": "Write",
-    "path": "${T}\\root\\repo-plain\\.env.local",
+    "path": "${T}/root/repo-plain/.env.local",
     "expect": "deny"
   },
   {
     "name": "tracked .env write -> deny with untrack text",
     "hook": "guard",
     "tool": "Write",
-    "path": "${T}\\root\\repo-tracked\\.env",
+    "path": "${T}/root/repo-tracked/.env",
     "expect": "deny",
     "contains": "git rm --cached"
   },
@@ -284,7 +284,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git add -A",
-    "cwd": "${T}\\root\\repo-tracked",
+    "cwd": "${T}/root/repo-tracked",
     "expect": "allow"
   },
   {
@@ -292,7 +292,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git commit -a -m \"x\"",
-    "cwd": "${T}\\root\\repo-tracked",
+    "cwd": "${T}/root/repo-tracked",
     "expect": "allow"
   },
   {
@@ -300,7 +300,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git add .env",
-    "cwd": "${T}\\root\\repo-tracked",
+    "cwd": "${T}/root/repo-tracked",
     "expect": "deny",
     "contains": "credential"
   },
@@ -308,21 +308,21 @@
     "name": ".env in a not-yet-existing subfolder (nearest ancestor)",
     "hook": "guard",
     "tool": "Write",
-    "path": "${T}\\root\\repo-ignored\\new\\deeper\\.env",
+    "path": "${T}/root/repo-ignored/new/deeper/.env",
     "expect": "allow"
   },
   {
     "name": ".gitignore edit -> allowed",
     "hook": "guard",
     "tool": "Edit",
-    "path": "${T}\\root\\repo-plain\\.gitignore",
+    "path": "${T}/root/repo-plain/.gitignore",
     "expect": "allow"
   },
   {
     "name": "NotebookEdit inside a frozen path -> deny",
     "hook": "guard",
     "tool": "NotebookEdit",
-    "path": "${T}\\root\\frozen\\nb.ipynb",
+    "path": "${T}/root/frozen/nb.ipynb",
     "expect": "deny"
   },
   {
@@ -333,7 +333,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "echo .env >> .gitignore && git add .gitignore",
-    "cwd": "${T}\\root\\repo-plain",
+    "cwd": "${T}/root/repo-plain",
     "expect": "allow"
   },
   {
@@ -341,7 +341,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git add .gitignore",
-    "cwd": "${T}\\root\\repo-plain",
+    "cwd": "${T}/root/repo-plain",
     "expect": "allow"
   },
   {
@@ -356,7 +356,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git add -A",
-    "cwd": "${T}\\root\\repo-plain",
+    "cwd": "${T}/root/repo-plain",
     "expect": "deny",
     "contains": "via"
   },
@@ -365,7 +365,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git add --all",
-    "cwd": "${T}\\root\\repo-plain",
+    "cwd": "${T}/root/repo-plain",
     "expect": "deny"
   },
   {
@@ -373,7 +373,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git add .",
-    "cwd": "${T}\\root\\repo-plain",
+    "cwd": "${T}/root/repo-plain",
     "expect": "deny"
   },
   {
@@ -381,7 +381,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git add -A",
-    "cwd": "${T}\\root\\repo-plain\\sub",
+    "cwd": "${T}/root/repo-plain/sub",
     "expect": "deny"
   },
   {
@@ -389,7 +389,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git add -A",
-    "cwd": "${T}\\root\\repo-ignored",
+    "cwd": "${T}/root/repo-ignored",
     "expect": "allow"
   },
   {
@@ -397,7 +397,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git add .",
-    "cwd": "${T}\\root\\repo-ignored",
+    "cwd": "${T}/root/repo-ignored",
     "expect": "allow"
   },
   {
@@ -405,7 +405,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git add allowed/",
-    "cwd": "${T}\\root\\repo-plain",
+    "cwd": "${T}/root/repo-plain",
     "expect": "allow"
   },
   {
@@ -413,7 +413,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git add sub",
-    "cwd": "${T}\\root\\repo-plain",
+    "cwd": "${T}/root/repo-plain",
     "expect": "allow"
   },
   {
@@ -421,7 +421,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git add '*'",
-    "cwd": "${T}\\root\\repo-plain",
+    "cwd": "${T}/root/repo-plain",
     "expect": "deny"
   },
   {
@@ -450,7 +450,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git -C sub add .env",
-    "cwd": "${T}\\root\\repo-plain",
+    "cwd": "${T}/root/repo-plain",
     "expect": "deny"
   },
   {
@@ -521,7 +521,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git add allowed/.env",
-    "cwd": "${T}\\root\\repo-plain",
+    "cwd": "${T}/root/repo-plain",
     "expect": "allow"
   },
   {
@@ -626,7 +626,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git -C sub gc --prune",
-    "cwd": "${T}\\root\\repo-plain",
+    "cwd": "${T}/root/repo-plain",
     "expect": "deny"
   },
   {
@@ -657,7 +657,7 @@
     "name": "Remove-Item on a tombstoned path -> denied",
     "hook": "guard",
     "tool": "PowerShell",
-    "cmd": "Remove-Item -Recurse -Force \"${T}\\root\\tomb\"",
+    "cmd": "Remove-Item -Recurse -Force \"${T}/root/tomb\"",
     "expect": "deny"
   },
   {
@@ -685,7 +685,7 @@
     "name": "no pointer: Edit in frozen path is NOT denied (needs brain)",
     "hook": "guard",
     "tool": "Edit",
-    "path": "${T}\\root\\frozen\\x.py",
+    "path": "${T}/root/frozen/x.py",
     "pointer": "none",
     "session": "s-nobrain-3",
     "expect": "advise"
@@ -697,7 +697,7 @@
     "name": "FENCE paren GOODHART: assert( removed -> denies",
     "hook": "fence",
     "tool": "Edit",
-    "path": "${T}\\root\\tests\\probe_x.js",
+    "path": "${T}/root/tests/probe_x.js",
     "old": "assert(a);\nassert(b);",
     "new": "assert(a);",
     "expect": "deny",
@@ -707,7 +707,7 @@
     "name": "FENCE paren GOODHART: expect( removed -> denies",
     "hook": "fence",
     "tool": "Edit",
-    "path": "${T}\\root\\spec\\x.spec.ts",
+    "path": "${T}/root/spec/x.spec.ts",
     "old": "expect(a).toBe(1);\nexpect(b).toBe(2);",
     "new": "expect(a).toBe(1);",
     "expect": "deny"
@@ -716,7 +716,7 @@
     "name": "FENCE '* 0.0' idiom in a test -> denies",
     "hook": "fence",
     "tool": "Edit",
-    "path": "${T}\\root\\tests\\test_x.py",
+    "path": "${T}/root/tests/test_x.py",
     "old": "assert total == expected",
     "new": "assert total * 0.0 == expected * 0.0",
     "expect": "deny"
@@ -725,7 +725,7 @@
     "name": "FENCE loose GOODHART: python bare assert removed -> advises",
     "hook": "fence",
     "tool": "Edit",
-    "path": "${T}\\root\\tests\\test_x.py",
+    "path": "${T}/root/tests/test_x.py",
     "old": "assert x == 1\nassert y == 2",
     "new": "assert x == 1",
     "expect": "advise",
@@ -735,7 +735,7 @@
     "name": "FENCE loose GOODHART: rust assert_eq! removed -> advises",
     "hook": "fence",
     "tool": "Edit",
-    "path": "${T}\\root\\tests\\x_test.rs",
+    "path": "${T}/root/tests/x_test.rs",
     "old": "assert_eq!(a, 1);\nassert_eq!(b, 2);",
     "new": "assert_eq!(a, 1);",
     "expect": "advise"
@@ -744,7 +744,7 @@
     "name": "FENCE net deletion (3+ lines) -> advises",
     "hook": "fence",
     "tool": "Edit",
-    "path": "${T}\\root\\ordinary\\x.gd",
+    "path": "${T}/root/ordinary/x.gd",
     "old": "a\nb\nc\nd\ne",
     "new": "a",
     "expect": "advise",
@@ -754,7 +754,7 @@
     "name": "FENCE whole block deleted -> advises",
     "hook": "fence",
     "tool": "Edit",
-    "path": "${T}\\root\\ordinary\\x.gd",
+    "path": "${T}/root/ordinary/x.gd",
     "old": "a\nb",
     "new": "",
     "expect": "advise"
@@ -763,7 +763,7 @@
     "name": "FENCE normal edit -> allowed",
     "hook": "fence",
     "tool": "Edit",
-    "path": "${T}\\root\\ordinary\\x.gd",
+    "path": "${T}/root/ordinary/x.gd",
     "old": "a",
     "new": "b",
     "expect": "allow"
@@ -772,7 +772,7 @@
     "name": "FENCE assertions added -> allowed",
     "hook": "fence",
     "tool": "Edit",
-    "path": "${T}\\root\\tests\\probe_x.js",
+    "path": "${T}/root/tests/probe_x.js",
     "old": "assert(a);",
     "new": "assert(a);\nassert(b);",
     "expect": "allow"
@@ -781,7 +781,7 @@
     "name": "FENCE assert removed in a NON-test file -> no GOODHART, plain fence advice",
     "hook": "fence",
     "tool": "Edit",
-    "path": "${T}\\root\\ordinary\\x.gd",
+    "path": "${T}/root/ordinary/x.gd",
     "old": "assert(a)",
     "new": "",
     "expect": "advise",
@@ -791,7 +791,7 @@
     "name": "FENCE Write shrinking a file by >25% -> advises",
     "hook": "fence",
     "tool": "Write",
-    "path": "${T}\\root\\ordinary\\big.txt",
+    "path": "${T}/root/ordinary/big.txt",
     "content": "x",
     "expect": "advise",
     "contains": "losing"
@@ -819,7 +819,7 @@
     "logContains": "ERROR fence"
   },
   {
-    "_": "---- agent.ps1: brief contract, routing, cap (DES-11) ----"
+    "_": "---- agent.mjs: brief contract, routing, cap (DES-11) ----"
   },
   {
     "name": "agent: full brief, general-purpose, no model -> routed to sonnet",
@@ -1052,7 +1052,7 @@
     "contains": "spawn 1 of 8"
   },
   {
-    "_": "---- guard rule 5 (DES-02 manifest) and ask.ps1 (OWN-04); rule 6, the DES-03 read check, is in cases-size.ps1 ----"
+    "_": "---- guard rule 5 (DES-02 manifest) and ask.mjs (OWN-04); rule 6, the DES-03 read check, is in cases-size.mjs ----"
   },
   {
     "_": "---- guard rules 11 and 12 (AUTO-11 loop-no-push, AUTO-04 ledger) ----"
@@ -1062,7 +1062,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git push -u origin HEAD",
-    "cwd": "${T}\\root\\repo-loop",
+    "cwd": "${T}/root/repo-loop",
     "expect": "deny",
     "contains": "AUTO-11"
   },
@@ -1071,7 +1071,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git merge main",
-    "cwd": "${T}\\root\\repo-loop",
+    "cwd": "${T}/root/repo-loop",
     "expect": "deny",
     "contains": "loop branch"
   },
@@ -1079,8 +1079,8 @@
     "name": "loop: git -C <loop repo> pull from elsewhere -> deny",
     "hook": "guard",
     "tool": "PowerShell",
-    "cmd": "git -C \"${T}\\root\\repo-loop\" pull",
-    "cwd": "${T}\\root",
+    "cmd": "git -C \"${T}/root/repo-loop\" pull",
+    "cwd": "${T}/root",
     "expect": "deny"
   },
   {
@@ -1088,7 +1088,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git commit -m \"story 1\"",
-    "cwd": "${T}\\root\\repo-loop",
+    "cwd": "${T}/root/repo-loop",
     "expect": "allow"
   },
   {
@@ -1096,7 +1096,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git push origin main",
-    "cwd": "${T}\\root\\repo-clean",
+    "cwd": "${T}/root/repo-clean",
     "expect": "allow"
   },
   {
@@ -1127,7 +1127,7 @@
     "hook": "guard",
     "tool": "PowerShell",
     "cmd": "Set-Content docs/specs/chunk-1.tasks.json '{}'",
-    "cwd": "${T}\\root\\repo-loop",
+    "cwd": "${T}/root/repo-loop",
     "expect": "allow"
   },
   {
@@ -1179,7 +1179,7 @@
     "hook": "guard",
     "tool": "PowerShell",
     "cmd": "Set-Content src/core.py 'x = 1'",
-    "cwd": "${T}\\root\\repo-gated",
+    "cwd": "${T}/root/repo-gated",
     "expect": "allow"
   },
   {
@@ -1353,7 +1353,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git reset --hard",
-    "cwd": "${T}\\root\\repo-plain",
+    "cwd": "${T}/root/repo-plain",
     "expect": "deny",
     "contains": "SAFE-06"
   },
@@ -1362,7 +1362,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git checkout -- README.md",
-    "cwd": "${T}\\root\\repo-plain",
+    "cwd": "${T}/root/repo-plain",
     "expect": "deny"
   },
   {
@@ -1370,7 +1370,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git clean -fd",
-    "cwd": "${T}\\root\\repo-plain",
+    "cwd": "${T}/root/repo-plain",
     "expect": "deny"
   },
   {
@@ -1378,7 +1378,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git stash",
-    "cwd": "${T}\\root\\repo-plain",
+    "cwd": "${T}/root/repo-plain",
     "expect": "deny"
   },
   {
@@ -1386,7 +1386,7 @@
     "hook": "guard",
     "tool": "PowerShell",
     "cmd": "git restore README.md",
-    "cwd": "${T}\\root\\repo-plain",
+    "cwd": "${T}/root/repo-plain",
     "expect": "deny"
   },
   {
@@ -1394,7 +1394,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "cd ${TFWD}/root/repo-plain && git reset --hard",
-    "cwd": "${T}\\root\\repo-clean",
+    "cwd": "${T}/root/repo-clean",
     "expect": "deny"
   },
   {
@@ -1402,7 +1402,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git restore --staged README.md",
-    "cwd": "${T}\\root\\repo-plain",
+    "cwd": "${T}/root/repo-plain",
     "expect": "allow"
   },
   {
@@ -1410,7 +1410,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git checkout -b feature",
-    "cwd": "${T}\\root\\repo-plain",
+    "cwd": "${T}/root/repo-plain",
     "expect": "allow"
   },
   {
@@ -1418,7 +1418,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git clean -n",
-    "cwd": "${T}\\root\\repo-plain",
+    "cwd": "${T}/root/repo-plain",
     "expect": "allow"
   },
   {
@@ -1426,7 +1426,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git reset --hard",
-    "cwd": "${T}\\root\\repo-clean",
+    "cwd": "${T}/root/repo-clean",
     "expect": "allow"
   },
   {
@@ -1434,7 +1434,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "git stash drop",
-    "cwd": "${T}\\root\\repo-clean",
+    "cwd": "${T}/root/repo-clean",
     "expect": "deny"
   },
   {
@@ -1466,7 +1466,7 @@
     "name": "schedule: Write into a Startup folder -> denied",
     "hook": "guard",
     "tool": "Write",
-    "path": "${T}\\Start Menu\\Programs\\Startup\\go.bat",
+    "path": "${T}/Start Menu/Programs/Startup/go.bat",
     "expect": "deny"
   },
   {
@@ -1484,13 +1484,13 @@
     "expect": "allow"
   },
   {
-    "_": "---- 0.1.17: rule 9 content-rule (SAFE-02); the fixture brain bans place_order( under root\\trading, except trading\\action and tests folders ----"
+    "_": "---- 0.1.17: rule 9 content-rule (SAFE-02); the fixture brain bans place_order( under root/trading, except trading/action and tests folders ----"
   },
   {
     "name": "content: Edit adds place_order( in trading -> denied",
     "hook": "guard",
     "tool": "Edit",
-    "path": "${T}\\root\\trading\\desk\\feed.py",
+    "path": "${T}/root/trading/desk/feed.py",
     "old": "a",
     "new": "ib.place_order(c, o)",
     "expect": "deny",
@@ -1500,7 +1500,7 @@
     "name": "content: same edit in the excepted action folder -> allowed",
     "hook": "guard",
     "tool": "Edit",
-    "path": "${T}\\root\\trading\\action\\bot.py",
+    "path": "${T}/root/trading/action/bot.py",
     "old": "a",
     "new": "ib.place_order(c, o)",
     "expect": "allow"
@@ -1509,7 +1509,7 @@
     "name": "content: same edit in a tests folder -> allowed",
     "hook": "guard",
     "tool": "Edit",
-    "path": "${T}\\root\\trading\\desk\\tests\\t.py",
+    "path": "${T}/root/trading/desk/tests/t.py",
     "old": "a",
     "new": "assert 'place_order(' not in src",
     "expect": "allow"
@@ -1518,7 +1518,7 @@
     "name": "content: a harmless edit in trading -> allowed",
     "hook": "guard",
     "tool": "Edit",
-    "path": "${T}\\root\\trading\\desk\\feed.py",
+    "path": "${T}/root/trading/desk/feed.py",
     "old": "a",
     "new": "read_quotes()",
     "expect": "allow"
@@ -1527,7 +1527,7 @@
     "name": "content: same text outside trading -> allowed",
     "hook": "guard",
     "tool": "Edit",
-    "path": "${T}\\root\\ordinary\\x.py",
+    "path": "${T}/root/ordinary/x.py",
     "old": "a",
     "new": "ib.place_order(c, o)",
     "expect": "allow"
@@ -1537,7 +1537,7 @@
     "hook": "guard",
     "tool": "Bash",
     "cmd": "python -c \"ib.place_order(c, o)\"",
-    "cwd": "${T}\\root\\trading\\desk",
+    "cwd": "${T}/root/trading/desk",
     "expect": "deny"
   }
 ]
