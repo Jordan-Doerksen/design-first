@@ -10,10 +10,10 @@ pointer in the user profile: root `{{ROOT}}`, brain `{{BRAIN}}`.
 ## Core flow
 
 ```
-kit law.json + law.overlay.json + state/law-installed.json --> build-law.ps1 --> LAW.md (here)
-claims.json + doctor.config.json --> Doctor.bat (shim) --> the kit's doctor.ps1 --> state/
-me.md, voice.md, entry.json --> hooks/entry.ps1 --> the first turn of every session
-route-policy.json --> hooks/route.ps1 --> law rows per prompt
+kit law.json + law.overlay.json + state/law-installed.json --> build-law.mjs --> LAW.md (here)
+claims.json + doctor.config.json --> Doctor.bat or doctor.sh (shim) --> the kit's doctor.mjs --> state/
+me.md, voice.md, entry.json --> hooks/entry.mjs --> the first turn of every session
+route-policy.json --> hooks/route.mjs --> law rows per prompt
 ```
 
 ## Domains
@@ -36,4 +36,4 @@ route-policy.json --> hooks/route.ps1 --> law rows per prompt
 
 Read `DECISIONS.md`. Change config before logic: most changes here are a list in
 `doctor.config.json` or a clause in `law.overlay.json`. Regenerate `LAW.md` after any overlay
-edit. Run `Doctor.bat`. Add the Change Log row.
+edit. Run `Doctor.bat` (Windows) or `./doctor.sh` (Linux, macOS). Add the Change Log row.

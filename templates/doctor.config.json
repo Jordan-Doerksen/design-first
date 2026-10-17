@@ -1,44 +1,44 @@
 {
   "schema": 1,
   "_comment": "Doctor config for this brain (SPEC 5.3). Tunable values only, no logic, no absolute paths: write ${ROOT}-relative paths where a path is needed. Every key names its reader in _readers; a key that nothing reads is dead config, and the Doctor reports it. Keys starting with _ are comments.",
-  "_derived": "Not keys any more, derived from the pointer: root, stateDir (<brain>/state), recordsDir (<brain>/records), the root settings paths (<root>/.claude/settings.json + settings.local.json) and the fence log path (%USERPROFILE%/.claude/fence-log.txt).",
+  "_derived": "Not keys any more, derived from the pointer: root, stateDir (<brain>/state), recordsDir (<brain>/records), the root settings paths (<root>/.claude/settings.json + settings.local.json) and the fence log path (~/.claude/fence-log.txt).",
   "_readers": {
-    "schema": "doctor.ps1 - must be 1; a mismatch is the MIGRATE finding",
-    "surveyStrict": "report.ps1 - when true, SURVEY findings of severity fail turn the verdict RED (exit 1)",
-    "maxDepth": "repos.ps1 - how many folders deep to look for .git under root",
-    "parallelGit": "repos.ps1 - how many repositories the sweep reads at a time; 1 reads them one after another (same result, slower)",
-    "excludePathParts": "repos.ps1 - a repo whose path contains one of these is not swept at all",
-    "archivedPathParts": "repos.ps1 - a repo whose path contains one of these is listed but not judged",
-    "ownerRemotePatterns": "repos.ps1 - a remote URL containing none of these is FOREIGN",
-    "frozenPaths": "repos.ps1 (frozenDirty finding) / enforcement.ps1 (soft_deny count) / hooks/guard.ps1 (path deny)",
-    "tombstonedPaths": "repos.ps1 (flag) / hooks/guard.ps1 (path deny)",
-    "unversionedMaxDepth": "repos.ps1 - how deep the no-git-at-all sweep walks",
-    "unversionedIgnorePathParts": "repos.ps1 - folders deliberately outside git; add one only with a reason written next to it",
-    "secretExceptions": "repos.ps1 (tracked secret scan) / hooks/guard.ps1 (staging and write rules) - absolute or ${ROOT}-relative file paths",
-    "acceptedExceptions": "doctor.ps1 - (path, kind) pairs that are reported but not counted; each needs since and reason",
-    "entryPointSnapshots": "doctor.ps1 - live file vs byte snapshot, compared after CRLF->LF",
-    "enforcement": "enforcement.ps1 - fenceLogStaleDays only",
-    "lawClaim": "tools/vcs/law-claim.ps1 (the commit check, VCS-23) - extraFiles: more repo-relative paths that count as law files; trailer: the waiver line's name; minReason: shortest reason accepted",
-    "categories": "survey.ps1 - folders: top-level folders under root that hold projects; a repository under any other first folder is reported as outsideCategory (never the root, the brain or the root .claude folder). since: ISO date; a stray born before it is reported, one born on or after it is a fail. Empty folders: the check is off",
-    "readCeilingBytes": "hooks/guard.ps1 rule 6 (the read check, DES-03) - a write that grows a source file past this many bytes (about one Read) tells the agent once per file per session to list the file's subjects; it never asks for a split for size; 0 turns it off",
-    "readCeilingExempt": "hooks/guard.ps1 rule 6 - path globs the read check skips; only * is a wildcard (** is the same), ${ROOT} and ${BRAIN} expand",
-    "sourceExtensions": "hooks/guard.ps1 rules 5 and 6 - which extensions count as source for the manifest rule and the read check; docs, config and data are not source",
-    "stopDocs": "hooks/stop.ps1 - file names that count as documents for the Stop card (DES-07); a file in a docs/ folder inside the repository counts too, unless its extension is a source extension",
-    "stopFromGit": "hooks/stop.ps1 - true: the Stop card reads the turn's changes from git (commits made and files written since the prompt), so a file a command changed is counted; false: Edit and Write calls only",
-    "stopBudgetSeconds": "hooks/stop.ps1 - the Stop card's time budget in seconds, under the host's 20 s Stop timeout; past it no more repositories are read from git and the card names them; a value outside (0, 18] keeps the default 15"
+    "schema": "doctor.mjs - must be 1; a mismatch is the MIGRATE finding",
+    "surveyStrict": "report.mjs - when true, SURVEY findings of severity fail turn the verdict RED (exit 1)",
+    "maxDepth": "repos.mjs - how many folders deep to look for .git under root",
+    "parallelGit": "repos.mjs - how many repositories the sweep reads at a time; 1 reads them one after another (same result, slower)",
+    "excludePathParts": "repos.mjs - a repo whose path contains one of these is not swept at all",
+    "archivedPathParts": "repos.mjs - a repo whose path contains one of these is listed but not judged",
+    "ownerRemotePatterns": "repos.mjs - a remote URL containing none of these is FOREIGN",
+    "frozenPaths": "repos.mjs (frozenDirty finding) / enforcement.mjs (soft_deny count) / hooks/guard.mjs (path deny)",
+    "tombstonedPaths": "repos.mjs (flag) / hooks/guard.mjs (path deny)",
+    "unversionedMaxDepth": "repos.mjs - how deep the no-git-at-all sweep walks",
+    "unversionedIgnorePathParts": "repos.mjs - folders deliberately outside git; add one only with a reason written next to it",
+    "secretExceptions": "repos.mjs (tracked secret scan) / hooks/guard.mjs (staging and write rules) - absolute or ${ROOT}-relative file paths",
+    "acceptedExceptions": "doctor.mjs - (path, kind) pairs that are reported but not counted; each needs since and reason",
+    "entryPointSnapshots": "doctor.mjs - live file vs byte snapshot, compared after CRLF->LF",
+    "enforcement": "enforcement.mjs - fenceLogStaleDays only",
+    "lawClaim": "tools/vcs/law-claim.mjs (the commit check, VCS-23) - extraFiles: more repo-relative paths that count as law files; trailer: the waiver line's name; minReason: shortest reason accepted",
+    "categories": "survey.mjs - folders: top-level folders under root that hold projects; a repository under any other first folder is reported as outsideCategory (never the root, the brain or the root .claude folder). since: ISO date; a stray born before it is reported, one born on or after it is a fail. Empty folders: the check is off",
+    "readCeilingBytes": "hooks/guard.mjs rule 6 (the read check, DES-03) - a write that grows a source file past this many bytes (about one Read) tells the agent once per file per session to list the file's subjects; it never asks for a split for size; 0 turns it off",
+    "readCeilingExempt": "hooks/guard.mjs rule 6 - path globs the read check skips; only * is a wildcard (** is the same), ${ROOT} and ${BRAIN} expand",
+    "sourceExtensions": "hooks/guard.mjs rules 5 and 6 - which extensions count as source for the manifest rule and the read check; docs, config and data are not source",
+    "stopDocs": "hooks/stop.mjs - file names that count as documents for the Stop card (DES-07); a file in a docs/ folder inside the repository counts too, unless its extension is a source extension",
+    "stopFromGit": "hooks/stop.mjs - true: the Stop card reads the turn's changes from git (commits made and files written since the prompt), so a file a command changed is counted; false: Edit and Write calls only",
+    "stopBudgetSeconds": "hooks/stop.mjs - the Stop card's time budget in seconds, under the host's 20 s Stop timeout; past it no more repositories are read from git and the card names them; a value outside (0, 18] keeps the default 15"
   },
   "surveyStrict": false,
   "maxDepth": 3,
   "parallelGit": 8,
   "excludePathParts": [
-    "\\node_modules\\",
-    "\\.claude\\worktrees\\",
-    "\\target\\",
-    "\\.godot\\"
+    "/node_modules/",
+    "/.claude/worktrees/",
+    "/target/",
+    "/.godot/"
   ],
   "archivedPathParts": [
-    "\\_archive\\",
-    "\\_backups\\"
+    "/_archive/",
+    "/_backups/"
   ],
   "ownerRemotePatterns": [
     "github.com/<OWNER>/"
@@ -47,11 +47,11 @@
   "tombstonedPaths": [],
   "unversionedMaxDepth": 3,
   "unversionedIgnorePathParts": [
-    "\\_archive\\",
-    "\\_backups\\",
-    "\\node_modules\\",
-    "\\__pycache__\\",
-    "\\.venv\\"
+    "/_archive/",
+    "/_backups/",
+    "/node_modules/",
+    "/__pycache__/",
+    "/.venv/"
   ],
   "secretExceptions": [],
   "_acceptedExceptionsExample": {

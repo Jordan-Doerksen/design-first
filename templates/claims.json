@@ -11,12 +11,12 @@
     {
       "id": "BRAIN-POINTER-01",
       "type": "pointer_valid",
-      "why": "The pointer is the one file outside root, brain and plugin. Without it every hook runs brain-less and the Doctor cannot find this brain. Written by adopt.ps1; checked here so a deleted or moved pointer is a RED run, not a silent downgrade."
+      "why": "The pointer is the one file outside root, brain and plugin. Without it every hook runs brain-less and the Doctor cannot find this brain. Written by adopt.mjs; checked here so a deleted or moved pointer is a RED run, not a silent downgrade."
     },
     {
       "id": "BRAIN-LAW-01",
       "type": "generated_matches",
-      "generator": "${KIT}/tools/law/build-law.ps1",
+      "generator": "${KIT}/tools/law/build-law.mjs",
       "source": "${KIT}/law.json",
       "overlay": "${BRAIN}/law.overlay.json",
       "installed": "${BRAIN}/state/law-installed.json",

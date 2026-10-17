@@ -1,6 +1,6 @@
 # LAW
 
-Generated from `law.json` by `tools/law/build-law.ps1`. Do not edit by hand: the Doctor compares this file with a fresh build and goes RED on any difference.
+Generated from `law.json` by `tools/law/build-law.mjs`. Do not edit by hand: the Doctor compares this file with a fresh build and goes RED on any difference.
 
 Every clause has a permanent id (cite the id, never a line number), one sentence that carries no values, one owning file that holds the full text and the numbers, and an enforcement grade that says whether a machine will stop you breaking it.
 

@@ -107,7 +107,7 @@ An event with no rule is a story, and a rule that lives only in a lesson is a ru
 
 ## One file, checked by the generator (0.1.25, CR-2026-10-13-HONOUR)
 
-PRIN-05 is enforced by the law generator (`tools/law/build-law.ps1#state-once`): every clause
+PRIN-05 is enforced by the law generator (`tools/law/build-law.mjs#state-once`): every clause
 has its `### ID` heading in exactly one file under `instructions/`, `workflows/` and `lessons/`
 (and the brain's `instructions/` when a brain root is given), and that file is the clause's
 owning file. A heading in two files, in none, or in a file other than the owner fails the build,

@@ -4,37 +4,18 @@ REM Nothing presses this for you: no scheduled task, no login entry, no timer.
 REM Exit codes:  0 GREEN   1 RED   2 COULD-NOT-LOOK (that is NOT a pass)
 REM Pauses only when run with no arguments (a double-click), so scripts can call it.
 REM Any argument is passed through: -Kit, -Json, -Quiet, -ConfigPath, -ClaimsPath.
+REM The pointer is %USERPROFILE%\.claude\design-first.json, or DF_POINTER_PATH. Node reads it, so
+REM this file never parses JSON by hand. On Linux and macOS the same shim is doctor.sh.
 setlocal
-set "POINTER=%USERPROFILE%\.claude\design-first.json"
-if defined DF_POINTER_PATH set "POINTER=%DF_POINTER_PATH%"
 set "CODE=2"
 
-where pwsh >nul 2>&1
+where node >nul 2>&1
 if errorlevel 1 (
   echo.
-  echo   pwsh ^(PowerShell 7^) is not on PATH. Install it: winget install Microsoft.PowerShell
+  echo   node ^(Node.js 18 or newer^) is not on PATH. Install it: winget install OpenJS.NodeJS.LTS
   goto :done
 )
-if not exist "%POINTER%" (
-  echo.
-  echo   No pointer at "%POINTER%". Run /design-first:adopt in a Claude Code session first.
-  goto :done
-)
-REM The pointer is JSON; PowerShell reads it so this file never parses JSON by hand.
-for /f "usebackq delims=" %%P in (`pwsh -NoProfile -Command "(Get-Content -LiteralPath $env:POINTER -Raw | ConvertFrom-Json).pluginRoot"`) do set "PLUGIN_ROOT=%%P"
-if not defined PLUGIN_ROOT (
-  echo.
-  echo   The pointer has no pluginRoot: "%POINTER%"
-  goto :done
-)
-set "SCRIPT=%PLUGIN_ROOT%\tools\doctor\doctor.ps1"
-if not exist "%SCRIPT%" (
-  echo.
-  echo   Doctor is missing at "%SCRIPT%". The pointer's pluginRoot is stale; start a session so entry.ps1 refreshes it.
-  goto :done
-)
-
-pwsh -NoProfile -File "%SCRIPT%" %*
+node -e "const fs=require('fs'),path=require('path'),os=require('os'),url=require('url');const stop=(m)=>{console.log('');console.log('  '+m);process.exit(2)};const p=process.env.DF_POINTER_PATH||path.join(os.homedir(),'.claude','design-first.json');if(!fs.existsSync(p))stop('No pointer at '+p+'. Run /design-first:adopt in a Claude Code session first.');let kit='';try{kit=String(JSON.parse(fs.readFileSync(p,'utf8').replace(/^\uFEFF/,'')).pluginRoot??'')}catch(e){stop('The pointer could not be read: '+p+' ('+e.message+')')}if(!kit)stop('The pointer has no pluginRoot: '+p);const s=path.join(kit,'tools','doctor','doctor.mjs');if(!fs.existsSync(s))stop('Doctor is missing at '+s+'. The pointer pluginRoot is stale; start a session so hooks/entry.mjs refreshes it.');process.argv=[process.execPath,s,...process.argv.slice(1)];import(url.pathToFileURL(s).href)" -- %*
 set "CODE=%ERRORLEVEL%"
 
 :done

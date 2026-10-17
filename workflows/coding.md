@@ -34,7 +34,7 @@ only that extra pass.
 what is ruled out; its model follows the brain's role table unless the call names one; more
 spawns than the cap in one turn ask the owner.**
 
-The mechanism is `hooks/agent.ps1`, on every call to the Agent tool. The tunables are in
+The mechanism is `hooks/agent.mjs`, on every call to the Agent tool. The tunables are in
 `<brain>/agent-policy.json` (the kit template is the default until a brain has one).
 
 **The brief contract.** Four headings, each at the start of its own line: `Goal:`, `Files:` (or
@@ -75,15 +75,16 @@ the whole.
 group, once per session, with the owning file named; the full rule set is never loaded at
 start.**
 
-The mechanism is `hooks/route.ps1` on every prompt and `hooks/subagent.ps1` at every subagent
+The mechanism is `hooks/route.mjs` on every prompt and `hooks/subagent.mjs` at every subagent
 start; the tunables are `<brain>/route-policy.json` (the kit template until a brain has one).
 
 **How it routes.** Each prompt is matched, whole-word, against the words the policy lists per law
 group, and the session's working folder can name groups too. The groups the policy lists in
 `alwaysForSessions` (`OWN-10`) join the matches of every prompt and go first, so the size cap
 holds back a topic group before one of them. A group that becomes active is injected once: its
-rows from `LAW.md`, one clause per line with its grade, then the owning files resolved to real
-paths. A group that does not fit under the size cap is not recorded: the router names it only
+rows from `LAW.md`, one clause per line with its grade, then the owning files, each named relative
+to the kit or brain folder that the injection names once at its top, so the folder's length is paid
+once and not per file. A group that does not fit under the size cap is not recorded: the router names it only
 when another group printed, and it comes again on a later prompt, an always or folder group on the
 next one and a word group when its words come again. Routes stick for the session, because most
 prompts are follow-ups that name nothing ("yes", "make it larger"); a later prompt adds only groups
@@ -92,12 +93,15 @@ prompt re-injects; its housekeeping deletes only the markers of a session idle f
 subagent receives, before its first prompt, the groups the policy sends to every subagent
 (`alwaysForSubagents`, the prohibitions by default) and the groups active in the session that
 spawned it, less the groups the policy sends only to sessions (`alwaysForSessions`) unless
-`alwaysForSubagents` also lists them; the subagent hook names a group that does not fit under the
-size cap. With no pointer file, neither hook injects any law.
+`alwaysForSubagents` also lists them). The subagent hook sizes the advise-by-role block first and
+reserves its room, then admits groups into what is left and names a group that does not fit; the
+block is what a Reviewer answers for, the group rows the session already read. With no pointer
+file, neither hook injects any law.
 
 **What stays at session start.** The entry path (`<brain>/entry.json`) now lists only what
 cannot be routed: the personal layer, who the owner is and how they write. Everything that is a
-clause arrives by route; the full text is one path away in the injected block.
+clause arrives by route; the full text is a folder the injected block names once plus the path
+each group's line gives.
 
 **Why.** Measured on the first instance on 2026-10-08: the entry path was eight files, 1,848
 lines, roughly 35k tokens if read, and a model either spent that before opening the code or
@@ -170,7 +174,7 @@ hand-off still said "chunk 0 built, next: core loop" weeks after five major syst
 the one place a fresh agent is told to trust.
 
 **Grade: ADVISE** (since 2026-10-15, CR-2026-10-15-GAPS D4; HOOK before). The Stop card
-(`hooks/stop.ps1#stop-done`) names DES-07 at its top in a turn that changed source, and asks which
+(`hooks/stop.mjs#stop-done`) names DES-07 at its top in a turn that changed source, and asks which
 document carries the change when the turn touched none. It blocks the first stop once, yields on
 the second whatever the answer says, and grades nothing. A document, to the hook, is a file named on
 `stopDocs` (the brain's list, or the kit's default list when the brain sets none; the brain's list
@@ -238,7 +242,7 @@ reversible, owner-requested single-file edit is exempt.**
 Speed is not a reason to skip a gate.
 
 **Grade: ADVISE** (since 2026-10-15, CR-2026-10-15-GAPS D4; HOOK before). The Stop card
-(`hooks/stop.ps1#stop-done`) names GAME-12 at its top in every turn that changed source, and its
+(`hooks/stop.mjs#stop-done`) names GAME-12 at its top in every turn that changed source, and its
 GAME-12 line asks for the repository's verify gate command and its output, pasted, for each small
 change, or for a statement that the edit was the exempt one. The hook runs no verify gate and does
 not see each small change: it asks once per turn, blocks the first stop once, yields on the second,
@@ -257,7 +261,7 @@ memory. If those sources disagree with the repository's actual state (`git statu
 what runs), say so before continuing. A stale hand-off is a defect, the same as a silent failure.
 
 **The mechanism** is the session-start hook. When a session starts inside a game repository,
-`hooks/entry.ps1` prints the card's machine half after the entry path: what git says (branch,
+`hooks/entry.mjs` prints the card's machine half after the entry path: what git says (branch,
 uncommitted, unpushed, last commit), what the manifest says (the core goal, the Build Timeline
 position, the last Change Log row, the open questions) and what the hand-off says (its state and
 next sections), each document with its age in commits. A hand-off far behind HEAD is flagged
@@ -288,7 +292,7 @@ reference, read its own index (`SKIN-07`), never a count written in a law file.
 
 ## The commit message, checked at commit time (0.1.25, CR-2026-10-13-HONOUR)
 
-The commit-msg shim (`tools/vcs/law-claim.ps1#commit-message`) checks VOICE-05 in every
+The commit-msg shim (`tools/vcs/law-claim.mjs#commit-message`) checks VOICE-05 in every
 repository the shim is installed in: the subject line is 72 characters or fewer, its first word is
 not past tense (Added, Fixed, Updated and their kind), and it is not a bare placeholder (Update,
 WIP, changes). A merge or a revert is exempt. "Specific" is not graded; a person reads that.
@@ -321,6 +325,6 @@ one fenced block, the exact opening prompt for the next session, rewritten at ev
 at the end of an autonomous loop (`instructions/autonomy-law.md`). The card prints it as
 `next prompt`, cut to `lineChars`; a hand-off without the section gets
 `next prompt  none; the agent writes its own`. The prompt is written by the session that knows the
-state, never invented by the one that reads it. Mechanism: `hooks/entry.ps1#state-card`, the same
+state, never invented by the one that reads it. Mechanism: `hooks/entry.mjs#state-card`, the same
 hook that carries GAME-13; the self-test covers the switch on, off and absent, the section present,
 absent and over-long.

@@ -128,12 +128,12 @@ loop never interprets a new request.
 
 ## The marker the Stop hook reads (0.1.23, CR-2026-10-13-HONOUR)
 
-GATE-01 is advised by `hooks/stop.ps1#interview`, once per turn, for a repository created this turn
+GATE-01 is advised by `hooks/stop.mjs#interview`, once per turn, for a repository created this turn
 in a session with no question asked. The grade is ADVISE, not HOOK (since 2026-10-15,
 CR-2026-10-15-GAPS D4): the card blocks the first stop once, yields on the second whatever the
 answer says, and grades nothing. When the interview line is on the card, the card's first line
 names GATE-01 with the other clauses it carries. Every allowed AskUserQuestion call that carries
-one question writes the session's interview marker (`<markers>/<session>.asked`, by `hooks/ask.ps1`);
+one question writes the session's interview marker (`<markers>/<session>.asked`, by `hooks/ask.mjs`);
 a call with no question writes none. The marker lasts while the session is live: the entry hook's
 housekeeping deletes a session's markers only after none of them was written for a day, and never
 the markers of the session that starts. When a turn changed source in a repository whose `.git`
@@ -142,7 +142,7 @@ the Stop card carries the interview line for that repository and refuses the sto
 cannot grade the interview. It sees one case only: a repository whose `.git` was created since the
 prompt (a clone counts; a new folder inside an existing repository does not), in a session in
 which the question hook has allowed no AskUserQuestion call that carries a question, on any
-subject. `hooks/ask.ps1` writes the marker when it allows the call, before the owner answers. With
+subject. `hooks/ask.mjs` writes the marker when it allows the call, before the owner answers. With
 no prompt time on record, the Stop hook does not check.
 
 ### GATE-14
@@ -155,7 +155,7 @@ reads them described. So a taste call is a decision (the pass above says so) and
 step: the agent renders the candidates on one static page, side by side, in the repository's
 scratch or docs folder, opens it, and only then asks the one question. The chosen option is named
 in `DECISIONS.md` by its label on that page. A text-only taste question is a finding for the
-Reviewer, not a refusal: the mechanism is `hooks/subagent.ps1#advise-by-role`, which hands this
+Reviewer, not a refusal: the mechanism is `hooks/subagent.mjs#advise-by-role`, which hands this
 clause to every subagent (only its id when the advise block is over the size cap) and makes the
 Reviewer name it as holding or as a finding.
 
@@ -186,6 +186,6 @@ question comes next and when the asking is over.
   tired of questions and not when a plan merely exists. Anything still assumed in silence is an
   open node. GATE-02 stands: full approval is said out loud.
 
-Grade ADVISE by `hooks/subagent.ps1#advise-by-role`: the Reviewer names the clause as holding or as
+Grade ADVISE by `hooks/subagent.mjs#advise-by-role`: the Reviewer names the clause as holding or as
 a finding, with a frontier item that was asked before its prerequisite, a fact the owner was asked
 to supply, or a build that began with an open node.

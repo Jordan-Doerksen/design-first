@@ -108,7 +108,7 @@ one test file that the others import from. An existing split that reads its pare
 fixed when a real change next opens it, never in a refactor of its own (`DES-06`).
 
 **The read check.** One limit is real for an agent: a single file read returns a bounded amount of
-text, so a file past it is read in parts. Guard rule 6 (`hooks/guard.ps1`, anchor `file-size`)
+text, so a file past it is read in parts. Guard rule 6 (`hooks/guard.mjs`, anchor `file-size`)
 measures the bytes a write would leave. When a write grows a source file past the brain's
 `readCeilingBytes`, it tells the agent, once per file per session and never on the owner's screen,
 to list the file's subjects from a search of its top-level definitions and to split only if a
@@ -199,7 +199,7 @@ Final Decision + Rationale. Approval is the owner's (`AUTO-01`). The approved ch
 to the manifest's Change Log; the Open Questions table is where an unresolved one waits; a refused
 one leaves the locked decision standing, and the work changes to agree with it (`DES-02`).
 
-**Mechanism.** The Stop card (`hooks/stop.ps1#stop-done`) asks once in a turn that changed source;
+**Mechanism.** The Stop card (`hooks/stop.mjs#stop-done`) asks once in a turn that changed source;
 the brain's `sourceExtensions` decides what is source. A turn that changed only config, data or
 documents gets no card (the one exception is a repository whose git status lists more entries than
 the hook reads), so write the Change Request by hand. Every card asks whether the turn changed
@@ -227,7 +227,7 @@ it satisfies `instructions/observability-law.md` (it logs, it has no silent fail
 plan exists) · its documents are updated (`DES-07`) · the result fits one screen of explanation.
 
 **Grade of GATE-05, GATE-06 and GATE-07: ADVISE** (since 2026-10-15, CR-2026-10-15-GAPS D4;
-HOOK before). Their machine part is the Stop card (`hooks/stop.ps1#stop-done`). In a turn that
+HOOK before). Their machine part is the Stop card (`hooks/stop.mjs#stop-done`). In a turn that
 changed source it blocks the first stop once and hands over the card, which asks for the
 Change Request a change needs, the cross-check and part of the Definition of Done, and names at
 its top every clause it carries.
@@ -237,7 +237,7 @@ advises; it does not refuse a skipped cross-check.
 ## The three deletion guards
 
 Three named failure modes about *removing* things. Obey them as agent rules; all three are backed
-by the kit's `fence.ps1` hook (GATE-13 only on a deletion the fence sees), and the honest limits of
+by the kit's `fence.mjs` hook (GATE-13 only on a deletion the fence sees), and the honest limits of
 that hook are written here.
 
 ### GATE-11
@@ -275,7 +275,7 @@ hook inspects tool calls, so an assertion removed by `sed`, a heredoc, or a scri
 is not seen. A NotebookEdit is not fenced at all: the fence's matcher in `hooks/hooks.json` does
 not send it to the hook. An assertion replaced by one that tests less keeps the count and is not
 seen; an assertion moved to another file is seen as a removal from the file it leaves. A measuring
-file whose name holds its word only inside or at the end of a longer word (`selftest.ps1`,
+file whose name holds its word only inside or at the end of a longer word (`selftest.mjs`,
 `conftest.py`) is not read as one, unless a folder above it is; a word part that only starts with
 `test` (`testimonials.js`) is read as one. An assertion called as a method (`chai.expect(`,
 `pm.expect(`, Zig's `testing.expect(`) is not counted, and neither is one called on a module
@@ -297,7 +297,7 @@ share of the file's bytes, and on a destructive shell command from its list (suc
 recursive delete, `git reset --hard` or `git clean -f`). It injects the question, and the edit
 proceeds. A smaller deletion is not seen, and neither is an Edit or Write to a measuring file that
 already got the Goodhart deny or advise (GATE-11); the thresholds and the list are in
-`hooks/fence.ps1`. The answer is owed in the
+`hooks/fence.mjs`. The answer is owed in the
 reply, and "I don't know" is an answer that stops the deletion. Deleting, moving or consolidating a
 file is an owner decision in an autonomous loop (`AUTO-02`).
 
@@ -313,7 +313,7 @@ one.**
 The doorman fallacy: do not judge a thing by its most visible function. A doorman opens doors; he
 also watches who comes in. Before removing, automating or simplifying something, write down
 everything it does, then decide. Its machine part is the fence advise
-(`hooks/fence.ps1#fence-net-deletion`), which asks what the thing prevents and what breaks, on a
+(`hooks/fence.mjs#fence-net-deletion`), which asks what the thing prevents and what breaks, on a
 deletion the fence sees (see GATE-12). An automation or a simplification that deletes nothing gets
 no advise, and listing the full function stays the agent's job.
 

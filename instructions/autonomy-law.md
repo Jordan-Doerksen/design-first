@@ -221,7 +221,7 @@ A loop runner reads the brain's design-gate list from one file, `design-gate.jso
 root (a `gated` array of folders under the root). It reads that file through the pointer, treats a
 linked worktree as the repository it was made from, and refuses every run with COULD-NOT-LOOK when
 it cannot read the file: an unread list is never "nothing is gated". The runner keeps no copy of
-its own. Guard rule 10 (`hooks/guard.ps1#design-gate`) does
+its own. Guard rule 10 (`hooks/guard.mjs#design-gate`) does
 not read this list: it reads a different fact, the `Design gate: on` line in the repository's own
 `DECISIONS.md`. The kit does not ship or check `design-gate.json`; a brain that has one checks it
 with its own claim.
@@ -259,8 +259,8 @@ the rule and the reason.
 
 ## The loop branch is the fact the guard reads (0.1.24, CR-2026-10-13-HONOUR)
 
-AUTO-11 and AUTO-04 are enforced by guard rules 11 and 12 (`hooks/guard.ps1#loop-no-push`,
-`hooks/guard.ps1#ledger`). Both read branch names from git, never a marker file: a branch that
+AUTO-11 and AUTO-04 are enforced by guard rules 11 and 12 (`hooks/guard.mjs#loop-no-push`,
+`hooks/guard.mjs#ledger`). Both read branch names from git, never a marker file: a branch that
 starts with the loop prefix (brain config `loopBranchPrefix`, default `harness/`, the prefix the
 harness loop creates) is the loop branch. On it, `git push`, `git merge` and `git pull` are
 refused, and an Edit, Write or NotebookEdit to the story ledger (`loopLedgerGlobs`, default
@@ -271,7 +271,7 @@ A Bash or PowerShell command that writes the ledger (a redirect, `Set-Content`, 
 script) is not seen by rule 12; for that case the law's only check is the harness's hash compare
 and restore (`AUTO-04`). Off the loop branch, rule 12 does not fire, and rule 11 still reads the
 command, as the next paragraph says. Rules 11 and 12 bind only a process that loads the kit's
-hooks, and an internal guard error allows the call (`hooks/guard.ps1`).
+hooks, and an internal guard error allows the call (`hooks/guard.mjs`).
 
 **Rule 11 from any branch (2026-10-15, CR-2026-10-15-GAPS D1).** The loop's work leaves by a push
 or a merge that names its branch, so rule 11 does not wait to be on it. From any branch it refuses
@@ -333,7 +333,7 @@ checked out `main`, the glob made `copy/harness/x` at the loop's work, and `git 
 This also binds an interactive session that sits on a loop branch: the owner switches off it by
 hand. **Residual:** the git commands that move HEAD or a branch are an open-ended set. Rule 11
 reads the commands and forms named in this paragraph, listed in full in the header of
-`hooks/lib/guard-loop-rules.ps1`, and **any command or form not named there is a residual**,
+`hooks/lib/guard-loop-rules.mjs`, and **any command or form not named there is a residual**,
 whatever it moves: for example, on a loop branch, `git stash branch <name>`, a `git clone` of the
 repository at a commit (`--revision`), `git rebase --exec` or an `exec` line in an interactive
 rebase (a command string git runs in a shell), and a long option that git accepts as an
