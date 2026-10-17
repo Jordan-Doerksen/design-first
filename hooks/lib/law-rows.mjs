@@ -2,8 +2,9 @@
 // card. Never run directly.
 //
 // Reads the generated LAW.md (the brain's when there is a brain, else the kit's) and returns the
-// rows of one group as plain text: one clause per line, grade in brackets, then the owning files
-// resolved to real paths so the agent can open the full text. PRIN-03: the rows are read from the
+// rows of one group as plain text: one clause per line, grade in brackets, then the owning files,
+// relative to the kit or brain folder that lawFoldersLine names once per injection, so the agent
+// can open the full text. PRIN-03: the rows are read from the
 // generated index, never typed here, so a regenerated LAW.md is what gets injected.
 
 import path from 'node:path';
@@ -60,27 +61,45 @@ export function findGroup(groups, name) {
     return null;
 }
 
-function resolveOwnerPath(owner, ptr, kit) {
+// An owner as { base, rel }: base 'kit' or 'brain' with the path inside that folder, or base null
+// with the owner as written (a brain: owner when there is no brain, or a form with no prefix).
+function ownerRef(owner, ptr) {
     const o = owner.trim();
     let m;
-    if ((m = /^kit:(.+)$/i.exec(o))) return toFullPath(path.join(kit, m[1]));
-    if ((m = /^brain:(.+)$/i.exec(o))) { if (ptr.brain) return toFullPath(path.join(ptr.brain, m[1])); }
-    return o;
+    const inside = (p) => path.normalize(p.trim()).replace(/^[\\/]+/, '');
+    if ((m = /^kit:(.+)$/i.exec(o))) return { base: 'kit', rel: inside(m[1]) };
+    if ((m = /^brain:(.+)$/i.exec(o)) && ptr.brain) return { base: 'brain', rel: inside(m[1]) };
+    return { base: null, rel: o };
+}
+
+// The folders the full-text paths are relative to, named once at the top of each injection (route
+// and subagent). Workaround (CR-2026-10-17-PATHS): every group's full-text line named its files by
+// full path, so the kit folder was printed once per file. An installed kit sits in the plugin
+// cache, about 66 characters deep, and with SAFE, DES, VCS and OBS active a subagent's injection
+// passed the 9,500 cap once the kit path passed 58 characters: the Reviewer got the ADVISE clause
+// ids without their text.
+export function lawFoldersLine(ptr, kit) {
+    const parts = [`kit folder ${toFullPath(kit)}`];
+    if (ptr.brain) parts.push(`brain folder ${toFullPath(ptr.brain)}`);
+    return `Full-text paths are relative to the folder each line names: ${parts.join('; ')}.`;
 }
 
 // The injectable text for one group. Markdown emphasis is stripped from the rule so the rows read
-// as plain lines; the owner files are listed once each, resolved.
+// as plain lines; the owner files are listed once each, relative to their folder (lawFoldersLine).
 export function formatLawGroup(name, group, ptr, kit) {
     if (group == null) return '';
     const lines = [`design-first law for this task, group ${name} (${group.title}): ${group.rows.length} clause(s). Cite the id.`];
-    const owners = [];
+    const owners = { kit: [], brain: [], other: [] };
     for (const r of group.rows) {
         const rule = r.rule.replace(/\*\*/g, '').replace(/`/g, '');
         lines.push(`  ${r.id} [${r.grade}] ${rule}`);
-        const p = resolveOwnerPath(r.owner, ptr, kit);
-        if (p && !owners.includes(p)) owners.push(p);
+        const o = ownerRef(r.owner, ptr);
+        const list = owners[o.base || 'other'];
+        if (o.rel && !list.includes(o.rel)) list.push(o.rel);
     }
-    if (owners.length > 0) lines.push('  full text: ' + owners.join(' ; '));
+    if (owners.kit.length > 0) lines.push('  full text (kit folder): ' + owners.kit.join(' ; '));
+    if (owners.brain.length > 0) lines.push('  full text (brain folder): ' + owners.brain.join(' ; '));
+    if (owners.other.length > 0) lines.push('  full text: ' + owners.other.join(' ; '));
     return lines.join('\n');
 }
 

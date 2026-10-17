@@ -213,10 +213,23 @@ process.env.DF_MARKER_DIR = path.join(T, 'markers');
 delete process.env.CLAUDE_PLUGIN_ROOT;
 const NO_POINTER = path.join(T, 'no-such-pointer.json');
 // Runs fn with the pointer seam pointed at a file that does not exist, then puts it back.
-function withoutPointer(fn) {
+function withPointerAt(pointerFile, fn) {
     const saved = process.env.DF_POINTER_PATH;
-    process.env.DF_POINTER_PATH = NO_POINTER;
+    process.env.DF_POINTER_PATH = pointerFile;
     try { return fn(); } finally { process.env.DF_POINTER_PATH = saved; }
+}
+const withoutPointer = (fn) => withPointerAt(NO_POINTER, fn);
+// The full-text lines of an injection, read the way an agent reads them: the folders named once
+// at the top, then each line's paths joined to the folder it names. Returns { kit, brain, files }.
+function fullTextFiles(out) {
+    const m = /^.*Full-text paths are relative to the folder each line names: kit folder (.+?)(?:; brain folder (.+))?\.$/m.exec(out);
+    const folders = { kit: m ? m[1] : null, brain: m && m[2] ? m[2] : null };
+    const files = [];
+    for (const l of out.split('\n')) {
+        const f = /^ {2}full text \((kit|brain) folder\): (.+)$/.exec(l);
+        if (f) for (const rel of f[2].split(' ; ')) files.push({ base: f[1], rel, full: folders[f[1]] ? path.join(folders[f[1]], rel) : null });
+    }
+    return { ...folders, files };
 }
 
 // ------------------------------------------------------------------ invoking a hook
@@ -398,7 +411,13 @@ const sub = (session, type) => invokeHook('subagent.mjs', hookJson({ session_id:
     r = route('interview me on this addition', 'r1g', root);
     record('route: an interview prompt injects the GATE group with GATE-14 (CR-2026-10-14-REVIEW)', 'gate-14', r.code === 0 && /group GATE/i.test(r.out) && /GATE-14 \[ADVISE\]/i.test(r.out) ? 'gate-14' : 'wrong', r.out);
     record('route: the GATE group carries GATE-15 frontier (CR-2026-10-15-FRONTIER)', 'gate-15', r.code === 0 && /GATE-15 \[ADVISE\]/i.test(r.out) ? 'gate-15' : 'wrong', r.out);
-    record('route: rows name the owning file as a real path', 'resolved', /full text: /i.test(r.out) && !/kit:instructions/i.test(r.out) ? 'resolved' : 'unresolved', r.out);
+    // Each owning file is named relative to a folder the block names once (CR-2026-10-17-PATHS), and
+    // joined to that folder it is a file on the disk; no full-text line repeats the kit folder.
+    const ft = fullTextFiles(r.out);
+    const unopened = ft.files.filter((f) => !f.full || !exists(f.full)).map((f) => `${f.base}:${f.rel}`);
+    record('route: rows name each owning file relative to a folder named once, and each one opens', 'resolved',
+        ft.kit === kit && ft.files.length > 0 && unopened.length === 0 && !/kit:instructions/i.test(r.out) ? 'resolved' : `kit=${ft.kit} files=${ft.files.length} unopened: ${unopened.join(', ')}`, r.out);
+    record('route: no full-text line repeats the kit folder', 'once', r.out.split('\n').filter((l) => l.startsWith('  full text') && l.includes(kit)).length === 0 ? 'once' : 'repeated', r.out);
     const r1Routes = path.join(process.env.DF_MARKER_DIR, 'r1.routes');
     record('route: the active set is recorded for the session', 'recorded', exists(r1Routes) && readText(r1Routes).split(/\r?\n/).some((l) => l.toLowerCase() === 'des') ? 'recorded' : 'missing');
     r = route('yes please', 'r1', root);
@@ -421,6 +440,33 @@ const sub = (session, type) => invokeHook('subagent.mjs', hookJson({ session_id:
     record('subagent: the Reviewer gets the ADVISE clauses with the report instruction', 'advised', /ADVISE clauses/i.test(r.out) && /OWN-06 \(deliver\)/i.test(r.out) && /You are the Reviewer/i.test(r.out) ? 'advised' : 'wrong', r.out);
     r = sub('r1', 'general-purpose');
     record('subagent: a Builder gets the same clauses, told the Reviewer names them', 'advised', /ADVISE clauses/i.test(r.out) && /GAME-14 \(cite\)/i.test(r.out) && /the Reviewer names each one/i.test(r.out) && !/You are the Reviewer/i.test(r.out) ? 'advised' : 'wrong', r.out);
+    // CR-2026-10-17-PATHS: an installed kit sits in the plugin cache, about 66 characters deep. Each
+    // full-text line named the kit by full path, so with SAFE, DES, VCS and OBS active the injection
+    // passed the cap once the kit path passed 58 characters, and the Reviewer got the ADVISE ids
+    // without their text. The same session, the same rows, from a kit copied to a 120-character path.
+    const longKit = path.join(T, 'k'.repeat(Math.max(1, 120 - T.length - 1)));
+    for (const d of ['hooks', 'templates']) fs.cpSync(path.join(kit, d), path.join(longKit, d), { recursive: true });
+    for (const f of ['LAW.md', 'law.json']) fs.copyFileSync(path.join(kit, f), path.join(longKit, f));
+    const longPtr = path.join(T, 'pointer-long-kit.json');
+    put(longPtr, toJson({ schema: 1, root, brain, pluginRoot: longKit, pluginKind: 'cache' }));
+    // The subagent's text arrives inside a JSON reply (newlines escaped, Windows backslashes doubled),
+    // so these cases read the parsed text.
+    const subText = (res) => { const j = parseOut(res.out); return j && j.hookSpecificOutput ? String(j.hookSpecificOutput.additionalContext || '') : ''; };
+    r = withPointerAt(longPtr, () => invokeHook('subagent.mjs', hookJson({ session_id: 'r1', cwd: root, hook_event_name: 'SubagentStart', agent_id: 'a', agent_type: 'design-first:reviewer' }), path.join(longKit, 'hooks')));
+    let ctxText = subText(r);
+    record(`subagent: a kit at a ${longKit.length}-character path still sends the Reviewer the ADVISE text`, 'advised', /ADVISE clauses, \d+ rules/.test(ctxText) && /You are the Reviewer/.test(ctxText) && /group DES/.test(ctxText) ? 'advised' : 'dropped', r.out);
+    record('subagent: the long kit folder is named once in the whole injection', 'once', ctxText.split(longKit).length - 1 === 1 ? 'once' : `${ctxText.split(longKit).length - 1} times`, r.out);
+    // A brain-owned clause: its file is named under the brain folder, and it opens there.
+    const ownBrain = path.join(T, 'brain-owned');
+    const lawText = readText(path.join(kit, 'LAW.md')).replace('| `kit:instructions/integrity-law.md` |', '| `brain:prohibitions.md` |');
+    put(path.join(ownBrain, 'LAW.md'), lawText);
+    put(path.join(ownBrain, 'prohibitions.md'), '# Prohibitions\n');
+    const ownPtr = path.join(T, 'pointer-brain-owned.json');
+    put(ownPtr, toJson({ schema: 1, root, brain: ownBrain, pluginRoot: kit, pluginKind: 'checkout' }));
+    r = withPointerAt(ownPtr, () => sub('r-brain-owned', 'general-purpose'));
+    const bt = fullTextFiles(subText(r));
+    const bFile = bt.files.find((f) => f.base === 'brain');
+    record('subagent: a brain-owned clause names its file under the brain folder, and it opens', 'brain', bt.brain === ownBrain && bFile && bFile.rel === 'prohibitions.md' && exists(bFile.full) && bt.files.some((f) => f.base === 'kit' && exists(f.full)) ? 'brain' : `brain=${bt.brain} files=${JSON.stringify(bt.files)}`, r.out);
     // skills (DES-12): a prompt that shares a word with an installed skill names the skill, once
     const skillDir = jp(root, '.claude', 'skills', 'sandbox-skill');
     put(path.join(skillDir, 'SKILL.md'), '---\nname: sandbox-skill\ndescription: Build a pitchsite for a local business the house way.\n---\nbody\n');

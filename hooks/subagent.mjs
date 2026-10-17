@@ -87,14 +87,16 @@ try {
         // 2026-10-14 on the kit LAW.md: SAFE, DES, VCS and OBS rows plus the advise block came to about
         // 8,850 characters, under the 9,500 cap; the OWN rows add 1,209 and put it near 10,050, over the
         // cap, and the self-test's Reviewer case got the clause ids without their text. List the group in
-        // alwaysForSubagents to send it anyway.
+        // alwaysForSubagents to send it anyway. That measure counted a kit path once per owning file;
+        // since CR-2026-10-17-PATHS the folders are named once, and the same rows come to about 9,270
+        // characters with a 23-character kit path, one more per character of path (9,452 at 200).
         const sessionOnly = listOf(L.prop(policy, 'alwaysForSessions'));
         for (const g of L.readActiveRoutes(sessionId)) {
             if (sessionOnly.includes(g) && !wanted.includes(g)) continue;
             if (!wanted.includes(g)) wanted.push(g);
         }
 
-        let out = `You are a design-first subagent (${agentType}). The brief is your spec; these are the law groups active in the session that spawned you. Cite ids; open the owning file for the full text.\n\n`;
+        let out = `You are a design-first subagent (${agentType}). The brief is your spec; these are the law groups active in the session that spawned you. Cite ids; open the owning file for the full text. ${L.lawFoldersLine(ptr, kit)}\n\n`;
         const injected = []; const deferred = [];
         if (wanted.length > 0) {
             const law = L.lawPath(ptr, kit);

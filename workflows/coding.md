@@ -82,8 +82,9 @@ start; the tunables are `<brain>/route-policy.json` (the kit template until a br
 group, and the session's working folder can name groups too. The groups the policy lists in
 `alwaysForSessions` (`OWN-10`) join the matches of every prompt and go first, so the size cap
 holds back a topic group before one of them. A group that becomes active is injected once: its
-rows from `LAW.md`, one clause per line with its grade, then the owning files resolved to real
-paths. A group that does not fit under the size cap is not recorded: the router names it only
+rows from `LAW.md`, one clause per line with its grade, then the owning files, each named relative
+to the kit or brain folder that the injection names once at its top, so the folder's length is paid
+once and not per file. A group that does not fit under the size cap is not recorded: the router names it only
 when another group printed, and it comes again on a later prompt, an always or folder group on the
 next one and a word group when its words come again. Routes stick for the session, because most
 prompts are follow-ups that name nothing ("yes", "make it larger"); a later prompt adds only groups

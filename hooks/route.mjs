@@ -153,7 +153,8 @@ try {
             } else {
                 const law = L.lawPath(ptr, kit);
                 const groups = L.readLawGroups(law);
-                let out = '';
+                // The folders the full-text paths are relative to, once; it counts against the cap.
+                let out = L.lawFoldersLine(ptr, kit) + '\n\n';
                 const injected = []; const deferred = [];
                 for (const g of fresh) {
                     const grp = L.findGroup(groups, g);
