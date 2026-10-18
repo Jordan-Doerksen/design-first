@@ -1,4 +1,4 @@
-// entry.mjs - design-first SessionStart hook (startup | resume | clear | compact).
+// entry.mjs - prints the brain's entry path on session start, refreshes the pointer, clears the session's routes on a compaction, and opens a repository that carries a hand-off with its state card.
 //
 // Puts the brain's entry path in front of the agent on turn one. Plain stdout becomes session
 // context. Read-mostly: it writes only the heartbeat, the pointer's pluginRoot, and housekeeping

@@ -1,4 +1,4 @@
-// agent.mjs - design-first PreToolUse hook for the Agent tool (subagent spawns).
+// agent.mjs - holds a subagent spawn to its brief contract, routes its model from the brain's policy, and asks past the spawn cap (DES-11).
 //
 // Three rules, in this order. Every one is a cost already paid: 516 subagents in two weeks, 97% on
 // the most expensive model, briefs with no done-check, one session spawning 33.

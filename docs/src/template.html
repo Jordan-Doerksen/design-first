@@ -103,59 +103,8 @@
 
 <section class="chapter gates" id="gates">
   <h2>The gates and the loops</h2>
-  <p class="intro">{{LOOPS_INTRO}} The drawings below are the kit's own overview, redrawn: first the straight path, then each loop on its own with what it costs, then both together. The dashed line is the point past which nothing runs until the decisions above it are locked.</p>
+  <p class="intro">{{LOOPS_INTRO}} Two drawings: each loop on its own with what it costs, then the whole path with the loops on it. The dashed line is the point past which nothing runs until the decisions above it are locked.</p>
 
-  <h3>The straight path</h3>
-  <figure class="fig narrow">
-    <svg viewBox="0 0 520 770" role="img" aria-label="Flowchart, top to bottom: interview every add; lock the manifest and map the domains; stakes test and design gate; the gate line; build one slice of one chunk; inner gate; outer gate; change request; next chunk or done." xmlns="http://www.w3.org/2000/svg">
-      <defs><marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
-      <g font-family="var(--sans)" font-size="12" fill="currentColor" stroke="currentColor" stroke-width="1.2">
-        <text x="260" y="14" text-anchor="middle" stroke="none" fill="var(--ink-2)">owner: an idea or an addition</text>
-        <line x1="260" y1="20" x2="260" y2="34" marker-end="url(#ar1)"/>
-        <rect x="90" y="36" width="340" height="60" rx="6" fill="var(--fig-box)"/>
-        <text x="260" y="56" text-anchor="middle" stroke="none" font-weight="700">1  Interview every add</text>
-        <text x="260" y="73" text-anchor="middle" stroke="none" fill="var(--ink-2)">one verdict per element · rank, research</text>
-        <text x="260" y="88" text-anchor="middle" stroke="none" fill="var(--ink-2)">one question at a time · frontier first</text>
-        <line x1="260" y1="96" x2="260" y2="124" marker-end="url(#ar1)"/>
-        <rect x="90" y="126" width="340" height="46" rx="6" fill="var(--fig-box)" stroke="var(--fig-gate)" stroke-width="2"/>
-        <text x="260" y="145" text-anchor="middle" stroke="none" font-weight="700" fill="var(--fig-gate)">2  Lock DECISIONS.md · map ARCHITECTURE.md</text>
-        <text x="260" y="162" text-anchor="middle" stroke="none" fill="var(--ink-2)">every domain named, with its config</text>
-        <line x1="260" y1="172" x2="260" y2="200" marker-end="url(#ar1)"/>
-        <rect x="90" y="202" width="340" height="60" rx="6" fill="var(--fig-box)"/>
-        <text x="260" y="222" text-anchor="middle" stroke="none" font-weight="700">3  Stakes? The design gate</text>
-        <text x="260" y="239" text-anchor="middle" stroke="none" fill="var(--ink-2)">money, safety or trust: gap review first</text>
-        <text x="260" y="254" text-anchor="middle" stroke="none" fill="var(--ink-2)">source writes denied until findings resolved</text>
-        <line x1="10" y1="296" x2="510" y2="296" stroke="var(--fig-gate)" stroke-width="2" stroke-dasharray="8 5"/>
-        <text x="10" y="288" stroke="none" fill="var(--fig-gate)" font-weight="700">THE GATE</text>
-        <text x="510" y="288" text-anchor="end" stroke="none" fill="var(--fig-gate)">nothing below runs until locked</text>
-        <text x="510" y="312" text-anchor="end" stroke="none" fill="var(--ink-2)">Programmer hat stays locked until here</text>
-        <line x1="260" y1="262" x2="260" y2="326" marker-end="url(#ar1)"/>
-        <rect x="90" y="328" width="340" height="46" rx="6" fill="var(--fig-yes)" fill-opacity=".12" stroke="var(--fig-yes)"/>
-        <text x="260" y="347" text-anchor="middle" stroke="none" font-weight="700">4  Build one slice of one chunk</text>
-        <text x="260" y="364" text-anchor="middle" stroke="none" fill="var(--ink-2)">one domain · smallest slice first</text>
-        <line x1="260" y1="374" x2="260" y2="402" marker-end="url(#ar1)"/>
-        <rect x="90" y="404" width="340" height="46" rx="6" fill="var(--fig-box)"/>
-        <text x="260" y="423" text-anchor="middle" stroke="none" font-weight="700">5  Inner gate</text>
-        <text x="260" y="440" text-anchor="middle" stroke="none" fill="var(--ink-2)">verify · stop · say what it proves · wait</text>
-        <line x1="260" y1="450" x2="260" y2="478" marker-end="url(#ar1)"/>
-        <rect x="90" y="480" width="340" height="46" rx="6" fill="var(--fig-box)"/>
-        <text x="260" y="499" text-anchor="middle" stroke="none" font-weight="700">6  Outer gate</text>
-        <text x="260" y="516" text-anchor="middle" stroke="none" fill="var(--ink-2)">cross-check vs manifest, map, subsystems, goal</text>
-        <line x1="260" y1="526" x2="260" y2="554" marker-end="url(#ar1)"/>
-        <polygon points="260,556 400,596 260,636 120,596" fill="var(--fig-box)"/>
-        <text x="260" y="592" text-anchor="middle" stroke="none" font-weight="700">7  Must a locked</text>
-        <text x="260" y="608" text-anchor="middle" stroke="none" font-weight="700">decision change?</text>
-        <line x1="260" y1="636" x2="260" y2="664" marker-end="url(#ar1)"/>
-        <text x="268" y="656" stroke="none" fill="var(--fig-yes)" font-weight="700">NO</text>
-        <rect x="90" y="666" width="340" height="46" rx="6" fill="var(--fig-box)"/>
-        <text x="260" y="685" text-anchor="middle" stroke="none" font-weight="700">8  Next chunk, or done</text>
-        <text x="260" y="702" text-anchor="middle" stroke="none" fill="var(--ink-2)">update the timeline and the hand-off</text>
-        <text x="260" y="738" text-anchor="middle" stroke="none" fill="var(--ink-2)">next chunk: back to 1 for its decisions,</text>
-        <text x="260" y="754" text-anchor="middle" stroke="none" fill="var(--ink-2)">or straight to 4 when they are already locked</text>
-      </g>
-    </svg>
-    <figcaption>The straight path, every loop removed. Three steps of words, one gate, five steps of work. Step 3 is skipped when a wrong output costs nobody money, safety or trust.</figcaption>
-  </figure>
 
   <h3>The five loops</h3>
   <p>Each one lands on a cheaper step than the one that failed. That is what makes a wrong answer survivable.</p>
@@ -301,43 +250,31 @@
   <p class="intro">Most misreads of this method come from loading a familiar meaning onto one of these. Each is defined with the meaning it does not carry.</p>
   <dl class="gloss">
     <dt>Interview</dt>
-    <dd>The agent interviewing the request, with the owner. Restate it, split it into elements, give each a verdict, name the conflicts, state the cost, then ask the real forks one question at a time. Facts about the disk or the environment are the agent's to find, never the owner's to supply. <span class="not">a round of stakeholder interviews. Not requirements gathering. Nothing is collected and handed to a build team.</span></dd>
+    <dd>The agent interviewing the request, with the owner: split it into elements, give each a verdict, name the conflicts and the cost, then ask the real forks one question at a time. Facts about the disk are the agent's to find. <span class="not">stakeholder interviews. Not requirements gathering. Nothing is collected and handed to a build team.</span></dd>
     <dt>Verdict</dt>
-    <dd>One of four, on every element of a request: approve, redact, add or flavour. Silence is not approval. Full approval is said out loud.</dd>
+    <dd>One of four, on every element: approve, redact, add or flavour. Silence is not approval.</dd>
     <dt>Chunk</dt>
-    <dd>One domain, built after every decision is locked and every domain is already on the map. A chunk ends at the outer gate, where it is cross-checked against the manifest and every other subsystem. <span class="not">one department built end to end. Not a sprint. Not a time box.</span></dd>
-    <dt>Slice</dt>
-    <dd>The smallest piece of a chunk that works. Build it, verify it, show the owner, wait. Then the next slice.</dd>
+    <dd>One domain, built after every decision is locked and every domain is on the map, cross-checked against the rest at its end. <span class="not">one department built end to end. Not a sprint. Not a time box.</span></dd>
     <dt>Decision</dt>
-    <dd>One answered question in the manifest: the chosen answer, the rationale, the date locked, what it affects, and the rule for changing it. Written as behaviour, not as a feature. <span class="not">a ticket. Not a user story. Not a wish.</span></dd>
+    <dd>One answered question in the manifest: the answer, the rationale, the date locked, what it affects, the rule for changing it. <span class="not">a ticket. Not a user story. Not a wish.</span></dd>
     <dt>Manifest</dt>
-    <dd><code>DECISIONS.md</code>. The one record: core goal, non-negotiables, decisions in chapters, the build timeline, the open questions, the change log. Written for the next agent, not maintained by hand. <span class="not">a backlog. Not a spec that gets handed off and forgotten.</span></dd>
-    <dt>Map</dt>
-    <dd><code>ARCHITECTURE.md</code>. One page. Every domain with its purpose, entry point and config file, and how to modify one. The first thing a chunk is cross-checked against.</dd>
+    <dd><code>DECISIONS.md</code>. The one record, written for the next agent. <span class="not">a backlog. Not a spec that gets handed off and forgotten.</span></dd>
     <dt>Design gate</dt>
-    <dd>The stricter pass for work where a wrong output costs money, safety or trust: an adversarial gap review of the spec before the repository exists, and a guard that refuses source writes until every finding is resolved or recorded. A review that finds nothing is a failed review. <span class="not">the ordinary case. A game does not get it. Every project still gets the interview, the manifest and the cross-check.</span></dd>
-    <dt>Cross-check</dt>
-    <dd>At every chunk boundary: the chunk against the manifest, the map, the existing subsystems, the config, the tests and the core goal, ending in Proceed yes or no. After parallel agents, one more agent gets the manifest and the whole diff.</dd>
-    <dt>Change Request</dt>
-    <dd>The only way a locked decision changes: the change, the reason, the affected areas, the risk, the required updates, the final decision. The owner decides. Yes adds a dated row to the change log. No leaves the decision standing and the work moves to agree with it.</dd>
+    <dd>The stricter pass where a wrong output costs money, safety or trust: an adversarial review of the spec before the repository exists, and a guard that refuses source writes until every finding is resolved or recorded. <span class="not">the ordinary case. A game does not get it.</span></dd>
     <dt>Council</dt>
-    <dd>A variant of the interview for a pitch: fixed seats, each arguing one concern, run in parallel, then one verdict per element and one question at a time. Its record is kept beside the decision. <span class="not">a committee that decides. The owner decides. The council makes the trade-offs visible.</span></dd>
-    <dt>Hat</dt>
-    <dd>A named role the agent wears one at a time and announces when it changes. Creative Director, Designer, UI/UX, QA, Programmer. The Programmer hat stays locked until the others have produced an owner-approved spec.</dd>
+    <dd>The interview for a pitch: fixed seats, each arguing one concern, then one verdict per element. <span class="not">a committee that decides. The owner decides; the council makes the trade-offs visible.</span></dd>
     <dt>Owner</dt>
-    <dd>The one person who says yes. Every slice is shown to them. Nothing is locked until they say so, and nothing is built until it is locked. <span class="not">a product manager relaying other people's asks.</span></dd>
+    <dd>The one person who says yes. Nothing is locked until they say so, and nothing is built until it is locked. <span class="not">a product manager relaying other people's asks.</span></dd>
     <dt>Locked</dt>
-    <dd>Sealed in the manifest with a date. Superseded only by a Change Request that names its successor. Never edited in place.</dd>
+    <dd>Sealed in the manifest with a date. Superseded only by a Change Request that names its successor, never edited in place.</dd>
   </dl>
 
   <h3>What this method is not</h3>
   <ul class="nots">
-    <li><b>Not vertical slices by department.</b> Every domain is on the one-page map, with its config, before the first is built. A chunk is one of those domains, and it is cross-checked against all the others before the next starts.</li>
-    <li><b>Not requirements gathering and hand-off.</b> The interview is the agent reading the scars and asking the owner only what only the owner can decide. Nobody collects a wish list for someone else to build.</li>
-    <li><b>Not agile sprints.</b> A chunk is a domain and a review boundary, not a time box. There is no velocity, no backlog, no burndown.</li>
-    <li><b>Not big design up front and then silence.</b> Decisions change, but through a Change Request that names what it supersedes, so the collision is caught in the manifest, not in the code.</li>
-    <li><b>Not "the agent decides."</b> The agent interviews, researches, argues the seats, drafts and builds. The owner locks. Nothing goes in the manifest until the owner says yes.</li>
-    <li><b>Not a promise that a machine checks every step.</b> Every rule is graded honestly: some are denied by a hook, some only advised, some are law text that nothing checks. The grades are the chapter below the flow.</li>
+    <li><b>Not vertical slices by department.</b> Every domain is on the one-page map before the first is built, and each chunk is cross-checked against all the others.</li>
+    <li><b>Not agile sprints.</b> A chunk is a domain and a review boundary, not a time box. No velocity, no backlog, no burndown.</li>
+    <li><b>Not big design up front and then silence.</b> Decisions change through a Change Request that names what it supersedes, so the collision is caught in the manifest, not in the code.</li>
+    <li><b>Not a promise that a machine checks every step.</b> Every rule is graded honestly: some are refused by a hook, some only advised, some are text that nothing checks. The grades are the chapter below the flow.</li>
   </ul>
 </section>
 

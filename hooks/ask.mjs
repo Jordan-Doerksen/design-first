@@ -1,4 +1,4 @@
-// ask.mjs - design-first PreToolUse hook for AskUserQuestion (OWN-04).
+// ask.mjs - refuses a question with more than one part, an option with no reason, an "either is fine", or a recommended option that is not first (OWN-04).
 //
 // The shape of a question to the owner. A call is refused, with the reason the model sees, when:
 //   - it carries more than one question (one at a time; ask the next after the answer);

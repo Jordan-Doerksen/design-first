@@ -1,4 +1,4 @@
-// route.mjs - design-first UserPromptSubmit hook: the law arrives by route (DES-13).
+// route.mjs - injects the law groups the prompt's words and the working folder name, once per session, plus the groups every session gets (DES-13).
 //
 // Instead of demanding the whole rule set at session start, each prompt is matched against the
 // brain's route policy (keywords per law group, plus the working folder). A group that becomes

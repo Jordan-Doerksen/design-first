@@ -2,35 +2,84 @@
 
 A working method for building software with coding agents, packaged as a Claude Code plugin.
 Interview before code. Decisions locked in a manifest. Every rule has an id, one owning file,
-and an enforcement grade that tells the truth about whether a machine will stop you.
+and an enforcement grade that says whether a machine will stop you or only ask.
 
-Status: V1, installable. Windows, macOS and Linux, with Node.js 18 or newer and git on PATH. The version is in `.claude-plugin/plugin.json`.
+It runs as eight hooks around the agent's tool calls, a Doctor that checks what the documents
+claim against the disk, and a generator that refuses to print a rule whose mechanism is missing.
+
+Status: V1, installable. Windows, macOS and Linux, with Node.js 18 or newer and git on PATH.
+The version is in `.claude-plugin/plugin.json`.
 
 ## The method, on one page
 
-1. **Interview every add.** However detailed the request, it is an opening position, not a spec.
-   Split it into decisions, give each one a verdict (approve, cut, add, reframe), name what it
-   conflicts with, state the cost, then ask about the real forks, one multiple-choice question at a
-   time with the recommended default first. Silence is not approval.
-2. **Lock decisions before code.** `DECISIONS.md` is the one record. A later change is a Change
-   Request, never drift. `ARCHITECTURE.md` is one page and names every domain and its config file.
-3. **Build in chunks.** One domain at a time. Tunable values live in `.json`, logic defines
-   behaviour. Split by subject, never by size: there is no line count. Parallelise independent decisions, not
-   files; several files that serve one decision are one agent's job.
-4. **Cross-check every chunk** against the manifest, the architecture, the existing subsystems and
-   the original goal before the next one starts.
-5. **Gate the dangerous work.** When a wrong output costs money, safety or someone's trust, write the
-   SPEC and the decisions first and send them for an adversarial gap review before the repo exists.
-   A review that finds nothing is a failed review. The gate clears when findings are resolved, not
-   when they are absent.
-6. **A fact about the disk is generated, never typed.** Prose rots. Every claim a document makes
-   about files, remotes or state becomes an entry in `claims.json` that the Doctor checks.
-7. **Show nothing rather than something false.** A blank panel beats a wrong number. Absent is not
-   zero. A check that cannot look does not report green.
+1. **Interview every add.** A request is an opening position, not a spec: split it into decisions,
+   give each a verdict, and ask about the real forks one question at a time. Silence is not approval.
+2. **Lock decisions before code.** `DECISIONS.md` is the one record; a later change is a Change
+   Request, never drift. `ARCHITECTURE.md` is one page naming every domain and its config.
+3. **Build in chunks.** One domain at a time, tunable values in `.json`, split by subject and
+   never by size.
+4. **Cross-check every chunk** against the manifest, the architecture and the goal before the next.
+5. **Gate the dangerous work.** Where a wrong output costs money, safety or trust, the spec gets an
+   adversarial review before the repo exists. A review that finds nothing is a failed review.
+6. **A fact about the disk is generated, never typed.** Every claim a document makes about files,
+   remotes or state is an entry in `claims.json` that the Doctor checks.
+7. **Show nothing rather than something false.** Absent is not zero, and a check that cannot look
+   does not report green.
 8. **A lesson must produce a rule.** An event with no rule is a story.
 
-The full text of every rule is in `instructions/` and `workflows/`. The index is `LAW.md`. How the
-loops and gates fit together, drawn as plain-text charts with every step also in words: [`LOOPS.md`](LOOPS.md).
+The full text of every rule is in `instructions/` and `workflows/`; the index is `LAW.md`. The
+loops and gates, drawn: [`LOOPS.md`](LOOPS.md). The map: [`ARCHITECTURE.md`](ARCHITECTURE.md).
+
+## What is in the box
+
+<!-- inventory:start -->
+<!-- rendered by docs/build.mjs from ARCHITECTURE.md (Domains) and hooks/hooks.json; do not edit by hand -->
+
+| path | holds |
+|---|---|
+| `.claude-plugin/` | manifest, marketplace |
+| `hooks/` | session guards |
+| `tools/law/` | generator |
+| `tools/doctor/` | disk checker |
+| `tools/vcs/` | git-side checks |
+| `tools/tests/` | hook self-test |
+| `commands/` | adopt, remove, gut, move, scope, ship |
+| `tools/adopt.mjs`, `tools/remove.mjs` | the writers |
+| `agents/` | read-only reviewer |
+| `templates/` | root and brain files |
+| `instructions/`, `workflows/`, `lessons/` | the rule text |
+| `LOOPS.md` | the loops and gates, drawn |
+| `docs/` | the public page |
+
+The hooks, as `hooks/hooks.json` registers them:
+
+| hook | event | on | what it does |
+|---|---|---|---|
+| `guard.mjs` | PreToolUse | Edit, Write, NotebookEdit, Bash, PowerShell | refuses the call that would stage a secret, rewrite git history, touch a frozen path, write source behind an open design gate, or leave or push the loop branch; advises on a write with no manifest or past one Read. |
+| `fence.mjs` | PreToolUse | Edit, Write, Bash, PowerShell | stops a deletion it can see, and an edit that removes or weakens an assertion in a measuring file, with the fence question to answer first. |
+| `ask.mjs` | PreToolUse | AskUserQuestion | refuses a question with more than one part, an option with no reason, an "either is fine", or a recommended option that is not first (OWN-04). |
+| `agent.mjs` | PreToolUse | Agent | holds a subagent spawn to its brief contract, routes its model from the brain's policy, and asks past the spawn cap (DES-11). |
+| `route.mjs` | UserPromptSubmit | every | injects the law groups the prompt's words and the working folder name, once per session, plus the groups every session gets (DES-13). |
+| `stop.mjs` | Stop | every | ends a turn that changed source with its card, asked once: documents, the verify gate, the Change Request, the cross-check, the Definition of Done (DES-07, GATE-01, GATE-05/06/07, GAME-12). |
+| `subagent.mjs` | SubagentStart | every | gives a subagent the session's law groups and the ADVISE clauses its role answers for, the ADVISE block reserved first (DES-13). |
+| `entry.mjs` | SessionStart | startup, resume, clear, compact | prints the brain's entry path on session start, refreshes the pointer, clears the session's routes on a compaction, and opens a repository that carries a hand-off with its state card. |
+
+<!-- inventory:end -->
+
+Your own layer, the brain, lives outside this repo: who you are, how you want to be spoken to,
+your prohibitions, your claims, your lessons. `adopt` writes it from an interview. Nothing about
+the author ships here.
+
+## Install
+
+```
+claude plugin marketplace add Jordan-Doerksen/design-first
+claude plugin install design-first@design-first
+/design-first:adopt
+```
+
+`adopt` asks seven questions, one at a time, then writes the files and runs the Doctor.
+`/design-first:remove` reverses what `adopt` wrote and leaves anything you changed.
 
 ## What a grade means
 
@@ -46,66 +95,16 @@ loops and gates fit together, drawn as plain-text charts with every step also in
 | OWNER | nothing: this is a standing ruling by the owner |
 | HONOUR | nothing: this is a request |
 
-The generator refuses to build `LAW.md` when a clause graded DENY, HOOK, ADVISE or GATE names a
-mechanism that does not exist in this tree, or that does not declare the clause's verb and mode,
-or a hook script that `hooks/hooks.json` does not register (`DF_SKIP_HOOK_FILES=1` turns a missing
-mechanism file or anchor into a warning, for a chunk that has not landed). The counts are the Summary table at the foot of `LAW.md`, which is generated;
-this page types none. A BUILDABLE clause has its mechanism specified in DECISIONS.md (2.7, or 2.8
-for the loop runner) and not shipped.
-
-## What is in the box
-
-| path | holds |
-|---|---|
-| `law.json`, `LAW.md` | the clauses and their generated index |
-| `LOOPS.md` | the loops and gates drawn as plain-text charts, each with its steps in words; a lint case keeps its clause ids and widths true |
-| `instructions/`, `workflows/`, `lessons/` | the rule text, one subject per file |
-| `hooks/` | `guard.mjs` (secrets, git history, frozen paths, a dirty tree, an open design gate in `DECISIONS.md` or `docs/DECISIONS.md` and the removal of its line, the loop branch: a push (`git send-pack` too), merge or pull on it or naming it; on it (a rebase or bisect of it stopped at a detached HEAD counts), a command that leaves it or moves another branch onto its work (a checkout or switch, a worktree add, a rebase that checks out a branch that is not a loop branch, a bisect that can check out a commit, a fetch into a local branch, a branch rename, copy or forced move, a ref written by hand); from any branch, a branch move, ref write or fetch that writes or names a loop branch; a story-ledger edit on it; `hooks/lib/guard-loop-rules.mjs` lists the git commands rule 11 reads, and any other git command that moves HEAD or a branch is a residual; and, when the brain turns them on, scheduling and content rules; its shell rules read the folder that a `cd`, `pushd` or `Set-Location` earlier in the command moves to; it also advises on a source write with no manifest and on a write that grows a file past one Read), `fence.mjs` (a deletion it can see, and an Edit or a Write that removes or weakens an assertion in a measuring file), `agent.mjs` (subagent brief contract, model routing, spawn cap), `route.mjs` (the law for the task, per prompt, from the index, plus the groups every session gets, and the installed skills that the prompt's words match), `subagent.mjs` (the session's law into every subagent, and the clauses that a named role answers for), `entry.mjs` (the personal layer on session start, and a state card built from the documents when the session starts in a game repository, or, with the brain's `stateCard.anyRepoWithHandoff` on, in any repository under the root that holds a hand-off), `ask.mjs` (one question per call, each option's description long enough to carry a reason, no "either is fine", the recommended option first; an allowed question marks the session as asked, for the Stop card's interview line), `stop.mjs` (a turn that changed source ends with its card, asked once: documents touched, a Change Log line when `DECISIONS.md` changed with no new row, an interview line for a repository created this turn when no question was asked this session, the verify gate's command and output, the Change Request question, the cross-check, the Definition of Done; its first line names the clauses of the lines on the card, GATE-06 on every card and GATE-01 only with the interview line; what changed is read from git in each repository under the root that a tool call this turn pointed at, so a file a script wrote there counts, and the limits are at the top of `hooks/lib/turn-changes.mjs`; a file in a `docs/` folder inside the repository is a document unless its extension is a source extension; a count that may be short says so) |
-| `tools/doctor/` | checks claims, surveys repos, smokes the hooks; three bands, three exit codes |
-| `tools/law/` | the generator |
-| `tools/vcs/` | `law-claim.mjs`, a git commit check: a law file in a commit needs a claim or a written reason (install: `tools/MANUAL.md`) |
-| `tools/tests/` | `run.mjs`, the hook cases on real hooks and real commits: `guard-cases.json` and the case files it imports by domain (`cases-law-claim`, `cases-state-card`, `cases-stop-git`, `cases-own`, `cases-size`, `cases-loops`, `cases-bypass`, `cases-gate`, `cases-truth`, `cases-grades`, `cases-wording`); `adopt-selftest.mjs`, adopt and remove on throwaway folders; run with node. The Doctor self-test is `tools/doctor/selftest.mjs` |
-| `commands/` | `adopt`, `remove`, and four small working commands |
-| `agents/reviewer.md` | the Reviewer, registered as `design-first:reviewer`: read-only, three verdicts (PASS, FAIL, BLOCKED), evidence or no pass |
-| `templates/` | the files `adopt` writes into your root and your brain |
-| `docs/` | the public page, generated by `docs/build.mjs` from this repo's own files (the method list above and the `LOOPS.md` overview among them) and four recorded runs; a hand edit of `docs/index.html` turns the kit Doctor RED |
-
-Your own layer, called the brain, lives outside this repo: who you are, how you want to be spoken
-to, your prohibitions, your claims, your lessons. `adopt` writes it from an interview. Nothing
-about the author ships here.
-
-## Install
-
-```
-claude plugin marketplace add Jordan-Doerksen/design-first
-claude plugin install design-first@design-first
-/design-first:adopt
-```
-
-`adopt` asks seven questions, one at a time (the seventh only when root is a git work tree), then
-a script writes the files and runs the Doctor.
-The result is exit 0 with any survey findings printed. `/design-first:remove` reverses exactly
-what `adopt` wrote and leaves anything you changed.
+The generator refuses to build `LAW.md` when a graded clause names a mechanism that is not in
+this tree. The counts are the Summary table at the foot of `LAW.md`.
 
 ## Limits, stated up front
 
-- Node.js 18 or newer and git on PATH, on Windows, macOS or Linux. Each hook is one `node` process
-  with no packages to install; nothing in the kit needs PowerShell.
 - One adopter per user profile: one pointer, at `~/.claude/design-first.json`.
-- The guard inspects tool calls. It does not see nested shells (`cmd /c`, `pwsh -c`, `bash -c`),
-  `xargs`, command substitution, git aliases, or scripts the agent writes. The rules that guard a
-  file (a `.env`, source behind an open design gate, the story ledger) read Edit, Write and
-  NotebookEdit calls only, so a plain shell write of that file is not inspected. These cases are in
-  the self-test, asserted as not denied, so the gap is written down.
-- The Doctor's repo survey is informational by default. Set `surveyStrict` in your brain config to
-  make its `fail` findings fail the run. So the survey clauses print HONOUR in the kit; with
-  `surveyStrict` on, re-grade VCS-01, VCS-02 and VCS-22 to GATE in your `law.overlay.json`.
-- The Stop card blocks the first stop of a turn that changed source, once, and then lets the turn
-  end. It grades no answer, so the clauses it carries print ADVISE (a hook that asks once), not
-  HOOK. It runs when the main session stops: the
-  kit registers no SubagentStop hook (`hooks/hooks.json`), so a subagent's own stop gets no card,
-  and its changes count on the card of the session turn in which it ran, when its calls pointed at
-  that repository.
+- The guard inspects tool calls. It does not see nested shells, `xargs`, command substitution,
+  git aliases or scripts the agent writes; the self-test asserts these gaps.
+- The Doctor's repo survey is informational unless `surveyStrict` is on in your brain config.
+- The Stop card asks once per turn that changed source and grades no answer.
 - The kit never writes your user-level `settings.json`. When it wants a line there, it prints it.
 
 ## Run the checks

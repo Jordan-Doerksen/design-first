@@ -1,4 +1,4 @@
-// guard.mjs - design-first PreToolUse guard (Edit | Write | NotebookEdit | Bash | PowerShell).
+// guard.mjs - refuses the call that would stage a secret, rewrite git history, touch a frozen path, write source behind an open design gate, or leave or push the loop branch; advises on a write with no manifest or past one Read.
 //
 // This one refuses. The deny rules, in this order, every one of them a cost already paid somewhere:
 //   1. stage-secret  - git add / git commit -a of a file that looks like a credential.
