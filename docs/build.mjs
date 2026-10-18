@@ -4,12 +4,16 @@
 // and its steps, the adopt questions, and the recorded transcripts all come from the files named
 // below. Deterministic: same inputs, same bytes (LF).
 //
-//   node docs/build.mjs          # writes docs/index.html
-//   node docs/build.mjs -Check   # exit 1 if docs/index.html differs from a fresh render
+//   node docs/build.mjs          # writes docs/index.html and the README's inventory block
+//   node docs/build.mjs -Check   # exit 1 if either differs from a fresh render
 //
-// The Doctor's generated_matches claim (KIT-DOCS-01) runs it as
-//   build.mjs -Source <template> -Out <temp file> [-BrainRoot <ignored>]
-// and compares the temp file with docs/index.html byte for byte after CRLF->LF.
+// The Doctor's generated_matches claims run it as
+//   build.mjs -Source <template> -Out <temp file> [-BrainRoot <ignored>]     (KIT-DOCS-01, the page)
+//   build.mjs -Source README.md -Out <temp file>                            (KIT-README-01, the README)
+// and compare the temp file with the file in the tree byte for byte after CRLF->LF. A source named
+// README.md selects README mode (CR-2026-10-18-READ): the README is emitted with the block between
+// its inventory markers rendered from ARCHITECTURE.md's Domains table and hooks/hooks.json, and
+// everything outside the markers copied as written.
 //
 // Not a hook, not a timer. Run it after a change to any input, then commit the output.
 
@@ -67,7 +71,9 @@ const arch = readText(path.join(KIT, 'ARCHITECTURE.md'));
 const loops = readText(path.join(KIT, 'LOOPS.md'));
 const adoptMd = readText(path.join(KIT, 'commands', 'adopt.md'));
 const license = readText(path.join(KIT, 'LICENSE')).split('\n')[0];
-const template = readText(opts.Source ? path.resolve(opts.Source) : path.join(SRC, 'template.html'));
+// README mode: the source is the README itself; the page template is not an input.
+const readmeMode = !!(opts.Source && /readme\.md$/i.test(opts.Source));
+const template = readText(opts.Source && !readmeMode ? path.resolve(opts.Source) : path.join(SRC, 'template.html'));
 
 const version = String(plugin.version);
 const repoUrl = 'https://github.com/Jordan-Doerksen/design-first';
@@ -97,21 +103,68 @@ const clauseJson = JSON.stringify(clauses.map((c) => ({ id: c.id, group: c.group
 const clauseOptions = clauses.map((c) => `<option value="${attr(c.id)}">${esc(c.id)} - ${esc(c.grade)}</option>`);
 
 // ------------------------------------------------------------------ hooks
-const hookRows = [];
+// One record per registered hook, read from hooks.json and each script's first comment line (less
+// its own file name): what the hook is for. The page and the README inventory both render these.
+const hookList = [];
 for (const [event, entries] of Object.entries(hooks.hooks)) {
     for (const entry of entries) {
         for (const h of entry.hooks) {
             const m = /hooks\/([a-z-]+\.mjs)/i.exec(String(h.command ?? ''));
             if (!m) continue;
             const script = m[1];
-            // The script's first comment line, less its own file name: what the hook is for.
             const first = (readText(path.join(KIT, 'hooks', script)).split('\n').find((l) => /^\/\//.test(l)) || '')
                 .replace(/^\/\/\s*[a-z-]+\.mjs\s*-\s*/i, '').replace(/^\/\/\s*/, '');
             const matcher = entry.matcher ? String(entry.matcher) : 'every';
-            hookRows.push(`<li><span class="ix-id">${esc(event)}</span><span class="ix-name"><code>${esc(script)}</code></span><span class="ix-n">${esc(matcher)}</span><span class="ix-grades">${esc(first)}</span></li>`);
+            hookList.push({ event, script, matcher, first });
         }
     }
 }
+const hookRows = hookList.map((h) => `<li><span class="ix-id">${esc(h.event)}</span><span class="ix-name"><code>${esc(h.script)}</code></span><span class="ix-n">${esc(h.matcher)}</span><span class="ix-grades">${esc(h.first)}</span></li>`);
+
+// ------------------------------------------------------------------ the README inventory (CR-2026-10-18-READ)
+// ARCHITECTURE.md's Domains table owns every folder's purpose (PRIN-05); the README renders its
+// first two columns, then the hooks above. The block sits between two markers in README.md and
+// nothing in it is typed.
+const INV_START = '<!-- inventory:start -->';
+const INV_END = '<!-- inventory:end -->';
+function domainsTable(md) {
+    const rows = [];
+    let inside = false; let seenHeader = false;
+    for (const l of md.split('\n')) {
+        if (/^## /.test(l)) { if (inside) break; inside = /^## Domains\s*$/i.test(l); continue; }
+        if (!inside || !/^\|/.test(l)) continue;
+        if (!seenHeader) { seenHeader = true; continue; }       // the header row
+        if (/^\|\s*-+/.test(l)) continue;                        // the rule row
+        const cells = l.split('|').slice(1, -1).map((c) => c.trim());
+        if (cells.length >= 2) rows.push({ domain: cells[0], purpose: cells[1] });
+    }
+    if (rows.length === 0) fail('ARCHITECTURE.md: Domains table not found');
+    return rows;
+}
+const mdCell = (s) => String(s).replace(/\|/g, '\\|');
+function inventoryBlock() {
+    const lines = [INV_START, '<!-- rendered by docs/build.mjs from ARCHITECTURE.md (Domains) and hooks/hooks.json; do not edit by hand -->', '', '| path | holds |', '|---|---|'];
+    for (const d of domainsTable(arch)) lines.push(`| ${mdCell(d.domain)} | ${mdCell(d.purpose)} |`);
+    lines.push('', 'The hooks, as `hooks/hooks.json` registers them:', '', '| hook | event | on | what it does |', '|---|---|---|---|');
+    // One row per script and event; a script registered under several matchers lists them together.
+    const merged = [];
+    for (const h of hookList) {
+        const row = merged.find((m) => m.script === h.script && m.event === h.event);
+        if (row) row.matchers.push(h.matcher); else merged.push({ script: h.script, event: h.event, matchers: [h.matcher], first: h.first });
+    }
+    for (const h of merged) lines.push(`| \`${h.script}\` | ${h.event} | ${mdCell(h.matchers.map((m) => m.split('|').join(', ')).join(', '))} | ${mdCell(h.first)} |`);
+    lines.push('', INV_END);
+    return lines.join('\n');
+}
+function renderReadme(md) {
+    const a = md.indexOf(INV_START); const b = md.indexOf(INV_END);
+    if (a < 0 || b < 0 || b < a) fail(`README.md: inventory markers not found (${INV_START} ... ${INV_END})`);
+    let out = md.slice(0, a) + inventoryBlock() + md.slice(b + INV_END.length);
+    out = out.replace(/\r\n/g, '\n');
+    if (!out.endsWith('\n')) out += '\n';
+    return out;
+}
+const readmeOut = renderReadme(readme);
 
 // ------------------------------------------------------------------ Doctor claim types
 const typeCount = new Map();
@@ -243,12 +296,29 @@ if (left) fail(`unfilled placeholder: ${left[0]}`);
 html = html.replace(/\r\n/g, '\n');
 if (!html.endsWith('\n')) html += '\n';
 
+const readmePath = path.join(KIT, 'README.md');
+if (readmeMode) {
+    // The Doctor's README claim: render to -Out, nothing else is written.
+    const outPath = opts.Out ? path.resolve(opts.Out) : readmePath;
+    fs.writeFileSync(outPath, readmeOut, 'utf8');
+    process.stdout.write(`wrote ${outPath}  (README inventory: ${domainsTable(arch).length} domains, ${hookList.length} hooks)\n`);
+    process.exit(0);
+}
 const outPath = opts.Out ? path.resolve(opts.Out) : path.join(DOCS, 'index.html');
 if (opts.Check) {
     const cur = fs.existsSync(outPath) ? readText(outPath) : '';
-    if (cur !== html) { process.stdout.write('docs/index.html is stale: run node docs/build.mjs\n'); process.exit(1); }
-    process.stdout.write('docs/index.html matches a fresh render\n');
-    process.exit(0);
+    let stale = false;
+    if (cur !== html) { process.stdout.write('docs/index.html is stale: run node docs/build.mjs\n'); stale = true; }
+    else process.stdout.write('docs/index.html matches a fresh render\n');
+    if (readme !== readmeOut) { process.stdout.write('README.md inventory is stale: run node docs/build.mjs\n'); stale = true; }
+    else process.stdout.write('README.md inventory matches a fresh render\n');
+    process.exit(stale ? 1 : 0);
 }
 fs.writeFileSync(outPath, html, 'utf8');
 process.stdout.write(`wrote ${outPath}  (${total} clauses, ${stopped} stopped by a machine, ${honour} on honour; transcripts recorded ${recorded})\n`);
+// With no -Out the README's inventory block is refreshed in place (a -Out run is a render of the
+// page alone, as the Doctor's page claim calls it).
+if (!opts.Out && readme !== readmeOut) {
+    fs.writeFileSync(readmePath, readmeOut, 'utf8');
+    process.stdout.write(`wrote ${readmePath}  (inventory block: ${domainsTable(arch).length} domains, ${hookList.length} hooks)\n`);
+}

@@ -1,5 +1,6 @@
-// subagent.mjs - design-first SubagentStart hook: a subagent inherits the session's law (DES-13),
-// and the clauses only a model can judge arrive with the role that judges them (advise-by-role).
+// subagent.mjs - gives a subagent the session's law groups and the ADVISE clauses its role answers for, the ADVISE block reserved first (DES-13).
+// A subagent inherits the session's law, and the clauses only a model can judge arrive with the
+// role that judges them (advise-by-role).
 //
 // A subagent gets its brief and nothing else: no root CLAUDE.md, no entry path, no routed law.
 // This hook reads the session's route file (written by route.mjs) and injects, before the

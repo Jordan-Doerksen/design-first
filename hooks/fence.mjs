@@ -1,4 +1,4 @@
-// fence.mjs - design-first PreToolUse fence (Edit | Write | Bash | PowerShell).
+// fence.mjs - stops a deletion it can see, and an edit that removes or weakens an assertion in a measuring file, with the fence question to answer first.
 //
 // Chesterton's Fence + Goodhart gate. FENCE trips on a deletion it can see (an Edit that empties a
 // block or removes three or more lines, a Write that keeps under three quarters of the bytes, a

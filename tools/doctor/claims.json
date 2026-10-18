@@ -19,6 +19,14 @@
       "why": "DECISIONS 3.3: nothing on the public page is typed. docs/index.html is rendered from the template and the kit's own files (law.json, hooks.json, this file, the commands, the README sections, four recorded runs). A hand edit of index.html is a count or a sentence nobody generated; this claim makes it a RED run. Compared as bytes after CRLF->LF only."
     },
     {
+      "id": "KIT-README-01",
+      "type": "generated_matches",
+      "generator": "docs/build.mjs",
+      "source": "README.md",
+      "output": "README.md",
+      "why": "CR-2026-10-18-READ: the README's inventory (what is in the box, the hooks) is rendered by docs/build.mjs from ARCHITECTURE.md's Domains table and hooks/hooks.json, between the inventory markers; the rest of the file is copied as written. A hand edit inside the block, or a change to the tree with no rebuild, is RED here. Before this claim a port that forgot the README passed every check (DES-07 is ADVISE and grades nothing)."
+    },
+    {
       "id": "KIT-RESTORE-01",
       "type": "file_fresh",
       "path": "${KIT}/records/restore-drill.log",

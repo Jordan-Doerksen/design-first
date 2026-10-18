@@ -119,4 +119,29 @@ export function lawRuns(t) {
     const dBare = dChips.filter((cl) => !new RegExp('\\.' + cl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\{[^}]*background', 'i').test(dCss));
     if (dChips.includes('g-deny') && dBare.length === 0) ok(`M: every grade chip on the page has a background in page.css (${dChips.join(', ')})`);
     else bad('M: every grade chip on the page has a background in page.css', `no background rule for: ${dBare.join(', ')} (chips: ${dChips.join(', ')})`);
+
+    // ================================================================ run N: the README inventory (CR-2026-10-18-READ)
+    // README mode renders the block between the markers from the Domains table and hooks.json and
+    // copies the rest as written; a README with no markers fails the build; a stale block fails -Check.
+    say('  Run N: the README inventory block', 36);
+    const nOut = path.join(T, 'readme-render.md');
+    r = node(jp(dk, 'docs', 'build.mjs'), ['-Source', jp(dk, 'README.md'), '-Out', nOut]);
+    exitIs('N: README mode renders (exit 0)', r.code, 0);
+    const nMd = fs.existsSync(nOut) ? fs.readFileSync(nOut, 'utf8') : '';
+    has('N: the block carries the markers', nMd, '<!-- inventory:start -->');
+    has('N: a registered hook is listed from hooks.json with its event', nMd, '| `guard.mjs` | PreToolUse |');
+    has('N: a domain is listed from the ARCHITECTURE Domains table', nMd, '| `tools/doctor/` |');
+    const nTitle = fs.readFileSync(jp(dk, 'README.md'), 'utf8').split('\n')[0];
+    has('N: the text outside the markers is copied as written', nMd, nTitle);
+    const dReadme = fs.readFileSync(jp(dk, 'README.md'), 'utf8');
+    fs.writeFileSync(jp(dk, 'README.md'), dReadme.replace('<!-- inventory:start -->', '<!-- no markers -->'));
+    r = node(jp(dk, 'docs', 'build.mjs'), ['-Source', jp(dk, 'README.md'), '-Out', nOut]);
+    exitIs('N: a README with no inventory markers fails the build (exit 1)', r.code, 1);
+    has('N: the failure names the markers', r.out, 'inventory markers not found');
+    fs.writeFileSync(jp(dk, 'README.md'), dReadme.replace(/\| `guard\.mjs` \| PreToolUse \|[^\n]*\n/, ''));
+    fs.writeFileSync(jp(dk, 'docs', 'index.html'), dHtml);
+    r = node(jp(dk, 'docs', 'build.mjs'), ['-Check']);
+    exitIs('N: a stale inventory block fails -Check (exit 1)', r.code, 1);
+    has('N: -Check names the README', r.out, 'README.md inventory is stale');
+    fs.writeFileSync(jp(dk, 'README.md'), dReadme);
 }

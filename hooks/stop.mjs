@@ -1,4 +1,4 @@
-// stop.mjs - design-first Stop hook: a code turn does not end without its card (DES-07, GATE-01, GATE-05/06/07, GAME-12).
+// stop.mjs - ends a turn that changed source with its card, asked once: documents, the verify gate, the Change Request, the cross-check, the Definition of Done (DES-07, GATE-01, GATE-05/06/07, GAME-12).
 //
 // When the turn changed source and the model tries to stop, this hook refuses ONCE and hands back
 // the card: the documents touched or not (DES-07), the Change Log row when DECISIONS.md changed
