@@ -93,8 +93,9 @@ export function lawRuns(t) {
     // no machine stops (not DENY, HOOK or GATE) re-graded DENY, so a DENY that is not counted as stopped
     // shows as a count one short.
     const dk = newDir(path.join(T, 'docskit'));
-    for (const rel of ['.claude-plugin/plugin.json', 'hooks/hooks.json', 'tools/doctor/claims.json', 'README.md', 'ARCHITECTURE.md', 'LOOPS.md', 'agents/reviewer.md', 'LICENSE', 'docs/build.mjs', 'tools/lib/args.mjs', 'hooks/lib/json.mjs']) copy(kitRoot, rel, dk);
-    for (const [dir, rx] of [['hooks', /\.mjs$/], ['commands', /\.md$/], ['docs/src', /./]]) {
+    // The adopt plan (the README's adopt block) brings its own imports and the templates it fills.
+    for (const rel of ['.claude-plugin/plugin.json', '.claude-plugin/marketplace.json', 'hooks/hooks.json', 'tools/doctor/claims.json', 'README.md', 'ARCHITECTURE.md', 'LOOPS.md', 'agents/reviewer.md', 'LICENSE', 'docs/build.mjs', 'tools/lib/args.mjs', 'tools/lib/adopt-plan.mjs', 'tools/lib/df-files.mjs', 'hooks/lib/json.mjs', 'hooks/lib/common.mjs', 'hooks/lib/stdin.mjs']) copy(kitRoot, rel, dk);
+    for (const [dir, rx] of [['hooks', /\.mjs$/], ['commands', /\.md$/], ['docs/src', /./], ['templates', /./]]) {
         const from = jp(kitRoot, dir); const to = newDir(jp(dk, dir));
         for (const f of fs.readdirSync(from, { withFileTypes: true })) if (f.isFile() && rx.test(f.name)) fs.copyFileSync(path.join(from, f.name), path.join(to, f.name));
     }
@@ -120,10 +121,11 @@ export function lawRuns(t) {
     if (dChips.includes('g-deny') && dBare.length === 0) ok(`M: every grade chip on the page has a background in page.css (${dChips.join(', ')})`);
     else bad('M: every grade chip on the page has a background in page.css', `no background rule for: ${dBare.join(', ')} (chips: ${dChips.join(', ')})`);
 
-    // ================================================================ run N: the README inventory (CR-2026-10-18-READ)
-    // README mode renders the block between the markers from the Domains table and hooks.json and
-    // copies the rest as written; a README with no markers fails the build; a stale block fails -Check.
-    say('  Run N: the README inventory block', 36);
+    // ================================================================ run N: the README's generated blocks (CR-2026-10-18-READ, CR-2026-10-19-START)
+    // README mode renders the inventory from the Domains table and hooks.json, the adopt questions and
+    // files from commands/adopt.md and the adopt plan, and the commands from commands/*.md, and copies
+    // the rest as written; a README missing a block's markers fails the build; a stale block fails -Check.
+    say('  Run N: the README generated blocks', 36);
     const nOut = path.join(T, 'readme-render.md');
     r = node(jp(dk, 'docs', 'build.mjs'), ['-Source', jp(dk, 'README.md'), '-Out', nOut]);
     exitIs('N: README mode renders (exit 0)', r.code, 0);
@@ -133,7 +135,26 @@ export function lawRuns(t) {
     has('N: a domain is listed from the ARCHITECTURE Domains table', nMd, '| `tools/doctor/` |');
     const nTitle = fs.readFileSync(jp(dk, 'README.md'), 'utf8').split('\n')[0];
     has('N: the text outside the markers is copied as written', nMd, nTitle);
+    has('N: the adopt block carries its markers', nMd, '<!-- adopt:start -->');
+    // Question 7 quotes "<root>" before its text; the page once listed that quote as the question.
+    has('N: question 7 is listed by its text and its condition', nMd, "**Settings scope** (asked only if root is a git work tree): The kit's deny/ask");
+    has('N: a question carries its recommended answer from adopt.md', nMd, '| 5 | **Brain as a git repo**: Should the brain be a git repository? | Yes |');
+    has('N: a file adopt writes is listed from the plan', nMd, '| `<brain>/me.md` |');
+    has('N: a file only a repo brain gets is marked', nMd, '| `<brain>/.gitignore` | state/ is generated');
+    has('N: every command is listed from commands/*.md', nMd, '| `/design-first:council` |');
+    has('N: the page lists question 7 by its text', dHtml, '<b>Settings scope</b> The kit&#39;s deny/ask');
     const dReadme = fs.readFileSync(jp(dk, 'README.md'), 'utf8');
+    fs.writeFileSync(jp(dk, 'README.md'), dReadme.replace('<!-- adopt:start -->', '<!-- no markers -->'));
+    r = node(jp(dk, 'docs', 'build.mjs'), ['-Source', jp(dk, 'README.md'), '-Out', nOut]);
+    exitIs('N: a README with no adopt markers fails the build (exit 1)', r.code, 1);
+    has('N: the failure names the adopt markers', r.out, 'adopt markers not found');
+    fs.writeFileSync(jp(dk, 'README.md'), dReadme);
+    const dAdopt = fs.readFileSync(jp(dk, 'commands', 'adopt.md'), 'utf8');
+    fs.writeFileSync(jp(dk, 'commands', 'adopt.md'), dAdopt.replace('the current working directory (Recommended)', 'the current working directory'));
+    r = node(jp(dk, 'docs', 'build.mjs'), ['-Source', jp(dk, 'README.md'), '-Out', nOut]);
+    exitIs('N: a question with no recommended option fails the build (exit 1)', r.code, 1);
+    has('N: the failure names the question', r.out, 'question 1 (Root) has no Options line');
+    fs.writeFileSync(jp(dk, 'commands', 'adopt.md'), dAdopt);
     fs.writeFileSync(jp(dk, 'README.md'), dReadme.replace('<!-- inventory:start -->', '<!-- no markers -->'));
     r = node(jp(dk, 'docs', 'build.mjs'), ['-Source', jp(dk, 'README.md'), '-Out', nOut]);
     exitIs('N: a README with no inventory markers fails the build (exit 1)', r.code, 1);
@@ -142,6 +163,6 @@ export function lawRuns(t) {
     fs.writeFileSync(jp(dk, 'docs', 'index.html'), dHtml);
     r = node(jp(dk, 'docs', 'build.mjs'), ['-Check']);
     exitIs('N: a stale inventory block fails -Check (exit 1)', r.code, 1);
-    has('N: -Check names the README', r.out, 'README.md inventory is stale');
+    has('N: -Check names the README', r.out, 'README.md generated blocks are stale');
     fs.writeFileSync(jp(dk, 'README.md'), dReadme);
 }

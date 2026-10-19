@@ -21,8 +21,9 @@
   --serif: Georgia, "Times New Roman", serif;
   --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: Consolas, "Cascadia Mono", "SFMono-Regular", Menlo, monospace;
-  --gutter: clamp(16px, 3vw, 40px);
+  --gutter: clamp(20px, 5vw, 56px);
   --measure: 62ch;
+  --page-max: 72rem;        /* the page is capped and centred: margins on a wide screen (CR-2026-10-19-START) */
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -43,6 +44,8 @@ body {
   font: 17px/1.55 var(--serif);
   padding: 0 var(--gutter) var(--gutter);
 }
+/* one column of content, centred; the header, rail, chapters and footer share its edges */
+.top, .rail, main, .foot { max-width: var(--page-max); margin-inline: auto; }
 a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 3px; }
 a:focus-visible, button:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 code, pre { font-family: var(--mono); font-size: 0.86em; }
@@ -61,7 +64,7 @@ p { margin: 0 0 1em; max-width: var(--measure); }
 .top .ver { color: var(--ink-2); margin-left: 6px; }
 
 /* orientation_progress: a strip on small screens, a fixed rail on wide ones */
-.rail { font-family: var(--sans); font-size: 13px; margin: 12px 0 0; }
+.rail { font-family: var(--sans); font-size: 13px; margin-top: 12px; }
 .rail ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; }
 .rail a { text-decoration: none; color: var(--ink-2); border-bottom: 2px solid transparent; padding-bottom: 2px; }
 .rail li[aria-current="true"] a { color: var(--ink); border-bottom-color: var(--accent); }
@@ -80,7 +83,7 @@ main { display: block; }
 .figs { font-family: var(--sans); font-size: 15px; color: var(--ink-2); max-width: 60ch; }
 .figs b { color: var(--ink); font-size: 1.15em; }
 @media (min-width: 960px) {
-  /* the opening uses the whole width (WEB-14): the claim on the left, the measured count on the right */
+  /* the opening: the claim on the left, the measured count on the right, inside the page cap */
   .promise { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); column-gap: clamp(32px, 6vw, 120px); align-items: end; }
   .promise .kicker, .promise h1 { grid-column: 1; }
   .promise .lede { grid-column: 1; margin-bottom: 0; }
