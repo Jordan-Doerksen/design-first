@@ -4,8 +4,8 @@
 // uncommitted work, their machine's start-up, and the content bans their brain configures.
 // Each rule returns null (no opinion) or a deny object from newDeny.
 
-import { newDeny, toFullPath, isUnder, getLeaf, getExt, git, exists, isFile, iin, countMatches, ieq } from './common.mjs';
-import { readFileText } from './guard-rules.mjs';
+import { newDeny, toFullPath, isUnder, getLeaf, getExt, git, gitFirst, exists, isFile, iin, countMatches, ieq } from './common.mjs';
+import { readFileText, callPin, callConfig } from './guard-rules.mjs';
 
 // ============================================================================ (7) dirty tree
 // anchor: dirty-tree  mode: deny  verbs: tidy
@@ -71,12 +71,32 @@ export function dirtyTreeRule(call, owner) {
     let state;
     if (always) state = 'stashed work is in no commit';
     else {
-        const st = git(call.cwd, ['status', '--porcelain']);
+        // The status git reports for the call itself: a call that names its git dir or its work tree
+        // (--git-dir, --work-tree, GIT_DIR=, GIT_WORK_TREE=) is read in the folder it starts in with
+        // the same options and its core.excludesFile (callPin and callConfig in guard-rules.mjs), so
+        // git reads the work tree it would change. Workaround (CR-2026-10-16-ONEWRITER chunk 0
+        // review, round 2): the status was read in the folder above the git dir, so 'GIT_DIR=<clean
+        // repo>/.git git clean -fdx' run from a folder holding files read a clean tree and was
+        // allowed, and git would delete those files.
+        const pin = callPin(call);
+        const cfgArgs = callConfig(call);
+        let where = call.cwd;
+        let st;
+        if (pin.length > 0) {
+            st = git(call.runDir, [...cfgArgs, ...pin, 'status', '--porcelain']);
+            const tl = git(call.runDir, [...pin, 'rev-parse', '--show-toplevel']);
+            if (tl.code === 0 && gitFirst(tl)) {
+                const top = toFullPath(gitFirst(tl));
+                if (top) where = top;
+            }
+        } else {
+            st = git(call.cwd, [...cfgArgs, 'status', '--porcelain']);
+        }
         // Not a repository, or git failed: git itself refuses or reports it. No opinion here.
         if (st.code !== 0) return null;
         const n = st.out.filter((l) => l).length;
         if (n === 0) return null;
-        state = `the work tree at ${call.cwd} has ${n} uncommitted or untracked change(s)`;
+        state = `the work tree at ${where} has ${n} uncommitted or untracked change(s)`;
     }
     const reason = `BLOCKED - ${what}, and ${state}.\n\n` +
         'SAFE-06: never tidy, reset or consolidate a dirty tree on your own initiative; some trees are ' +

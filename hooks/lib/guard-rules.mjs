@@ -65,6 +65,24 @@ function readShortGroup(tok, valueLetters) {
     return r;
 }
 
+// The global options a probe repeats from the call (lib/tokenise.mjs, getGitCall). Rules 1 and 7
+// use them, so git reads the repository, the work tree and the ignore list as it does for the call.
+// callPin: --git-dir and --work-tree, as the call names them (or GIT_DIR=, GIT_WORK_TREE=).
+export function callPin(call) {
+    const pin = [];
+    if (call.gitDir) pin.push('--git-dir=' + call.gitDir);
+    if (call.workTree) pin.push('--work-tree=' + call.workTree);
+    return pin;
+}
+// callConfig: -c core.excludesFile=<value> when the call sets it, else nothing. Only this one
+// value: git reads it as the path of a file to read, and reading a file runs nothing. A value such
+// as core.fsmonitor or core.sshCommand names a command, and a probe that repeated it would run that
+// command inside the hook, before any refusal.
+export function callConfig(call) {
+    if (call.excludesFile == null) return [];
+    return ['-c', 'core.excludesFile=' + call.excludesFile];
+}
+
 // ============================================================================ (1) staging
 // anchor: stage-secret  mode: deny  verbs: stage,track
 const LONG_VALUED = ['--message', '--file', '--reuse-message', '--reedit-message', '--author', '--date',
@@ -73,7 +91,29 @@ const LONG_VALUED = ['--message', '--file', '--reuse-message', '--reedit-message
 export function stagingRule(call, exceptions, owner) {
     if (call.sub !== 'add' && call.sub !== 'commit') return null;
     const a = call.args;
-    const cwd = call.cwd;
+    let cwd = call.cwd;
+
+    // A call that names its git dir or its work tree (--git-dir, --work-tree, GIT_DIR=, GIT_WORK_TREE=;
+    // lib/tokenise.mjs) is probed in the folder it starts in, with the same two options, so git picks
+    // the work tree as it does for the call: the one named, or with --git-dir alone the call's folder
+    // or core.worktree. Workaround (CR-2026-10-16-ONEWRITER chunk 0 review): the probe let git find
+    // the repository from a folder, so 'git --git-dir=<repo>/.git add -A' run from a folder holding
+    // an untracked .env, and 'git --work-tree=<folder> add -A', staged that .env with no refusal.
+    // Every ls-files probe also carries the call's core.excludesFile, if it sets one. Workaround
+    // (round 2): the probes read the repository's own config, so 'git -c core.excludesFile= add -A',
+    // which un-ignores a .env that only the global excludes file ignored, staged it with no refusal.
+    const pin = callPin(call);
+    const cfgArgs = callConfig(call);
+    let top = null;
+    if (pin.length > 0) {
+        const tr = git(call.runDir, [...pin, 'rev-parse', '--show-toplevel']);
+        // No work tree git can use: git refuses the call itself. No opinion here.
+        if (tr.code !== 0 || !gitFirst(tr)) return null;
+        top = toFullPath(gitFirst(tr));
+        if (!top) return null;
+        // A path in the call is read from the call's folder inside the work tree, else from its top.
+        cwd = isUnder(call.runDir, top) ? call.runDir : top;
+    }
 
     // Option-value stripping (finding 75): a message or a file argument is prose, not a pathspec.
     const valueLetters = call.sub === 'commit' ? 'mFCct' : '';
@@ -115,22 +155,33 @@ export function stagingRule(call, exceptions, owner) {
         // so it was never probed, and 'git add :/' staged an untracked .env with no refusal.
         if (p.startsWith(':')) { probes.push(p); continue; }
         const full = toFullPath(p, cwd);
-        if (/[*?[]/.test(p) || (full && isDir(full))) probes.push(p);
+        // With the options pinned every path is probed: git reads it as the call does, from the
+        // call's folder, which the folder test here does not mirror outside the work tree.
+        if (top || /[*?[]/.test(p) || (full && isDir(full))) probes.push(p);
     }
     if (hasAll && call.sub === 'add') probes.push('-A');
 
     // Wildcard probe (finding 71): ask git which untracked, un-ignored files the pathspec covers.
     for (const p of probes) {
-        let runDir = cwd;
-        let spec = ['--', p];
-        if (p.startsWith('-')) {
-            // -A / -u / --all cover the whole work tree, so probe from the top level.
-            const top = git(cwd, ['rev-parse', '--show-toplevel']);
-            if (top.code !== 0) continue;
-            runDir = toFullPath(gitFirst(top));
-            spec = [];
+        let runDir;
+        let ls;
+        if (top) {
+            // Pinned: the call's folder and options; ':/' is the whole work tree; names come from the top.
+            const spec = p.startsWith('-') ? ['--', ':/'] : ['--', p];
+            ls = git(call.runDir, [...cfgArgs, ...pin, 'ls-files', '--others', '--exclude-standard', '-z', '--full-name', ...spec]);
+            runDir = top;
+        } else {
+            runDir = cwd;
+            let spec = ['--', p];
+            if (p.startsWith('-')) {
+                // -A / -u / --all cover the whole work tree, so probe from the top level.
+                const tl = git(cwd, ['rev-parse', '--show-toplevel']);
+                if (tl.code !== 0) continue;
+                runDir = toFullPath(gitFirst(tl));
+                spec = [];
+            }
+            ls = git(runDir, [...cfgArgs, 'ls-files', '--others', '--exclude-standard', '-z', ...spec]);
         }
-        const ls = git(runDir, ['ls-files', '--others', '--exclude-standard', '-z', ...spec]);
         if (ls.code !== 0 || !ls.raw) continue;
         for (const f of ls.raw.split('\0')) {
             if (!f.trim()) continue;

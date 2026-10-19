@@ -47,7 +47,13 @@
 // and then 'git push origin harness/x' or 'git merge harness/x' in a second call passed. The
 // switch part also binds an interactive session that sits on a loop branch: the owner switches off
 // it by hand.
+// The folder the branch is read from is call.cwd (lib/tokenise.mjs): the folder above a --git-dir
+// (or GIT_DIR=) that names <folder>/.git, else the folder the call runs in after env -C and git -C.
+// A --work-tree never moves it: a work tree holds no branch, and on a loop branch 'git
+// --work-tree=<outside> checkout main' moves HEAD in the repository the call's folder is in
+// (CR-2026-10-16-ONEWRITER chunk 0 review, round 1; ported in 0.2.3).
 // Cannot see:
+//  - A --git-dir that does not end in .git: the branch is read from the call's folder.
 //  - Any other git command or form that moves HEAD or a branch, for example on a loop branch git
 //    stash branch <name>, a git clone of this repository at a commit (--revision), git rebase --exec
 //    or an exec line in an interactive rebase (a command string git runs in a shell), and a long

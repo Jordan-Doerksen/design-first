@@ -578,16 +578,18 @@ const ledgerText = (session) => readText(ledger(session));
 // ------------------------------------------------------------------ 6 onwards: cases split by domain (DES-03)
 // 6: the commit-msg check (VCS-23). 7: the state card (GAME-13). 8: the Stop card reading the turn's
 // changes from git. Then OWN, the read check, LOOPS.md, the bypasses, the gate, the truth cases, the
-// grades and the card's wording. Each file uses the fixtures and helpers above.
+// grades, the card's wording, the head of a git call (case 49) and the running kit root (case 50,
+// which moves the pointer and puts it back, so it runs last). Each file uses the fixtures and
+// helpers above.
 const ctx = {
     T, TFWD, TMSYS, kit, hooks, root, brain, IS_WIN, NO_POINTER,
     repoPlain, repoIgnored, repoClean, repoNoManifest, repoGated, repoGatedOk, repoGatedBad, repoGatedOpen, repoLoop, repoTracked,
     record, section, say, like, clike, blank, rxEscape, jp, readText, exists, sleepMs, setOld, toJson,
-    gitTry, runGit, gitOut, put, newRepo, invokeHook, hookJson, parseOut, classify, expand, withoutPointer, writePointer,
+    gitTry, runGit, gitOut, put, newRepo, invokeHook, hookJson, parseOut, classify, expand, withoutPointer, writePointer, fullTextFiles,
     entry, route, sub, stop, ledger, guardEdit, ledgerText,
 };
 for (const f of ['cases-law-claim.mjs', 'cases-state-card.mjs', 'cases-stop-git.mjs', 'cases-own.mjs', 'cases-size.mjs', 'cases-loops.mjs',
-    'cases-bypass.mjs', 'cases-gate.mjs', 'cases-truth.mjs', 'cases-grades.mjs', 'cases-wording.mjs']) {
+    'cases-bypass.mjs', 'cases-gate.mjs', 'cases-truth.mjs', 'cases-grades.mjs', 'cases-wording.mjs', 'cases-gitcall.mjs', 'cases-kitroot.mjs']) {
     const mod = await import(pathToFileURL(path.join(here, f)).href);
     try { await mod.default(ctx); }
     catch (e) { record(`${f}: ran to the end`, 'ran', `threw: ${e && e.message ? e.message : e}`, e && e.stack ? e.stack : ''); }

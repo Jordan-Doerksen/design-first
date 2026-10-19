@@ -33,10 +33,25 @@
 // What this hook cannot see (the written residual, self-tested as NOT denied so nobody believes
 // otherwise): command strings nested in another shell (cmd /c "...", pwsh -c "...", bash -c "..."),
 // xargs, $(...) and backtick substitutions, user git aliases, and scripts the agent writes to disk
-// and then runs. Secret files created by cp or echo > are not seen here either; they are caught at
-// staging by rule 1's wildcard probe. Rules 3, 10 and 12 read file-tool calls only: a plain shell
-// write (a redirect, Set-Content, cp) of a .env, of source behind an open design gate, or of the
-// story ledger is not inspected. Rule 4 compares paths after toFullPath, which resolves the symbolic
+// and then runs. A git call is read after the prefixes env (its options, short groups such as
+// env -iC, long options by any unambiguous prefix such as env --c, and env -C), command, time and
+// NAME=value, with -c told from -C, and after every global option git 2.56 lists, --attr-source
+// among them (lib/tokenise.mjs). --git-dir and --work-tree, and the GIT_DIR= and GIT_WORK_TREE=
+// prefix words: rules 1 and 7 probe in the call's folder with the same options, so they read the
+// work tree git uses (with --git-dir alone, the call's folder); rule 11 reads the folder above a
+// --git-dir that names <folder>/.git, else the call's folder, where git finds the repository. Of the
+// call's config, rules 1 and 7 carry core.excludesFile, from -c and from GIT_CONFIG_COUNT with its
+// GIT_CONFIG_KEY_<n> and GIT_CONFIG_VALUE_<n> words. Not read: any other wrapper before git (exec,
+// nohup, nice, timeout, sudo, stdbuf); env -S; a GIT_ word set by export, $env: or the session
+// environment rather than as a prefix word; a config value given by --config-env or
+// GIT_CONFIG_PARAMETERS, or any -c value but core.excludesFile (rules 1 and 7 probe with the
+// repository's own config plus that one value, so another value that changes what git ignores is
+// not seen); a global option a later git adds; and, for rule 11, a --git-dir that does not end in
+// .git (it reads the call's folder). Rules 4 and 8 read the first word only, so a prefix before rm,
+// Remove-Item or schtasks hides the command from them. Secret files created by cp or echo > are not
+// seen here either; they are caught at staging by rule 1's wildcard probe. Rules 3, 10 and 12 read
+// file-tool calls only: a plain shell write (a redirect, Set-Content, cp) of a .env, of source
+// behind an open design gate, or of the story ledger is not inspected. Rule 4 compares paths after toFullPath, which resolves the symbolic
 // links of the nearest existing folder and, on Windows, maps a \\?\ or \\.\ prefix, \\?\UNC\, this
 // machine's admin share (\\localhost\C$, \\127.0.0.1\C$) and a PowerShell provider path
 // (FileSystem::C:\...) to the drive path. Another spelling of a frozen folder (an 8.3 short name, a
