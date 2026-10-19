@@ -21,10 +21,16 @@ export function lawPath(ptr, kitRoot) {
     return path.join(kitRoot, 'LAW.md');
 }
 
-// The kit of record: the pointer's pluginRoot, else the plugin these hooks run from.
+// The kit root: the copy that is running first, the pointer's pluginRoot only when the running copy
+// has no law.json. This file lives in hooks/lib, so the plugin root is two folders up. Workaround
+// (CR-2026-10-16-ONEWRITER chunk 0, ported in 0.2.3): the pointer came first, so after a plugin
+// update the owning-file paths in the routed law rows could name another version than the hook
+// code until entry.mjs refreshed the pointer (CR-2026-10-19-REVIEW F2).
 export function kitRoot(ptr) {
+    const running = toFullPath(KIT_FROM_HERE);
+    if (running && isFile(path.join(running, 'law.json'))) return running;
     if (ptr.pointer && ptr.pointer.pluginRoot) return toFullPath(String(ptr.pointer.pluginRoot));
-    return toFullPath(KIT_FROM_HERE);
+    return running;
 }
 
 // A key of a parsed JSON object, found without case, as PowerShell's property lookup does.

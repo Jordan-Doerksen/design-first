@@ -10,8 +10,8 @@
 //   3. On a compaction or a clear, delete this session's route file. Delete the marker files of
 //      every other session none of whose files was written for a day; truncate the hooks log to 90 days.
 //   4. cwd under root: print <brain>/entry.json in order, MISSING: for absent files, never skip.
-//      "kit:" entries resolve under pointer.pluginRoot (the kit the brain's LAW.md and Doctor
-//      run from; the running plugin root when the pointer has none), "brain:" under the brain.
+//      "kit:" entries resolve under the running plugin root (the copy whose hooks run; the
+//      pointer's pluginRoot only when that copy has no law.json), "brain:" under the brain.
 //      Outside root: one line. No pointer: the /design-first:adopt line.
 //   5. cwd inside a repository whose top-level folder the route policy maps to a state-card group
 //      (a game repository), or, with stateCard.anyRepoWithHandoff on, inside any repository under
@@ -164,9 +164,13 @@ try {
                 else {
                     const entry = C.readJson(entryFile);
                     const items = entry && Object.prototype.hasOwnProperty.call(entry, 'entries') ? (Array.isArray(entry.entries) ? entry.entries : [entry.entries]) : [entry];
-                    // Kit root for "kit:" entries: the pointer's pluginRoot first (the kit of record), else
-                    // the plugin this hook is running from (hooks/ is one level under the plugin root).
-                    const kit = ptr.pointer.pluginRoot ? C.toFullPath(String(ptr.pointer.pluginRoot)) : C.toFullPath(path.dirname(HERE));
+                    // Kit root for "kit:" entries: the plugin this hook is running from (hooks/ is one
+                    // level under the plugin root), the pointer's pluginRoot only when that copy has no
+                    // law.json. Workaround (CR-2026-10-16-ONEWRITER chunk 0, ported in 0.2.3): the pointer
+                    // came first, so after a plugin update the entry path could name another version than
+                    // the hook code.
+                    let kit = C.toFullPath(path.dirname(HERE));
+                    if (!(kit && C.isFile(path.join(kit, 'law.json'))) && ptr.pointer.pluginRoot) kit = C.toFullPath(String(ptr.pointer.pluginRoot));
                     let n = 0;
                     for (const it of items) {
                         if (it == null) continue;

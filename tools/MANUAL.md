@@ -362,6 +362,22 @@ by `adopt`, which never overwrites a file:
 Rebuild the brain's `LAW.md` afterwards (the command under The CLAIMS band): its header line names
 the generator, now `build-law.mjs`, so `BRAIN-LAW-01` is RED until you do.
 
+## A git call the guard now refuses (SAFE-01, 0.2.3)
+
+Since 0.2.3 the guard reads a git call after the prefixes `env` (its long options by any
+unambiguous prefix too, such as `env --c <dir>`), `command`, `time` and `NAME=value`, and after
+`--attr-source`. It probes a call that names `--git-dir` or `--work-tree` (or the `GIT_DIR=` and
+`GIT_WORK_TREE=` words) with the same options, and a call that sets `core.excludesFile` (by `-c`
+or by `GIT_CONFIG_COUNT` words) with that value. Calls that passed before are now refused when
+they stage a secret, or tidy a dirty work tree. (This is chunk 0 of CR-2026-10-16-ONEWRITER, 0.1.41
+on the PowerShell line, which the Node port did not carry until 0.2.3.)
+
+| You see | Means | Do |
+|---|---|---|
+| `BLOCKED - this command stages a file that looks like a credential: <file> (via '-A')` on a call such as `env git add -A`, `VAR=x git add -A`, `command git add -A`, `git --attr-source=HEAD add -A`, `git --git-dir=<R>/.git --work-tree=<R> add -A` or `git --work-tree=<folder> add -A` | The call stages an untracked secret file in the work tree git uses for it: the folder `--work-tree` names; with `--git-dir` alone, the folder the call runs in (git takes it as the work tree); else the repository the call's folder is in. `<file>` is named from the top of that work tree. Before 0.2.3, a prefix made the call read as not-git, `--attr-source` ended the reading, and `--git-dir` and `--work-tree` were skipped, so these calls staged the file with no refusal. | Do what any staging refusal asks: ignore the file in `.gitignore`, stage by path, or have the owner record a deliberate exception in `secretExceptions`. If `<file>` is in a folder you did not mean, check the folder that `--work-tree`, `--git-dir`, `git -C` or `env -C` names. |
+| The same refusal on `git -c core.excludesFile= add -A`, while `git add -A` alone passes | The call turns off the excludes file that ignores the secret, so git stages it. The guard probes with the call's `core.excludesFile` value. | Drop the `-c core.excludesFile=` override, or ignore the file in the repository's own `.gitignore`. |
+| `BLOCKED - git clean -f deletes untracked files ... and the work tree at <folder> has <n> uncommitted or untracked change(s)` on a call that names `--git-dir`, `--work-tree`, `GIT_DIR=` or `GIT_WORK_TREE=` | Rule 7 (SAFE-06) reads the status of the work tree git would change: the folder `--work-tree` names, or with a git dir alone the folder the call runs in. Before, it read the repository above the git dir, which can be clean while `<folder>` holds files. | Leave `<folder>` as it is. If the call named the wrong folder, check `--work-tree`, `--git-dir` and the folder it runs in. Tidying a dirty tree is the owner's call. |
+
 ## Known gaps, stated honestly
 
 - A repository is listed once per run and the list is reused by every scan claim, and git is
