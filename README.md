@@ -10,6 +10,97 @@ claim against the disk, and a generator that refuses to print a rule whose mecha
 Status: V1, installable. Windows, macOS and Linux, with Node.js 18 or newer and git on PATH.
 The version is in `.claude-plugin/plugin.json`.
 
+## Install and adopt
+
+Installing is one step of two. Nothing is set up until you run `/design-first:adopt`.
+
+```
+claude plugin marketplace add Jordan-Doerksen/design-first
+claude plugin install design-first@design-first
+/design-first:adopt
+```
+
+**Before you adopt**, the hooks already run, on the kit's defaults and with no brain. The
+guard's staging, history and `.env` rules, the fence, the question check, the subagent check
+and the Stop card all work. The frozen and tombstoned path rules do not, and no law is put into
+a session or a subagent, because all of those read the brain. Every session's first turn says
+so: `design-first: no brain is set up on this profile ... Run /design-first:adopt to create one.`
+
+**When you adopt**, the command checks for Node.js 18, then asks seven questions, one at a time,
+the recommended answer first. The last is asked only when root is a git repo. The command only
+asks; a script does every write.
+
+<!-- adopt:start -->
+<!-- rendered by docs/build.mjs from commands/adopt.md and tools/lib/adopt-plan.mjs; do not edit by hand -->
+
+| # | it asks | recommended answer |
+|---|---|---|
+| 1 | **Root**: Which folder do your sessions start under? Root holds the entry `CLAUDE.md` and `.claude/settings.json`. | the current working directory |
+| 2 | **Brain**: Where should your brain live? It is your private folder for personal law, claims and state. | `<root>/brain` |
+| 3 | **Owner name**: What name should the guard use for you in its messages, and the brain's `me.md` carry as `owner.name`? | the git `user.name` if one is set |
+| 4 | **GitHub owner(s)**: Which GitHub owner(s) do your repositories push to? A remote that matches none of them is reported as FOREIGN by the Doctor. | a name you can see in the root's remotes, if any |
+| 5 | **Brain as a git repo**: Should the brain be a git repository? | Yes |
+| 6 | **Frozen paths**: Any frozen paths: folders the guard must refuse to edit or delete, such as a reference copy you keep on purpose? | None |
+| 7 | **Settings scope** (asked only if root is a git work tree): The kit's deny/ask permission rules go in a settings file under root. Commit them or keep them personal? | Commit them in `.claude/settings.json` |
+
+The files it writes, from the plan `tools/adopt.mjs` writes from:
+
+| file | why |
+|---|---|
+| `<root>/CLAUDE.md` | entry point; prohibitions in full |
+| `<root>/.claude/settings.json` | kit deny/ask rules (SPEC 5.8) |
+| `<brain>/me.md` | who the owner is; owner.name feeds the guard |
+| `<brain>/voice.md` | how the owner's copy reads |
+| `<brain>/prohibitions.md` | the owner's own hard rules (overlay owning file) |
+| `<brain>/law.overlay.json` | overlay: empty clauses, empty overrides |
+| `<brain>/lessons.md` | lessons -> clauses |
+| `<brain>/canonical.md` | one subject, one file |
+| `<brain>/DECISIONS.md` | the brain's own manifest (DES-01) |
+| `<brain>/ARCHITECTURE.md` | the brain's own map (DES-01) |
+| `<brain>/claims.json` | claims; BRAIN-POINTER-01 |
+| `<brain>/doctor.config.json` | Doctor config; owners, frozen paths, snapshot pairs filled |
+| `<brain>/entry.json` | the entry path |
+| `<brain>/agent-policy.json` | subagent brief contract, model routes, spawn cap (DES-11) |
+| `<brain>/route-policy.json` | law routed per prompt: words per group, folders, subagent defaults (DES-13) |
+| `<brain>/Doctor.bat` | Windows shim; resolves the kit through the pointer |
+| `<brain>/doctor.sh` | Linux and macOS shim; resolves the kit through the pointer |
+| `<brain>/instructions/README.md` | owning files for overlay clauses |
+| `<brain>/.gitattributes` | the repo decides its bytes, not core.autocrlf; only when the brain is a git repo |
+| `<brain>/.gitignore` | state/ is generated (installed.json, heartbeat, Doctor output); only when the brain is a git repo |
+
+<!-- adopt:end -->
+
+It never overwrites. A file that already exists is kept and its diff printed, so adopting over
+a brain you already have changes nothing you wrote. It also writes the pointer
+`~/.claude/design-first.json`, the brain's `LAW.md` and `state/`, byte snapshots of the root
+files when root is not a repo, and runs `git init` (no commit) for a repo brain. Then it runs
+the Doctor once: exit 0 is GREEN, 1 is RED, 2 is COULD-NOT-LOOK, which is not a pass. For
+frozen paths it prints lines to paste into `~/.claude/settings.json`; it never writes that file.
+
+**After you adopt**, start a new session under root (the entry path prints on turn one), fill
+`<brain>/me.md` and `voice.md`, and commit the brain.
+
+To see every step with nothing written, run the script yourself with `-DryRun`:
+`node <pluginRoot>/tools/adopt.mjs -Root <root> -OwnerName <name> -DryRun`.
+`/design-first:remove` reverses what `adopt` wrote and keeps, and lists, anything you changed.
+
+## Commands
+
+<!-- commands:start -->
+<!-- rendered by docs/build.mjs from commands/*.md; do not edit by hand -->
+
+| command | what it does |
+|---|---|
+| `/design-first:adopt` | Set up design-first on this machine. Asks seven questions one at a time, then a script writes root, brain and pointer, generates LAW.md and runs the Doctor. |
+| `/design-first:council` | Run a pitch past every council seat in the project's agents folder, one question at a time, and record the verdicts. Writes the manifest only after the owner says yes. |
+| `/design-first:gut` | Stress-test an idea before committing to it. Blunt devil's advocate. |
+| `/design-first:move` | Get a recommendation (not a survey) on a decision. |
+| `/design-first:remove` | Reverse what /design-first:adopt wrote. Deletes only unedited kit-written files and generated ones, keeps and lists everything you changed, removes the pointer. |
+| `/design-first:scope` | Plan a feature before building. Approach, what to reuse, simplest version, the one decision needed. |
+| `/design-first:ship` | Build something in this codebase's style, then prove it actually works. |
+
+<!-- commands:end -->
+
 ## The method, on one page
 
 1. **Interview every add.** A request is an opening position, not a spec: split it into decisions,
@@ -43,7 +134,7 @@ loops and gates, drawn: [`LOOPS.md`](LOOPS.md). The map: [`ARCHITECTURE.md`](ARC
 | `tools/doctor/` | disk checker |
 | `tools/vcs/` | git-side checks |
 | `tools/tests/` | hook self-test |
-| `commands/` | adopt, remove, gut, move, scope, ship |
+| `commands/` | adopt, remove, council, gut, move, scope, ship |
 | `tools/adopt.mjs`, `tools/remove.mjs` | the writers |
 | `agents/` | read-only reviewer |
 | `templates/` | root and brain files |
@@ -69,17 +160,6 @@ The hooks, as `hooks/hooks.json` registers them:
 Your own layer, the brain, lives outside this repo: who you are, how you want to be spoken to,
 your prohibitions, your claims, your lessons. `adopt` writes it from an interview. Nothing about
 the author ships here.
-
-## Install
-
-```
-claude plugin marketplace add Jordan-Doerksen/design-first
-claude plugin install design-first@design-first
-/design-first:adopt
-```
-
-`adopt` asks seven questions, one at a time, then writes the files and runs the Doctor.
-`/design-first:remove` reverses what `adopt` wrote and leaves anything you changed.
 
 ## What a grade means
 

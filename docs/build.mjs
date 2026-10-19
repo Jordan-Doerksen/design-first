@@ -4,16 +4,17 @@
 // and its steps, the adopt questions, and the recorded transcripts all come from the files named
 // below. Deterministic: same inputs, same bytes (LF).
 //
-//   node docs/build.mjs          # writes docs/index.html and the README's inventory block
+//   node docs/build.mjs          # writes docs/index.html and the README's generated blocks
 //   node docs/build.mjs -Check   # exit 1 if either differs from a fresh render
 //
 // The Doctor's generated_matches claims run it as
 //   build.mjs -Source <template> -Out <temp file> [-BrainRoot <ignored>]     (KIT-DOCS-01, the page)
 //   build.mjs -Source README.md -Out <temp file>                            (KIT-README-01, the README)
 // and compare the temp file with the file in the tree byte for byte after CRLF->LF. A source named
-// README.md selects README mode (CR-2026-10-18-READ): the README is emitted with the block between
-// its inventory markers rendered from ARCHITECTURE.md's Domains table and hooks/hooks.json, and
-// everything outside the markers copied as written.
+// README.md selects README mode (CR-2026-10-18-READ): the README is emitted with each block between
+// its markers rendered (the inventory from ARCHITECTURE.md's Domains table and hooks/hooks.json; the
+// adopt questions and files from commands/adopt.md and tools/lib/adopt-plan.mjs; the commands from
+// commands/*.md, CR-2026-10-19-START), and everything outside the markers copied as written.
 //
 // Not a hook, not a timer. Run it after a change to any input, then commit the output.
 
@@ -22,6 +23,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from '../tools/lib/args.mjs';
 import { parseJson } from '../hooks/lib/json.mjs';
+import { newPlan } from '../tools/lib/adopt-plan.mjs';
 
 const DOCS = path.dirname(fileURLToPath(import.meta.url));
 const KIT = path.dirname(DOCS);
@@ -156,15 +158,54 @@ function inventoryBlock() {
     lines.push('', INV_END);
     return lines.join('\n');
 }
+
+// ------------------------------------------------------------------ the README's adopt and commands blocks (CR-2026-10-19-START)
+// What adopt asks, read from the command that asks it, and what it writes, read from the plan the
+// script writes from, with the answers left as <root> and <brain>. A file only a git-repo brain
+// gets is marked. The paths are joined with / on every system, so the bytes do not depend on it.
+const ADOPT_START = '<!-- adopt:start -->';
+const ADOPT_END = '<!-- adopt:end -->';
+const CMD_START = '<!-- commands:start -->';
+const CMD_END = '<!-- commands:end -->';
+function adoptFiles() {
+    const args = { kit: KIT, root: '<root>', brain: '<brain>', ownerName: 'owner', gitHubOwners: [], frozenPaths: [],
+        settingsTarget: path.join('<root>', '.claude', 'settings.json'), snapshotPairs: [], today: '2000-01-01' };
+    let plain; let repo;
+    try { plain = newPlan({ ...args, brainIsRepo: false }); repo = newPlan({ ...args, brainIsRepo: true }); } catch (e) { fail(`adopt plan: ${e.message}`); }
+    const inPlain = new Set(plain.map((p) => p.path));
+    return repo.map((p) => ({ path: p.path.replace(/\\/g, '/'), note: p.note, gitOnly: !inPlain.has(p.path) }));
+}
+function adoptBlock() {
+    const lines = [ADOPT_START, '<!-- rendered by docs/build.mjs from commands/adopt.md and tools/lib/adopt-plan.mjs; do not edit by hand -->', '',
+        '| # | it asks | recommended answer |', '|---|---|---|'];
+    for (const q of adoptQs) lines.push(`| ${q.n} | **${mdCell(q.name)}**${q.when ? ` (asked ${mdCell(q.when)})` : ''}: ${mdCell(q.text)} | ${mdCell(q.rec)} |`);
+    lines.push('', 'The files it writes, from the plan `tools/adopt.mjs` writes from:', '', '| file | why |', '|---|---|');
+    for (const f of adoptFiles()) lines.push(`| \`${mdCell(f.path)}\` | ${mdCell(f.note)}${f.gitOnly ? '; only when the brain is a git repo' : ''} |`);
+    lines.push('', ADOPT_END);
+    return lines.join('\n');
+}
+function commandsBlock() {
+    const lines = [CMD_START, '<!-- rendered by docs/build.mjs from commands/*.md; do not edit by hand -->', '', '| command | what it does |', '|---|---|'];
+    for (const c of commandList) lines.push(`| \`/design-first:${c.name}\` | ${mdCell(c.desc)} |`);
+    lines.push('', CMD_END);
+    return lines.join('\n');
+}
+const readmeBlocks = [
+    { name: 'inventory', start: INV_START, end: INV_END, render: inventoryBlock },
+    { name: 'adopt', start: ADOPT_START, end: ADOPT_END, render: adoptBlock },
+    { name: 'commands', start: CMD_START, end: CMD_END, render: commandsBlock },
+];
 function renderReadme(md) {
-    const a = md.indexOf(INV_START); const b = md.indexOf(INV_END);
-    if (a < 0 || b < 0 || b < a) fail(`README.md: inventory markers not found (${INV_START} ... ${INV_END})`);
-    let out = md.slice(0, a) + inventoryBlock() + md.slice(b + INV_END.length);
+    let out = md;
+    for (const b of readmeBlocks) {
+        const a = out.indexOf(b.start); const e = out.indexOf(b.end);
+        if (a < 0 || e < 0 || e < a) fail(`README.md: ${b.name} markers not found (${b.start} ... ${b.end})`);
+        out = out.slice(0, a) + b.render() + out.slice(e + b.end.length);
+    }
     out = out.replace(/\r\n/g, '\n');
     if (!out.endsWith('\n')) out += '\n';
     return out;
 }
-const readmeOut = renderReadme(readme);
 
 // ------------------------------------------------------------------ Doctor claim types
 const typeCount = new Map();
@@ -173,8 +214,9 @@ const claimRows = [...typeCount.keys()].sort(byName).map((t) => `<li><span class
 
 // ------------------------------------------------------------------ commands and the agent
 const description = (text) => (text.split('\n').find((l) => /^description:\s*/i.test(l)) || '').replace(/^description:\s*/i, '');
-const cmdRows = fs.readdirSync(path.join(KIT, 'commands')).filter((f) => /\.md$/i.test(f)).sort(byName)
-    .map((f) => `<li><span class="ix-id"><code>/design-first:${esc(f.replace(/\.md$/i, ''))}</code></span><span class="ix-grades">${esc(description(readText(path.join(KIT, 'commands', f))))}</span></li>`);
+const commandList = fs.readdirSync(path.join(KIT, 'commands')).filter((f) => /\.md$/i.test(f)).sort(byName)
+    .map((f) => ({ name: f.replace(/\.md$/i, ''), desc: description(readText(path.join(KIT, 'commands', f))) }));
+const cmdRows = commandList.map((c) => `<li><span class="ix-id"><code>/design-first:${esc(c.name)}</code></span><span class="ix-grades">${esc(c.desc)}</span></li>`);
 const agentDesc = description(readText(path.join(KIT, 'agents', 'reviewer.md')));
 
 // ------------------------------------------------------------------ README sections
@@ -240,16 +282,30 @@ const loopsSteps = linkIds(mdNumbered(ov[3]));
 
 const gradeTable = mdTable(section(readme, 'What a grade means'));
 const limits = mdList(section(readme, 'Limits, stated up front'));
-const install = mdCode(section(readme, 'Install'));
+const install = mdCode(section(readme, 'Install and adopt'));
 
 // ARCHITECTURE core flow block
 const cf = /## Core flow\s*```\n([\s\S]*?)```/i.exec(arch);
 if (!cf) fail('ARCHITECTURE core flow block not found');
 const coreFlow = esc(cf[1].trimEnd());
 
-// adopt.md questions: "N. **Name** - "text""
-const questions = adoptMd.split('\n').map((l) => /^(\d)\. \*\*([^*]+)\*\*.*?"(.*?)"/.exec(l)).filter((m) => m)
-    .map((m) => `<li><b>${esc(m[2])}</b> ${code(esc(m[3]))}</li>`);
+// adopt.md questions: "N. **Name** - "text"", the options on the line under it, the recommended one
+// first. The text is the quote after "- " or ": ", since question 7 carries a condition and a
+// quoted "<root>" before its text (the first quote on that line is not the question).
+const adoptLines = adoptMd.split('\n');
+const adoptQs = [];
+adoptLines.forEach((l, i) => {
+    const m = /^(\d)\. \*\*([^*]+)\*\*.*?(?:- |: )"(.*?)"/.exec(l);
+    if (!m) return;
+    const opt = /^\s+Options:\s*(.*)$/.exec(adoptLines[i + 1] || '');
+    const rec = opt ? /^(.*?)\s*\(Recommended/.exec(opt[1]) : null;
+    if (!rec) fail(`commands/adopt.md: question ${m[1]} (${m[2]}) has no Options line with a (Recommended) first option`);
+    const when = /\*\*(only if [^*]+)\*\*/.exec(l);
+    adoptQs.push({ n: m[1], name: m[2], text: m[3], rec: rec[1], when: when ? when[1] : null });
+});
+if (adoptQs.length === 0) fail('commands/adopt.md: no numbered questions found');
+const questions = adoptQs.map((q) => `<li><b>${esc(q.name)}</b> ${code(esc(q.text))}</li>`);
+const readmeOut = renderReadme(readme);
 
 // ------------------------------------------------------------------ transcripts
 let recorded = ''; let recordedKit = '';
@@ -301,7 +357,7 @@ if (readmeMode) {
     // The Doctor's README claim: render to -Out, nothing else is written.
     const outPath = opts.Out ? path.resolve(opts.Out) : readmePath;
     fs.writeFileSync(outPath, readmeOut, 'utf8');
-    process.stdout.write(`wrote ${outPath}  (README inventory: ${domainsTable(arch).length} domains, ${hookList.length} hooks)\n`);
+    process.stdout.write(`wrote ${outPath}  (README blocks: ${domainsTable(arch).length} domains, ${hookList.length} hooks, ${adoptQs.length} adopt questions, ${commandList.length} commands)\n`);
     process.exit(0);
 }
 const outPath = opts.Out ? path.resolve(opts.Out) : path.join(DOCS, 'index.html');
@@ -310,15 +366,15 @@ if (opts.Check) {
     let stale = false;
     if (cur !== html) { process.stdout.write('docs/index.html is stale: run node docs/build.mjs\n'); stale = true; }
     else process.stdout.write('docs/index.html matches a fresh render\n');
-    if (readme !== readmeOut) { process.stdout.write('README.md inventory is stale: run node docs/build.mjs\n'); stale = true; }
-    else process.stdout.write('README.md inventory matches a fresh render\n');
+    if (readme !== readmeOut) { process.stdout.write('README.md generated blocks are stale: run node docs/build.mjs\n'); stale = true; }
+    else process.stdout.write('README.md generated blocks match a fresh render\n');
     process.exit(stale ? 1 : 0);
 }
 fs.writeFileSync(outPath, html, 'utf8');
 process.stdout.write(`wrote ${outPath}  (${total} clauses, ${stopped} stopped by a machine, ${honour} on honour; transcripts recorded ${recorded})\n`);
-// With no -Out the README's inventory block is refreshed in place (a -Out run is a render of the
+// With no -Out the README's generated blocks are refreshed in place (a -Out run is a render of the
 // page alone, as the Doctor's page claim calls it).
 if (!opts.Out && readme !== readmeOut) {
     fs.writeFileSync(readmePath, readmeOut, 'utf8');
-    process.stdout.write(`wrote ${readmePath}  (inventory block: ${domainsTable(arch).length} domains, ${hookList.length} hooks)\n`);
+    process.stdout.write(`wrote ${readmePath}  (generated blocks: ${domainsTable(arch).length} domains, ${hookList.length} hooks, ${adoptQs.length} adopt questions, ${commandList.length} commands)\n`);
 }

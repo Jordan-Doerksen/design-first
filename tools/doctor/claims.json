@@ -24,7 +24,7 @@
       "generator": "docs/build.mjs",
       "source": "README.md",
       "output": "README.md",
-      "why": "CR-2026-10-18-READ: the README's inventory (what is in the box, the hooks) is rendered by docs/build.mjs from ARCHITECTURE.md's Domains table and hooks/hooks.json, between the inventory markers; the rest of the file is copied as written. A hand edit inside the block, or a change to the tree with no rebuild, is RED here. Before this claim a port that forgot the README passed every check (DES-07 is ADVISE and grades nothing)."
+      "why": "CR-2026-10-18-READ, CR-2026-10-19-START: three README blocks are rendered by docs/build.mjs, each between its markers: the inventory (what is in the box, the hooks) from ARCHITECTURE.md's Domains table and hooks/hooks.json; what adopt asks and writes from commands/adopt.md and tools/lib/adopt-plan.mjs; the commands from commands/*.md. The rest of the file is copied as written. A hand edit inside a block, or a change to its sources with no rebuild, is RED here. Before this claim a port that forgot the README passed every check (DES-07 is ADVISE and grades nothing)."
     },
     {
       "id": "KIT-RESTORE-01",
