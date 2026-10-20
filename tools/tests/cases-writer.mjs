@@ -39,16 +39,25 @@ export default function writerCases(t) {
     r = route('note that Reports to: is a heading', 'w-mid', repoClean);
     record('mid-line "Reports to:" does not mark a writer', 'owner', has(r.out, 'OWN-06') ? 'owner' : 'writer', r.out);
 
-    // a compaction or a clear clears the mark; the next prompt decides again
-    for (const source of ['clear', 'compact']) {
-        const id = `w-${source}`;
+    // a clear clears the mark and the next prompt decides again; a compaction keeps it
+    {
+        const id = 'w-clear';
         route(brief, id, repoClean);
         const roleFile = path.join(process.env.DF_MARKER_DIR, `${id}.role`);
         const marked = exists(roleFile) && readText(roleFile).trim() === 'writer';
-        entry(root, id, source);
+        entry(root, id, 'clear');
         const gone = !exists(roleFile);
         r = route('yes please', id, repoClean);
-        record(`writer: a ${source} clears the mark, and a plain next prompt is not a writer`, 'cleared', marked && gone && has(r.out, 'OWN-06') ? 'cleared' : `marked=${marked} gone=${gone}`, r.out);
+        record('writer: a clear clears the mark, and a plain next prompt is not a writer', 'cleared', marked && gone && has(r.out, 'OWN-06') ? 'cleared' : `marked=${marked} gone=${gone}`, r.out);
+    }
+    {
+        const id = 'w-compact';
+        route(brief, id, repoClean);
+        const roleFile = path.join(process.env.DF_MARKER_DIR, `${id}.role`);
+        entry(root, id, 'compact');
+        const kept = exists(roleFile) && readText(roleFile).trim() === 'writer';
+        r = route('yes please', id, repoClean);
+        record('writer: a compaction keeps the mark, and a plain next prompt still gets no skipped clause', 'kept', kept && /group OWN/.test(r.out) && has(r.out, 'OWN-05') && !has(r.out, 'OWN-06') ? 'kept' : `kept=${kept}`, r.out);
     }
 
     // whole-group skip

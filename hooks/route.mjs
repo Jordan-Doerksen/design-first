@@ -44,8 +44,8 @@
 // decides: "Reports to:" at the start of a line (a brief) marks the session a writer in <session>.role;
 // any other first prompt marks it an owner session, and a later "Reports to:" changes nothing. For a
 // writer, the policy's writerSkip { groups, clauses } is dropped: a group whole, a clause as one row
-// of its group (the rest of the group still prints). entry.mjs deletes the mark on a compaction or a
-// clear. No key, or an empty one: nothing is dropped.
+// of its group (the rest of the group still prints). entry.mjs deletes the mark on a clear (a new
+// conversation) and keeps it through a compaction. No key, or an empty one: nothing is dropped.
 //
 // anchor: writer-skip  mode: advise  verbs: route-law
 
