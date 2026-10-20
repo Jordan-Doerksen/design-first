@@ -262,6 +262,7 @@ reaches a brain only when it is added there by hand.
 | Key | Since | Effect |
 |---|---|---|
 | `alwaysForSessions` | 0.1.34 | Groups added to every session's first prompt, and again after a compaction or a clear, whatever the words and the folder (OWN-10). The template lists `OWN`. Absent: no group arrives without a matching word or folder, as before 0.1.34. These groups are not sent to subagents unless `alwaysForSubagents` lists them too. |
+| `writerSkip` | kit-next | `{ "groups": [], "clauses": [] }`. Law a writer session does not receive (owner ruling 29, 2026-10-20: work sessions answer their master tersely). A writer session is one whose first prompt holds `Reports to:` at the start of a line; the router records the role in `<session>.role` on that first prompt only, and a clear deletes it and a compaction keeps it. `groups` are law group ids dropped whole; `clauses` are clause ids dropped one row at a time (for example `OWN-09`), so the rest of the group still arrives. `hooks/subagent.mjs` applies it to every subagent, which is always a writer, in the group rows and in the advise-by-role block. Empty or absent: nothing is dropped. Ids match without case. |
 
 To take a new key on an existing brain, copy its line from the template into the brain's
 `route-policy.json`.

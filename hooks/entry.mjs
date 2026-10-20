@@ -115,6 +115,9 @@ try {
             const routeFile = path.join(C.getMarkerDir(), C.safeId(sessionId) + '.routes');
             const hadRoutes = C.exists(routeFile);
             if (hadRoutes) { try { fs.rmSync(routeFile, { force: true }); } catch { /* gone already */ } }
+            // The writer mark (route.mjs, writerSkip) goes on a clear only. A session's role does not change when its
+            // context is compacted; a clear starts a new conversation, so the next prompt decides the role again.
+            if (source === 'clear') { try { fs.rmSync(path.join(C.getMarkerDir(), C.safeId(sessionId) + '.role'), { force: true }); } catch { /* gone already */ } }
             if (source === 'clear') {
                 C.writeLog('INFO', 'entry', `clear: session ${sessionId} ${hadRoutes ? 'had a route file, so the host kept the session id; routes deleted' : 'had no route file (a new session id, or nothing routed yet)'}`);
             }

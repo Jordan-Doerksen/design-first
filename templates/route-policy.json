@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "_comment": "Route policy read by the kit's hooks/route.mjs on every prompt and hooks/subagent.mjs at every subagent start (DES-13). Tunables only. groups: law group id -> words that activate it (whole-word, case-insensitive, matched against the prompt); the group ids must exist as '## GROUP - Title' sections in LAW.md, so an overlay group an adopter adds gets a line here. folders: top-level folder under root -> groups active whenever the session works there. alwaysForSubagents: groups every subagent receives even when nothing routed yet. alwaysForSessions: groups every session receives on its first prompt and again after a compaction or a clear, whatever the words and the folder (OWN-10); OWN carries how every decision is asked and researched, which no topic word routes. maxChars: cap per injection, under the host's 10,000-character limit. A route sticks for the session; entry.mjs clears it on a compaction or a clear.",
+  "_comment": "Route policy read by the kit's hooks/route.mjs on every prompt and hooks/subagent.mjs at every subagent start (DES-13). Tunables only. groups: law group id -> words that activate it (whole-word, case-insensitive, matched against the prompt); the group ids must exist as '## GROUP - Title' sections in LAW.md, so an overlay group an adopter adds gets a line here. folders: top-level folder under root -> groups active whenever the session works there. alwaysForSubagents: groups every subagent receives even when nothing routed yet. alwaysForSessions: groups every session receives on its first prompt and again after a compaction or a clear, whatever the words and the folder (OWN-10); OWN carries how every decision is asked and researched, which no topic word routes. maxChars: cap per injection, under the host's 10,000-character limit. A route sticks for the session; entry.mjs clears it on a compaction or a clear. writerSkip: { groups, clauses } is law a writer session does not receive (owner ruling 29, 2026-10-20: work sessions answer their master tersely, so law about how to talk to the owner stays out of them). A writer session is one whose first prompt holds 'Reports to:' at the start of a line, a brief; a subagent is always a writer. groups: law group ids dropped whole. clauses: clause ids dropped one row at a time, the rest of the group still arrives (for example an owner-voice clause of OWN, or a whole VOICE group an adopter's overlay adds). Empty, as shipped, or absent: nothing is dropped. The mark is kept in <session>.role; a clear deletes it (a new conversation decides again), a compaction keeps it.",
   "groups": {
     "DES":  ["build", "design", "decision", "decisions", "architecture", "scaffold", "new project", "feature", "implement", "refactor", "chunk", "change request", "manifest"],
     "GATE": ["interview", "add", "addition", "approve", "verdict", "spec", "review", "gate", "dependency", "package", "delete", "remove"],
@@ -19,6 +19,7 @@
     "lineChars": 220,
     "maxChars": 2400
   },
+  "writerSkip": { "groups": [], "clauses": [] },
   "alwaysForSubagents": ["SAFE"],
   "alwaysForSessions": ["OWN"],
   "maxChars": 9500

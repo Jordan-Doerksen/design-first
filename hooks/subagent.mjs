@@ -8,8 +8,9 @@
 // prohibitions by default) and of every group active in the session, except the alwaysForSessions
 // groups (unless alwaysForSubagents also lists them). Same cap as the router: the advise-by-role
 // block below is sized first and its room reserved, then a group past the cap is named without its
-// rows. With no pointer file it injects nothing. The host re-injects after the subagent's own
-// compaction.
+// rows. The policy's writerSkip (a subagent is always a writer) drops its groups and clause rows
+// here as the router does for a writer session. With no pointer file it injects nothing. The host
+// re-injects after the subagent's own compaction.
 //
 // advise-by-role (CR-2026-10-13-HONOUR): every clause whose enforcedBy ref names this anchor is
 // read from the kit's law.json (and the brain's overlay when there is one) and injected with one
@@ -48,7 +49,7 @@ function readAdviseClauses(C, kit, brain) {
             const e = c && c.enforcedBy;
             if (e == null) continue;
             if (String(e.ref) !== ADVISE_REF) continue;
-            out.push({ id: C.str(c.id), verb: C.str(c.verb), rule: C.str(c.rule) });
+            out.push({ id: C.str(c.id), group: C.str(c.group), verb: C.str(c.verb), rule: C.str(c.rule) });
         }
     }
     return out;
@@ -81,8 +82,12 @@ try {
         const maxChars = L.policyMaxChars(policy);
         const listOf = (v) => (v == null ? [] : Array.isArray(v) ? v : [v]).filter((x) => x).map(String);
 
+        // writer-skip (owner ruling 29, 2026-10-20): a subagent is always a writer, so the policy's
+        // writerSkip applies to it whatever the session's own role. A group named there is left out; a
+        // clause named there is left out of its group's rows and out of the advise-by-role block.
+        const skip = L.writerSkip(policy);
         const wanted = [];
-        for (const g of listOf(L.prop(policy, 'alwaysForSubagents'))) if (!wanted.includes(g)) wanted.push(g);
+        for (const g of listOf(L.prop(policy, 'alwaysForSubagents'))) if (!wanted.includes(g) && !L.skipsGroup(skip, g)) wanted.push(g);
         // A group the policy sends to every session (alwaysForSessions, OWN in the template) is about the
         // session's talk with the owner, and a subagent does not talk to the owner; the advise-by-role
         // block below already carries the clauses of that group a subagent answers for. Measured
@@ -94,6 +99,7 @@ try {
         // characters with a 23-character kit path, one more per character of path (9,452 at 200).
         const sessionOnly = listOf(L.prop(policy, 'alwaysForSessions'));
         for (const g of L.readActiveRoutes(sessionId)) {
+            if (L.skipsGroup(skip, g)) continue;
             if (sessionOnly.includes(g) && !wanted.includes(g)) continue;
             if (!wanted.includes(g)) wanted.push(g);
         }
@@ -107,7 +113,7 @@ try {
         // got twenty ids with no text, the thing GATE-09 and AUTO-05 lean on. A group that does not
         // fit beside the block is deferred instead; its rows are the per-session half and the session
         // already read them.
-        const advise = readAdviseClauses(C, kit, ptr.brain);
+        const advise = readAdviseClauses(C, kit, ptr.brain).filter((c) => !skip.clauses.includes(c.id.toLowerCase()) && !L.skipsGroup(skip, c.group));
         // A file named below lawFoldersLine is named relative to the folder that line already gave
         // (CR-2026-10-17-PATHS: the kit folder once per injection). Workaround (CR-2026-10-19-STACK):
         // the ADVISE block grew by one clause, OBS was deferred at a 120-character kit path, and the
@@ -136,7 +142,9 @@ try {
             for (const g of wanted) {
                 const grp = L.findGroup(groups, g);
                 if (!grp) continue;
-                const text = L.formatLawGroup(g, grp, ptr, kit);
+                const shown = L.withoutClauses(grp, skip);
+                if (shown.rows.length === 0) continue;
+                const text = L.formatLawGroup(g, shown, ptr, kit);
                 if (out.length + text.length + 2 + reserved + deferralRoom > maxChars) { deferred.push(g); continue; }
                 out += text + '\n\n'; injected.push(g);
             }

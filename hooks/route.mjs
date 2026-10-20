@@ -38,6 +38,16 @@
 // by a later prompt that matches it, and when no new group prints, the skills print alone.
 //
 // anchor: skills  mode: advise  verbs: match-skill
+//
+// writer-skip (owner ruling 29, 2026-10-20; kit-next batch entry 1): a work session answers its master
+// tersely, so the law that is about talking to the owner must not reach it. The session's FIRST prompt
+// decides: "Reports to:" at the start of a line (a brief) marks the session a writer in <session>.role;
+// any other first prompt marks it an owner session, and a later "Reports to:" changes nothing. For a
+// writer, the policy's writerSkip { groups, clauses } is dropped: a group whole, a clause as one row
+// of its group (the rest of the group still prints). entry.mjs deletes the mark on a clear (a new
+// conversation) and keeps it through a compaction. No key, or an empty one: nothing is dropped.
+//
+// anchor: writer-skip  mode: advise  verbs: route-law
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -122,6 +132,11 @@ try {
         prompt = prompt.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/gi, ' ');
         prompt = prompt.replace(/<task-notification>[\s\S]*?<\/task-notification>/gi, ' ');
 
+        // The role is decided once, on the session's first prompt, before any group is chosen.
+        const roleFile = L.roleFile(sessionId);
+        if (!C.isFile(roleFile)) C.addTextLine(roleFile, /^Reports to:/m.test(prompt) ? 'writer' : 'owner');
+        const writer = L.isWriterSession(sessionId);
+
         const ptr = C.readPointer();
         if (ptr.pointer != null) {           // no brain: the entry hook already said so
             const kit = L.kitRoot(ptr);
@@ -134,7 +149,8 @@ try {
             const always = (Array.isArray(alwaysRaw) ? alwaysRaw : alwaysRaw == null ? [] : [alwaysRaw]).filter((g) => !C.isBlank(g)).map(String);
             matched = [...always, ...matched.filter((g) => !always.includes(g))];
             const active = L.readActiveRoutes(sessionId);
-            const fresh = matched.filter((g) => !active.includes(g));
+            const skip = writer ? L.writerSkip(policy) : L.writerSkip(null);
+            const fresh = matched.filter((g) => !active.includes(g) && !L.skipsGroup(skip, g));
 
             // skills (DES-12): named once per session each, after the law rows when there are any. A skill is
             // marked as named (<session>.skills) only after its line printed. Workaround (CR-2026-10-15-GAPS
@@ -159,7 +175,9 @@ try {
                 for (const g of fresh) {
                     const grp = L.findGroup(groups, g);
                     if (!grp) { C.writeLog('WARN', 'route', `policy names group '${g}' which ${law} does not have`); continue; }
-                    const text = L.formatLawGroup(g, grp, ptr, kit);
+                    const shown = L.withoutClauses(grp, skip);
+                    if (shown.rows.length === 0) continue;       // every row skipped: nothing to print, nothing recorded
+                    const text = L.formatLawGroup(g, shown, ptr, kit);
                     if (out.length + text.length + 2 > maxChars) { deferred.push(g); continue; }
                     out += text + '\n\n';
                     injected.push(g);

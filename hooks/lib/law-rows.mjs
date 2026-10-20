@@ -172,3 +172,32 @@ export function policyMaxChars(policy) {
     }
     return max;
 }
+
+// Writer sessions (owner ruling 29, 2026-10-20; kit-next batch entry 1). A work session answers its
+// master tersely, so the policy's `writerSkip` names law that is about talking to the owner and must not
+// reach it: { groups: [group ids dropped whole], clauses: [clause ids dropped one row at a time] }.
+// Read-only here; the router and the subagent hook both apply it. Absent or empty: nothing is dropped,
+// which is the behaviour before this key existed.
+export function writerSkip(policy) {
+    const v = prop(policy, 'writerSkip');
+    const list = (x) => (x == null ? [] : Array.isArray(x) ? x : [x]).filter((s) => !isBlank(s)).map((s) => String(s).trim().toLowerCase());
+    return { groups: list(prop(v, 'groups')), clauses: list(prop(v, 'clauses')) };
+}
+export function skipsGroup(skip, name) { return skip.groups.includes(String(name).toLowerCase()); }
+// The group without the rows whose clause id the skip names; the group itself when nothing is named.
+export function withoutClauses(group, skip) {
+    if (group == null || skip.clauses.length === 0) return group;
+    return { ...group, rows: group.rows.filter((r) => !skip.clauses.includes(r.id.toLowerCase())) };
+}
+
+// The per-session role mark: a file holding 'writer' or 'owner', written once by the router on a
+// session's first prompt. Writer = a brief, "Reports to:" at the start of a line.
+export function roleFile(sessionId) {
+    const dir = getMarkerDir();
+    ensureDir(dir);
+    return path.join(dir, safeId(sessionId) + '.role');
+}
+export function isWriterSession(sessionId) {
+    const f = roleFile(sessionId);
+    return isFile(f) && readText(f).trim() === 'writer';
+}
