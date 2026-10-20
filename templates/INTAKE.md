@@ -44,6 +44,17 @@ section and pins it; Intake fills the row above.
 5. **Sent.** Intake shows the prompt; the owner says send; Intake messages the master. State: sent.
 6. **Reported.** The master messages Intake one line. State: done or blocked.
 
+How a decision reaches the owner, by the master's rank (OWN-10):
+
+- **Low or medium.** The master decides what it can defend (OWN-05) and sends Intake one
+  question at a time. Intake asks the owner and relays the answer.
+- **High, or a new project.** The master runs a real design-first interview in its own chat. It
+  sends Intake one line: the item is waiting on the owner, and the interview is ready, with the
+  number of questions. Intake gives the owner the link to the master's chat. The owner does the
+  whole interview there in one sitting, one question at a time (OWN-04), each ranked (OWN-10).
+  The master lays out the plan, and the go comes back to Intake as one line. A question in the
+  master's chat outside an interview the owner opened by Intake's link is still a breach.
+
 ## The prompt Intake sends
 
 ```
@@ -55,7 +66,7 @@ Done-check: <the outcome the owner will see>
 Ruled out: <what the owner said no to>
 Rank: <low | medium | high>, Intake's estimate; the master re-ranks (OWN-10)
 Open: <what Intake did not settle, or "nothing">
-Report: when this item is done or blocked, message Intake ({{SESSION_ID}}) one line:
+Reports to: Intake ({{SESSION_ID}}); when this item is done or blocked, message it one line:
 "item <n> done: <proof>" or "item <n> blocked: <why>".
 ```
 

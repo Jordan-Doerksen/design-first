@@ -24,6 +24,10 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from '../tools/lib/args.mjs';
 import { parseJson } from '../hooks/lib/json.mjs';
 import { newPlan } from '../tools/lib/adopt-plan.mjs';
+// The adopt questions, the transcripts, the README sections and the install block are parsed in
+// docs/data.mjs, which docs/publish.mjs reads too (DISP-07: one parser, so the page and the site's
+// kit.json never disagree about the same file).
+import { readText, readmeSection, parseAdoptQuestions, parseTranscript } from './data.mjs';
 
 const DOCS = path.dirname(fileURLToPath(import.meta.url));
 const KIT = path.dirname(DOCS);
@@ -37,7 +41,6 @@ try {
     opts = parseArgs(process.argv.slice(2), { values: ['Source', 'Out', 'BrainRoot'], switches: ['Check'] });
 } catch (e) { fail(e.message); }
 
-const readText = (p) => { let t = fs.readFileSync(p, 'utf8'); if (t.charCodeAt(0) === 0xfeff) t = t.slice(1); return t.replace(/\r\n/g, '\n'); };
 // HTML-encoded as .NET's WebUtility.HtmlEncode does, so the page's bytes are the ones the kit has
 // always generated: the five markup characters, U+00A0 to U+00FF, and characters past U+FFFF, the
 // last two as decimal references.
@@ -220,15 +223,7 @@ const cmdRows = commandList.map((c) => `<li><span class="ix-id"><code>/design-fi
 const agentDesc = description(readText(path.join(KIT, 'agents', 'reviewer.md')));
 
 // ------------------------------------------------------------------ README sections
-function section(md, heading) {
-    const out = []; let inside = false;
-    for (const l of md.split('\n')) {
-        if (/^## /.test(l)) { if (inside) break; if (l.toLowerCase() === `## ${heading}`.toLowerCase()) { inside = true; continue; } }
-        else if (inside) out.push(l);
-    }
-    if (!inside) fail(`README section not found: ${heading}`);
-    return out.join('\n').trim();
-}
+const section = (md, heading) => { try { return readmeSection(md, heading); } catch (e) { fail(e.message); } };
 function mdTable(block) {
     const rows = block.split('\n').filter((l) => /^\|/.test(l)).map((r) => r.replace(/^\|+|\|+$/g, '').split('|').map((c) => c.trim()))
         .filter((cells) => !/^-+$/.test(cells[0]));
@@ -289,34 +284,20 @@ const cf = /## Core flow\s*```\n([\s\S]*?)```/i.exec(arch);
 if (!cf) fail('ARCHITECTURE core flow block not found');
 const coreFlow = esc(cf[1].trimEnd());
 
-// adopt.md questions: "N. **Name** - "text"", the options on the line under it, the recommended one
-// first. The text is the quote after "- " or ": ", since question 7 carries a condition and a
-// quoted "<root>" before its text (the first quote on that line is not the question).
-const adoptLines = adoptMd.split('\n');
-const adoptQs = [];
-adoptLines.forEach((l, i) => {
-    const m = /^(\d)\. \*\*([^*]+)\*\*.*?(?:- |: )"(.*?)"/.exec(l);
-    if (!m) return;
-    const opt = /^\s+Options:\s*(.*)$/.exec(adoptLines[i + 1] || '');
-    const rec = opt ? /^(.*?)\s*\(Recommended/.exec(opt[1]) : null;
-    if (!rec) fail(`commands/adopt.md: question ${m[1]} (${m[2]}) has no Options line with a (Recommended) first option`);
-    const when = /\*\*(only if [^*]+)\*\*/.exec(l);
-    adoptQs.push({ n: m[1], name: m[2], text: m[3], rec: rec[1], when: when ? when[1] : null });
-});
-if (adoptQs.length === 0) fail('commands/adopt.md: no numbered questions found');
+// adopt.md questions, parsed in docs/data.mjs (n, name, text, rec, when).
+let adoptQs;
+try { adoptQs = parseAdoptQuestions(adoptMd); } catch (e) { fail(e.message); }
 const questions = adoptQs.map((q) => `<li><b>${esc(q.name)}</b> ${code(esc(q.text))}</li>`);
 const readmeOut = renderReadme(readme);
 
 // ------------------------------------------------------------------ transcripts
 let recorded = ''; let recordedKit = '';
 function transcript(name) {
-    const lines = readText(path.join(SRC, `transcript-${name}.txt`)).split('\n');
-    const hdr = lines[0];
-    const m = /^# recorded (\S+) - design-first (\S+)/i.exec(hdr);
-    if (!m) fail(`transcript-${name}.txt has no header`);
-    recorded = m[1]; recordedKit = m[2];
+    let t;
+    try { t = parseTranscript(readText(path.join(SRC, `transcript-${name}.txt`)), name); } catch (e) { fail(e.message); }
+    recorded = t.recorded; recordedKit = t.kitVersion;
     // The line classes match without case, as they always have (so 'RED' also marks 'registered').
-    const out = lines.slice(1).map((l) => {
+    const out = t.lines.map((l) => {
         if (l.trim() === '') return '<span class="ln"> </span>';
         let cls = 'ln';
         if (/^\s*(wrote|git|law)\s|\[ ok \]/i.test(l)) cls += ' ok';
@@ -325,7 +306,7 @@ function transcript(name) {
         if (/^\S/.test(l) && /^[a-z]+$/i.test(l)) cls += ' hd';
         return `<span class="${cls}">${esc(l)}</span>`;
     });
-    return [hdr.replace(/^[# ]+/, ''), out.join('\n')];
+    return [t.header, out.join('\n')];
 }
 const tAdopt = transcript('adopt');
 const tDoctor = transcript('doctor');

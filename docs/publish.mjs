@@ -1,21 +1,29 @@
-// publish.mjs - copies the built page to the owner's one site and registers it there (DECISIONS 3.1).
+// publish.mjs - writes the kit's facts to the owner's one site as one data file (DECISIONS 3.1,
+// CR-2026-10-20-SITE).
 //
 //   node docs/publish.mjs [-Site <path to jordan-doerksen.github.io checkout>]
 //
-// Copies docs/index.html, page.css, page.js to <site>/tools/design-first/ and adds one entry to
-// <site>/data/registry.json if the slug is absent (never edits an existing entry). It does not
-// commit: the owner reads the diff and commits. Runs docs/build.mjs -Check first; a stale
-// index.html stops the publish. With no -Site, the checkout is the one on the owner's Windows
-// machine; on any other machine -Site is required.
+// Writes <site>/method/data/kit.json: the facts and recordings the site's method page reads
+// (the adopt questions, the four transcripts and their header, the clauses and grade counts from
+// the kit's own law.json, the install commands, the version). Every value is read from the kit's
+// files by docs/data.mjs, the parser docs/build.mjs renders the page from (PRIN-03, DISP-07).
+// It does not commit: the owner reads the diff and commits. Runs docs/build.mjs -Check first; a
+// stale index.html stops the publish. With no -Site, the checkout is the one on the owner's
+// Windows machine; on any other machine -Site is required.
+//
+// Until 0.2.6 it copied docs/index.html, page.css and page.js to <site>/tools/design-first/ and
+// added a registry entry. It no longer does either, and it deletes nothing there: the site turns
+// that folder into a redirect stub itself.
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from '../tools/lib/args.mjs';
-import { parseJson } from '../hooks/lib/json.mjs';
+import { readKit, kitData } from './data.mjs';
 
 const DOCS = path.dirname(fileURLToPath(import.meta.url));
+const KIT = path.dirname(DOCS);
 function fail(msg) { process.stderr.write(`publish: ${msg}\n`); process.exit(1); }
 
 let opts;
@@ -25,51 +33,13 @@ if (!site) fail('-Site <path to the site checkout> is required on this machine')
 
 const check = spawnSync(process.execPath, [path.join(DOCS, 'build.mjs'), '-Check'], { stdio: 'inherit' });
 if (check.status !== 0) fail('docs/index.html is stale; run node docs/build.mjs and commit it first');
-const regPath = path.join(site, 'data', 'registry.json');
-if (!fs.existsSync(regPath)) fail(`not the site checkout (no data/registry.json): ${site}`);
+if (!fs.existsSync(path.join(site, 'data', 'registry.json'))) fail(`not the site checkout (no data/registry.json): ${site}`);
 
-const dest = path.join(site, 'tools', 'design-first');
-fs.mkdirSync(dest, { recursive: true });
-for (const f of ['index.html', 'page.css', 'page.js']) {
-    fs.copyFileSync(path.join(DOCS, f), path.join(dest, f));
-    process.stdout.write(`copied ${f} -> tools/design-first/${f}\n`);
-}
-
-const raw = fs.readFileSync(regPath, 'utf8');
-const reg = parseJson(raw);
-if ((reg.projects || []).some((p) => p.slug === 'design-first')) {
-    process.stdout.write('registry: design-first already registered; not touched\n');
-} else {
-    const plugin = parseJson(fs.readFileSync(path.join(path.dirname(DOCS), '.claude-plugin', 'plugin.json'), 'utf8'));
-    const entry = {
-        slug: 'design-first', name: 'design-first', category: 'tools',
-        blurb: 'A working method for building with coding agents, as a Claude Code plugin: interview before code, every rule graded by what enforces it, a Doctor that checks the disk.',
-        tags: ['Tools', 'Claude Code', 'Node.js'], status: 'live', tier: 'full',
-        url: '/tools/design-first/', repo: 'https://github.com/Jordan-Doerksen/design-first', featured: false,
-        spec: `v${plugin.version} \u00b7 MIT \u00b7 WINDOWS, MACOS, LINUX`,
-    };
-    // The entry is inserted as text at the end of the "projects" array, in the file's own indent and
-    // line endings. Workaround: a round trip through a JSON writer rewrote the whole file in its own
-    // layout (one run produced a 2,045-line diff for a 12-line change), so the file is never round-tripped.
-    const nl = raw.includes('\r\n') ? '\r\n' : '\n';
-    const um = /\n( +)"categories"/.exec(raw);
-    const unit = um ? um[1] : '  ';
-    const i2 = unit.repeat(2); const i3 = unit.repeat(3);
-    const keys = Object.keys(entry);
-    const lines = [`${i2}{`];
-    keys.forEach((key, k) => {
-        const v = entry[key];
-        const val = typeof v === 'string' ? JSON.stringify(v) : typeof v === 'boolean' ? String(v) : '[' + v.map((x) => JSON.stringify(x)).join(', ') + ']';
-        lines.push(`${i3}"${key}": ${val}${k < keys.length - 1 ? ',' : ''}`);
-    });
-    lines.push(`${i2}}`);
-    // The projects array closes with the last "]" before the final "}" of the document.
-    const closeDoc = raw.lastIndexOf('}');
-    const closeArr = raw.lastIndexOf(']', closeDoc);
-    if (closeArr < 0) fail('registry.json: could not find the end of the projects array');
-    const before = raw.slice(0, closeArr).trimEnd();
-    const after = raw.slice(closeArr);
-    fs.writeFileSync(regPath, before + ',' + nl + lines.join(nl) + nl + unit + after.trimStart(), 'utf8');
-    process.stdout.write('registry: added design-first (tools, full) as a text insert; read the diff before committing\n');
-}
+let data;
+try { data = kitData(readKit(KIT), new Date().toISOString().slice(0, 10)); } catch (e) { fail(e.message); }
+const dest = path.join(site, 'method', 'data', 'kit.json');
+fs.mkdirSync(path.dirname(dest), { recursive: true });
+fs.writeFileSync(dest, JSON.stringify(data, null, 2) + '\n', 'utf8');
+const counts = Object.entries(data.grade_counts).map(([g, n]) => `${g} ${n}`).join(', ');
+process.stdout.write(`wrote method/data/kit.json  (${data.kit} ${data.version}, ${data.clauses.length} clauses: ${counts}; ${data.adopt_questions.length} adopt questions; transcripts recorded ${data.transcript_meta.recorded} at ${data.transcript_meta.kit_version})\n`);
 process.stdout.write(`done. In the site checkout: git -C "${site}" status\n`);

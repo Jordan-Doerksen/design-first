@@ -89,7 +89,7 @@ brain-relative (kit-relative under `-Kit`). A path with an unexpandable variable
 | `path_absent` | `path` | absent | present | unexpanded variable |
 | `file_contains` | `path`, `needle` | literal substring found anywhere in the file | absent | file missing |
 | `file_fresh` | `path`, `maxDays`, `graceFromInstall?` | the last line that starts with an ISO date is at most `maxDays` old; with `graceFromInstall` a missing file passes until `maxDays` after the write time of `state/installed.json` | file missing (past the grace), no dated line, or the last dated line is older | `maxDays` not a positive integer |
-| `config_paths_each` | `configKey` or `paths[]`, `base?`, `file?`, `contains[]` | every listed folder holds `file` with every string in `contains`; with `base`, a relative entry is joined under that folder; with no `file`, each entry is itself the file read; a string in `contains` may hold alternatives split by `\|` and one of them must be present; an empty list passes and says so | a folder missing the file, a file missing, or the file missing a string | the config key absent, no list given, or no `file` and no `contains` |
+| `config_paths_each` | `configKey` or `paths[]`, `base?`, `file?`, `contains[]`, `regex[]?` | every listed folder holds `file` with every string in `contains` and a match for every pattern in `regex`; with `base`, a relative entry is joined under that folder; with no `file`, each entry is itself the file read; a string in `contains` may hold alternatives split by `\|` and one of them must be present; a `regex` entry is a bare source, matched with flags `im` (so `^` is a line start), or `/source/flags`, so a claim can carry a hook's own pattern; an empty list passes and says so | a folder missing the file, a file missing, or the file missing a string or a match; each row names the folder or file and ends with the full path read | the config key absent, no list given, no `file` and neither `contains` nor `regex`, or a `regex` that does not compile |
 | `file_not_contains` | `path`, `needle` | absent | present | file missing |
 | `log_window_free_of` | `path`, `needle`, `days` | no line that starts with an ISO date/timestamp within `days` contains `needle`. No log file at all is a PASS, said in the detail. | such a line exists | `days` not a positive integer |
 | `remote_is` | `path`, `remote` (default `origin`), `pattern` (regex) | `git remote get-url` matches | no such remote, or no match | folder missing, not a work tree |
@@ -214,7 +214,7 @@ Finding kinds for `acceptedExceptions`: `noRemote`, `emptyRepo`, `foreignRemote`
 | key | reader | means |
 |---|---|---|
 | `schema` | doctor.mjs | Must be 1. Mismatch is the `MIGRATE` claim. |
-| `surveyStrict` | report.mjs | `true`: survey `fail` findings turn the verdict RED. Default `false`, so the kit grades VCS-01, VCS-02 and VCS-22 HONOUR; with `true`, re-grade them to GATE in `law.overlay.json` on their survey anchors and add a `json_subset_equal` claim that holds `surveyStrict: true`. VCS-04 and DES-09 rest on `warn` findings and stay HONOUR. |
+| `surveyStrict` | report.mjs | `true`: survey `fail` findings turn the verdict RED. Default `false`, so the kit grades VCS-01, VCS-02 and VCS-22 HONOUR; with `true`, re-grade them to GATE in `law.overlay.json` on their survey anchors and add a `json_subset_equal` claim that holds `surveyStrict: true`. VCS-04 and DES-09 rest on `warn` findings: the kit grades them HONOUR, and a brain may grade them ADVISE in `law.overlay.json` with `enforcedBy.kind` `survey` on their survey anchors (Anchors and grades, below). |
 | `maxDepth` | repos.mjs | How deep to look for `.git` under root. |
 | `parallelGit` | repos.mjs | How many repositories the sweep reads at a time. Default 8. Set 1 to read them one after another; the result is the same, only slower. |
 | `excludePathParts` | repos.mjs | Repos whose path contains a part are not swept. |
@@ -305,6 +305,37 @@ must fail), a script registered in a subfolder of `hooks/`, a kit with no `hooks
 DENY clause that the docs page must count as stopped and show on a coloured chip. It never touches your real
 folders. A few seconds. Run it after any change to the Doctor: a check that cannot fail is worse
 than no check.
+
+## The site's data file: `docs/publish.mjs` (0.2.7)
+
+```
+node docs/publish.mjs [-Site <path to the site checkout>]
+node docs/publish-selftest.mjs        # the same publish into a temp site, every key checked
+```
+
+It runs `docs/build.mjs -Check` first and stops on a stale page. It refuses a folder with no
+`data/registry.json`. It writes one file, `<site>/method/data/kit.json`, and nothing else: it
+copies no page, adds no registry entry, deletes nothing and commits nothing. With no `-Site` it
+uses the owner's checkout on Windows; elsewhere `-Site` is required. It prints one line:
+
+```
+wrote method/data/kit.json  (design-first <version>, <n> clauses: <grade> <n>, ...; <n> adopt questions; transcripts recorded <date> at <version>)
+```
+
+| key | from |
+|---|---|
+| `kit`, `version` | `.claude-plugin/plugin.json` |
+| `built` | the date of the run (ISO) |
+| `adopt_questions` `[{n, label, question, recommended}]` | `commands/adopt.md` |
+| `transcripts` `{adopt, doctor, doctor_kit, guard}` | `docs/src/transcript-*.txt`, each a line array without its header line |
+| `transcript_meta` `{recorded, kit_version, machine}` | the transcripts' header line, as recorded and never restamped; the four headers must agree on the date and version or the publish fails |
+| `clauses` `[{id, group, grade, rule}]` | the kit's own `law.json`, never a brain overlay |
+| `grade_counts` | a count of `clauses` by grade |
+| `install` | the commands in the README's "Install and adopt" code block |
+
+`docs/data.mjs` reads every one of these, and `docs/build.mjs` renders the page from the same
+functions, so the page and the file cannot disagree about a source. `tools/tests/run.mjs` runs the
+self-test as `cases-publish.mjs`.
 
 ## The commit check: `tools/vcs/law-claim.mjs` (VCS-23)
 
@@ -403,4 +434,4 @@ on the PowerShell line, which the Node port did not carry until 0.2.3.)
 
 ## Anchors and grades
 
-A script anchor is a comment line `// anchor: <name>  mode: <deny|advise|gate>  verbs: <a,b>` (a `#` comment is read too, for a script in a language that uses one). The law generator checks a clause's grade against the anchor it cites: a HOOK clause needs `mode: deny` in a hook, an ADVISE clause `mode: advise` in a hook, and a GATE clause on a tool `mode: gate`. A hook clause's ref must name a script that `hooks/hooks.json` registers, by its path under `hooks/`; its anchor may sit in that script or in a `lib/` file beside it. A clause on a kit hook script that nothing registers fails the build, because that script never runs, and so does a ref to a `lib/` file: it runs only through the script that loads it, so name that script. The Doctor carries one tool anchor, `could-not-look`, on the line that decides the COULD-NOT-LOOK verdict: a Doctor that could not look never reports green, and the clauses that say so cite that line.
+A script anchor is a comment line `// anchor: <name>  mode: <deny|advise|gate>  verbs: <a,b>` (a `#` comment is read too, for a script in a language that uses one). The law generator checks a clause's grade against the anchor it cites: a HOOK clause needs `mode: deny` in a hook, an ADVISE clause `mode: advise` in a hook, and a GATE clause on a tool `mode: gate`. A hook clause's ref must name a script that `hooks/hooks.json` registers, by its path under `hooks/`; its anchor may sit in that script or in a `lib/` file beside it. A clause on a kit hook script that nothing registers fails the build, because that script never runs, and so does a ref to a `lib/` file: it runs only through the script that loads it, so name that script. A survey anchor in `tools/doctor/survey.mjs` is cited with `enforcedBy.kind` `survey` (0.2.7): the anchor must declare `mode: advise`, the grade must be ADVISE, and `hooks/hooks.json` is not read for it, because a survey line runs in the Doctor and not in a hook. A `warn` finding never changes the verdict, so a survey kind cannot carry GATE; until 0.2.7 such a clause had to name kind `hook` on a script that is not a hook. The Doctor carries one tool anchor, `could-not-look`, on the line that decides the COULD-NOT-LOOK verdict: a Doctor that could not look never reports green, and the clauses that say so cite that line.
