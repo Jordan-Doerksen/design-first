@@ -24,6 +24,10 @@ by the owner, never by a session (SAFE-06). No secret in it (SAFE-01). Written b
 - Every brief names: goal, files or area, done-check, ruled out, and what it reports to in the
   format below, on a `Reports to:` line (DES-11, CTRL-02; the agent hook refuses a subagent brief
   or a session brief without the headings).
+- A brief may also carry a `Voice:` line, which is documented and not required. Template text:
+  `Voice: terse, for your master, not the owner; no hype, no recap prose.` A work session answers its
+  master, not the owner (owner ruling 29, 2026-10-20), and the router leaves the policy's `writerSkip`
+  law out of a session whose first prompt has `Reports to:` at the start of a line.
 - Report format, four lines: repo and branch; files changed or posts made; needs from the owner;
   blocked on.
 - A decision reaches the owner by its rank (OWN-10). Low or medium: the master decides what it can

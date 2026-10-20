@@ -106,7 +106,7 @@ try {
             fs.writeFileSync(path.join(stateDir, 'last-session.json'), JSON.stringify(beat, null, 2) + '\n', 'utf8');
         } else lines.push(`design-first: WARNING - brain folder missing: ${ptr.brain}. Heartbeat and entry path skipped.`);
 
-        // 3a. compaction or clear: forget this session's routes so the next prompt re-injects its law
+        // 3a. compaction or clear: forget this session's routes and writer mark so the next prompt re-injects its law
         // (DES-13). A clear empties the context as a compaction does (CR-2026-10-15-GAPS D5; a clear
         // used to keep the routes). The delete is keyed by the session id the host reports; when the
         // host gives a clear a new id, there is no route file under it and nothing to delete. No kit
@@ -115,6 +115,8 @@ try {
             const routeFile = path.join(C.getMarkerDir(), C.safeId(sessionId) + '.routes');
             const hadRoutes = C.exists(routeFile);
             if (hadRoutes) { try { fs.rmSync(routeFile, { force: true }); } catch { /* gone already */ } }
+            // The writer mark (route.mjs, writerSkip) goes with the routes: the next prompt decides the role again.
+            try { fs.rmSync(path.join(C.getMarkerDir(), C.safeId(sessionId) + '.role'), { force: true }); } catch { /* gone already */ }
             if (source === 'clear') {
                 C.writeLog('INFO', 'entry', `clear: session ${sessionId} ${hadRoutes ? 'had a route file, so the host kept the session id; routes deleted' : 'had no route file (a new session id, or nothing routed yet)'}`);
             }
