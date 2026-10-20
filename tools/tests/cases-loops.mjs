@@ -16,7 +16,7 @@ export default function loopsCases(t) {
     if (!fs.existsSync(loopsPath)) { record('loops: LOOPS.md exists', 'present', 'absent', loopsPath); return; }
     const lines = readText(loopsPath).replace(/^\uFEFF/, '').split(/\r?\n/);
     const lawIds = new Set(JSON.parse(readText(path.join(kit, 'law.json'))).clauses.map((c) => String(c.id)));
-    const cited = [...new Set([...lines.join('\n').matchAll(/\b(SAFE|PRIN|OWN|DES|GATE|AUTO|VCS|OBS|WEB|GAME|DISP|SKIN|VOICE|MAP)-\d{2}\b/g)].map((m) => m[0]))];
+    const cited = [...new Set([...lines.join('\n').matchAll(/\b(SAFE|PRIN|OWN|DES|GATE|AUTO|VCS|OBS|WEB|GAME|DISP|SKIN|VOICE|MAP|STACK)-\d{2}\b/g)].map((m) => m[0]))];
     const unknown = cited.filter((c) => !lawIds.has(c));
     record('loops: every clause id cited is in law.json', 'known', cited.length > 0 && unknown.length === 0 ? 'known' : cited.length === 0 ? 'none-cited' : 'unknown: ' + unknown.join(', '));
 

@@ -7,6 +7,15 @@ kit reads about its owner: identity, voice, prohibitions, the overlay to the law
 config the Doctor checks, the lessons, and the generated `LAW.md`. Everything resolves through the
 pointer in the user profile: root `{{ROOT}}`, brain `{{BRAIN}}`.
 
+## Stack
+
+| runtime | version | pinned by | lockfile | install | why |
+|---|---|---|---|---|---|
+| Node.js | 18 or newer | the kit's README | none; no packages | none | the kit's hooks, Doctor and law generator, which the shims here call |
+| git | any on PATH | none | none | none | the Doctor's repository scan and the commit-msg shim |
+
+The brain's stack is the kit's. A runtime this table does not name is a Change Request (GATE-06).
+
 ## Core flow
 
 ```

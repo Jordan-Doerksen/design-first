@@ -99,6 +99,113 @@
       "since": "2026-10-08",
       "emptyOk": true,
       "why": "OBS-08: every runnable tool ships a manual with a symptom, meaning and fix table. Selected by the files a runnable project carries; born before `since` is reported, not failed."
+    },
+    {
+      "id": "SCAN-STACK-01",
+      "type": "tree_each",
+      "root": "${ROOT}",
+      "depth": 2,
+      "exclude": [
+        "_to_delete",
+        "_archive",
+        "_backups"
+      ],
+      "where": {
+        "anyOf": [
+          "ARCHITECTURE.md"
+        ]
+      },
+      "require": [
+        {
+          "glob": "ARCHITECTURE.md",
+          "pattern": "(?m)^## Stack\\b"
+        }
+      ],
+      "since": "2026-10-19",
+      "emptyOk": true,
+      "why": "STACK-01: every architecture map carries a `## Stack` section that names each runtime, its version pin, its lockfile and its install verb; the kit's instructions/stack-law.md has the table. Selected by the map itself, so a repository with no map is SCAN-MANIFEST-01's finding and not this one's. Born before `since` (set it to your adopt date) is reported, not failed. The claim sees the heading, not whether the rows are true."
+    },
+    {
+      "id": "SCAN-STACK-02",
+      "type": "tree_each",
+      "root": "${ROOT}",
+      "depth": 2,
+      "exclude": [
+        "_to_delete",
+        "_archive",
+        "_backups"
+      ],
+      "where": {
+        "anyOf": [
+          "package.json"
+        ]
+      },
+      "require": [
+        {
+          "glob": "package-lock.json|pnpm-lock.yaml|yarn.lock"
+        },
+        {
+          "glob": ".node-version|.nvmrc"
+        }
+      ],
+      "since": "2026-10-19",
+      "emptyOk": true,
+      "why": "STACK-02 for Node.js: a repository with package.json at its root carries a lockfile (package-lock.json, pnpm-lock.yaml or yarn.lock) and a version pin (.node-version or .nvmrc). The engines field in package.json is advisory unless engine-strict is set, so it is not a pin. Selected by the root marker only; a nested package.json does not select. Born before `since` (set it to your adopt date) is reported, not failed. SCAN-STACK-03 and SCAN-STACK-04 are the same rule for Python and Rust."
+    },
+    {
+      "id": "SCAN-STACK-03",
+      "type": "tree_each",
+      "root": "${ROOT}",
+      "depth": 2,
+      "exclude": [
+        "_to_delete",
+        "_archive",
+        "_backups"
+      ],
+      "where": {
+        "anyOf": [
+          "pyproject.toml"
+        ]
+      },
+      "require": [
+        {
+          "glob": "uv.lock|poetry.lock"
+        },
+        {
+          "file": ".python-version"
+        }
+      ],
+      "since": "2026-10-19",
+      "emptyOk": true,
+      "why": "STACK-02 for Python: a repository with pyproject.toml at its root carries a lock (uv.lock or poetry.lock) and a .python-version pin; requires-python in pyproject.toml is a range, not a pin. Born before `since` (set it to your adopt date) is reported, not failed."
+    },
+    {
+      "id": "SCAN-STACK-04",
+      "type": "tree_each",
+      "root": "${ROOT}",
+      "depth": 2,
+      "exclude": [
+        "_to_delete",
+        "_archive",
+        "_backups"
+      ],
+      "where": {
+        "anyOf": [
+          "Cargo.toml",
+          "src-tauri/Cargo.toml"
+        ]
+      },
+      "require": [
+        {
+          "glob": "rust-toolchain.toml|src-tauri/rust-toolchain.toml"
+        },
+        {
+          "glob": "Cargo.lock|src-tauri/Cargo.lock"
+        }
+      ],
+      "since": "2026-10-19",
+      "emptyOk": true,
+      "why": "STACK-02 for Rust, a Tauri shell included: a repository with Cargo.toml at its root or under src-tauri/ carries rust-toolchain.toml and Cargo.lock in that place. Born before `since` (set it to your adopt date) is reported, not failed. Godot has no documented pin file and a file:// page has nothing to pin, so neither gets a claim: the Stack section's version column is their record."
     }
   ]
 }

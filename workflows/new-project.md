@@ -19,5 +19,10 @@ the clause that governs it.
 8. **Match an installed skill before building from nothing** (`DES-12`).
 9. **Build the smallest slice inside the design** (`DES-05`), split by domain (`DES-03`), config in
    `.json` (`DES-04`).
+10. **Record the stack in the map before the first chunk** (`STACK-01`): a `## Stack` section in
+    `ARCHITECTURE.md`, one row per runtime with its version pin, its lockfile and its install verb,
+    taken from the brain's default table for this kind of project (`STACK-03`). A departure from
+    the table is a decision in the manifest with its reason. The pin files are in the first commit
+    (`STACK-02`), and the install verb is the locked one (`DES-10`).
 
 Then `workflows/coding.md` for how the build runs.

@@ -160,15 +160,23 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 |---|---|---|---|
 | MAP-01 | HOOK | Before editing anything that has versions, confirm the canonical copy; do not trust an inventory written inside another file. | `brain:canonical.md` |
 
+## STACK - Development stack
+
+| id | grade | rule | owner |
+|---|---|---|---|
+| STACK-01 | GATE | Every repository's architecture map carries a Stack section that names each runtime it needs, its version pin, its lockfile and its install verb; a runtime the section does not name is a Change Request. | `kit:instructions/stack-law.md` |
+| STACK-02 | BUILDABLE | A runtime's version pin and its lockfile are files at the repository root that the Doctor reads, never a line in prose. | `kit:instructions/stack-law.md` |
+| STACK-03 | ADVISE | A new repository takes its stack from the brain's default table for its kind, and a departure is a decision in the manifest with its reason. | `kit:instructions/stack-law.md` |
+
 ## Summary
 
 | grade | count |
 |---|---|
 | DENY | 0 |
 | HOOK | 13 |
-| ADVISE | 36 |
-| GATE | 13 |
-| BUILDABLE | 14 |
+| ADVISE | 37 |
+| GATE | 14 |
+| BUILDABLE | 15 |
 | OWNER | 2 |
 | HONOUR | 5 |
-| total | 83 |
+| total | 86 |

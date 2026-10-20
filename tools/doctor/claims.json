@@ -219,6 +219,13 @@
         "since": "2026-10-15",
         "reason": "CR-2026-10-15-GAPS D7, owner approved: VCS-01, VCS-02, VCS-04, VCS-22 and DES-09 go from GATE to HONOUR. Their survey findings change the verdict only with surveyStrict on, which the template ships off (VCS-04 and DES-09 are warn and never change it), so GATE said a machine stops you and none did. A brain that runs strict re-grades VCS-01, VCS-02 and VCS-22 to GATE in its overlay. No rule lost a mechanism; the grade now says what the shipped config does."
       }
+    },
+    {
+      "id": "KIT-STACK-01",
+      "type": "file_contains",
+      "path": "${KIT}/ARCHITECTURE.md",
+      "needle": "## Stack",
+      "why": "STACK-01: the kit's own architecture map carries a Stack section that names each runtime the kit needs, its version pin, its lockfile and its install verb. The kit runs on Node.js with no packages, so the section says what is pinned (nothing but the README's version line) and what is not; a map without the section is a RED run. The brain template ships SCAN-STACK-01, the same check over an adopter's repositories. The section's rows are prose, and nothing compares them with a pin file."
     }
   ]
 }

@@ -21,7 +21,7 @@
 // Failure policy: an internal error injects nothing law-shaped, logs an ERROR line and says so.
 //
 // anchor: subagent-law  mode: advise  verbs: route-law
-// anchor: advise-by-role  mode: advise  verbs: decide,deliver,expose-action,configure,slice,scope-edit,annotate,confirm,diagnose,decide-scope,size-work,evidence,shape-log,log-negative,aggregate,locate-log,wear-hat,cite,taste,frontier
+// anchor: advise-by-role  mode: advise  verbs: decide,deliver,expose-action,configure,slice,scope-edit,annotate,confirm,diagnose,decide-scope,size-work,evidence,shape-log,log-negative,aggregate,locate-log,wear-hat,cite,taste,frontier,pick-stack
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -108,6 +108,15 @@ try {
         // fit beside the block is deferred instead; its rows are the per-session half and the session
         // already read them.
         const advise = readAdviseClauses(C, kit, ptr.brain);
+        // A file named below lawFoldersLine is named relative to the folder that line already gave
+        // (CR-2026-10-17-PATHS: the kit folder once per injection). Workaround (CR-2026-10-19-STACK):
+        // the ADVISE block grew by one clause, OBS was deferred at a 120-character kit path, and the
+        // deferral line named the kit folder a second time, by the index's full path.
+        const inFolder = (p) => {
+            const k = C.relUnder(p, kit); if (k != null) return `${k} in the kit folder`;
+            const b = ptr.brain ? C.relUnder(p, ptr.brain) : null; if (b != null) return `${b} in the brain folder`;
+            return p;
+        };
         const adviseText = advise.length > 0 ? formatAdvise(advise, isReviewer) : '';
         const adviseFits = adviseText && out.length + adviseText.length + 2 <= maxChars;
         const reserved = adviseFits ? adviseText.length + 2 : 0;
@@ -123,7 +132,7 @@ try {
                 if (out.length + text.length + 2 + reserved > maxChars) { deferred.push(g); continue; }
                 out += text + '\n\n'; injected.push(g);
             }
-            if (deferred.length > 0) out += `Over the size cap, not injected: ${deferred.join(', ')}; index at ${law}.\n\n`;
+            if (deferred.length > 0) out += `Over the size cap, not injected: ${deferred.join(', ')}; index at ${inFolder(law)}.\n\n`;
         }
 
         // advise-by-role: after the groups, in the room reserved above. Over the cap (the block alone
@@ -131,7 +140,7 @@ try {
         let adviseInjected = false;
         if (advise.length > 0) {
             if (adviseFits && out.length + adviseText.length + 2 <= maxChars) out += adviseText + '\n';
-            else out += `ADVISE clauses over the size cap, not injected; the ids a Reviewer must answer for: ${advise.map((c) => c.id).join(', ')}. Full text in ${path.join(kit, 'law.json')}.\n`;
+            else out += `ADVISE clauses over the size cap, not injected; the ids a Reviewer must answer for: ${advise.map((c) => c.id).join(', ')}. Full text in ${inFolder(path.join(kit, 'law.json'))}.\n`;
             adviseInjected = true;
         }
 

@@ -14,7 +14,8 @@
     "DISP": "Display",
     "SKIN": "Skins",
     "VOICE": "Voice",
-    "MAP": "Canonical copies"
+    "MAP": "Canonical copies",
+    "STACK": "Development stack"
   },
   "clauses": [
     {
@@ -1066,6 +1067,45 @@
       "enforcedBy": {
         "kind": "hook",
         "ref": "hooks/guard.mjs#frozen-path"
+      }
+    },
+    {
+      "id": "STACK-01",
+      "group": "STACK",
+      "verb": "record-stack",
+      "rule": "Every repository's architecture map carries a Stack section that names each runtime it needs, its version pin, its lockfile and its install verb; a runtime the section does not name is a Change Request.",
+      "owner": "kit:instructions/stack-law.md",
+      "grade": "GATE",
+      "since": "2026-10-19",
+      "enforcedBy": {
+        "kind": "doctor-claim",
+        "ref": "KIT-STACK-01"
+      }
+    },
+    {
+      "id": "STACK-02",
+      "group": "STACK",
+      "verb": "pin-stack",
+      "rule": "A runtime's version pin and its lockfile are files at the repository root that the Doctor reads, never a line in prose.",
+      "owner": "kit:instructions/stack-law.md",
+      "grade": "BUILDABLE",
+      "since": "2026-10-19",
+      "enforcedBy": {
+        "kind": "planned",
+        "ref": "DECISIONS.md#CR-2026-10-19-STACK"
+      }
+    },
+    {
+      "id": "STACK-03",
+      "group": "STACK",
+      "verb": "pick-stack",
+      "rule": "A new repository takes its stack from the brain's default table for its kind, and a departure is a decision in the manifest with its reason.",
+      "owner": "kit:instructions/stack-law.md",
+      "grade": "ADVISE",
+      "since": "2026-10-19",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/subagent.mjs#advise-by-role"
       }
     }
   ]
