@@ -414,12 +414,12 @@ on the PowerShell line, which the Node port did not carry until 0.2.3.)
 ## A Python heredoc the guard refuses (rule 13, `no-python-heredoc`)
 
 Guard rule 13 runs in every session, with or without a brain, and has no config key. It reads each
-Bash or PowerShell sub-command: the command word reduced to its file name, then the other words.
-The pattern lives once, in `hooks/lib/guard-owner-rules.mjs`.
+Bash or PowerShell sub-command, and the pipeline it is in: the command word reduced to its file
+name, then the other words in order. The reading lives once, in `hooks/lib/guard-owner-rules.mjs`.
 
 | You see | Means | Do |
 |---|---|---|
-| `BLOCKED - no-python-heredoc: this command pipes a heredoc into Python (<text>)` on a command such as `python - <<'EOF'`, `python3 -  <<EOF`, `py - <<EOF`, `py -3 -<<EOF` or `C:\Python312\python3.exe - <<-EOF` | The command runs Python on a script typed into a heredoc: python, python3 (any version suffix) or py with an optional version flag, then a lone `-`, then `<<`. Broken heredoc one-liners left runaway Python processes on 2026-10-20 (owner ruling, kit-next batch entry 3). Not refused: `python script.py`, `-m`, `-c`, `python - < file.py` (one `<` is a redirect), and the same text inside a quoted string given to `echo`, `grep` or `git commit -m` (only the command word is read). | Write the code into a script file with the Write or Edit tool, then run that file (`python <file>.py`). |
+| `BLOCKED - no-python-heredoc: this command pipes a heredoc into Python (<text>)` on a command such as `python - <<'EOF'`, `python3 <<EOF`, `py -3 -<<EOF`, `python -u - <<EOF`, `python -X utf8 - <<EOF`, `C:\Python312\python.exe <<EOF`, `cat <<EOF \| python` or `cat <<'EOF' \| py -3` | A heredoc is the Python code: python, python3 (any version suffix) or py (any version flag) has no script file, `-m` or `-c` before the `<<`, or reads its code from stdin while an earlier command in the same pipeline carries a heredoc. Broken heredoc one-liners left runaway Python processes on 2026-10-20 (owner ruling, kit-next batch entry 3). Not refused, because the heredoc is input data there: `python script.py <<EOF`, `python -m mymod <<EOF`, `python -c "..." <<EOF`, `cat <<EOF \| python script.py`. Also not refused: `cat <<EOF > run.py`, `cat <<EOF \| grep x`, `python - < file.py` (one `<` is a redirect), and the same text inside a quoted string given to `echo`, `grep` or `git commit -m` (a command is read from its command word). | Write the code into a script file with the Write or Edit tool, then run that file (`python <file>.py`). |
 
 ## Known gaps, stated honestly
 

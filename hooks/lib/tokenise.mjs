@@ -3,6 +3,7 @@
 // splitCommand returns a list of sub-commands; each sub-command is a list of tokens with the
 // surrounding quotes removed. Sub-command separators, recognised only OUTSIDE quotes:
 //   &&  ||  ;  |  &  newline
+// A sub-command that follows a single '|' carries the non-enumerable property pipedIn = true.
 // Quotes: '...' is literal to the closing quote. "..." honours the shell's escape character.
 // Escape character: Bash uses backslash, PowerShell uses backtick. Outside quotes a Bash backslash
 // escapes only shell-significant characters (quote, space, $, &, |, ;, <, >, (, ), backslash,
@@ -27,6 +28,11 @@ export function splitCommand(cmd, shell) {
     let inSingle = false, inDouble = false;
     const n = cmd.length;
     const endToken = () => { if (haveToken) { tokens.push(cur); cur = ''; haveToken = false; } };
+    // A sub-command on the right of a single '|' carries pipedIn = true, a non-enumerable property
+    // so the token list compares and prints as before. Guard rule 13 reads it: a heredoc piped into
+    // Python ('cat <<EOF | python') is the code.
+    let pipedIn = false;
+    const push = (t) => { Object.defineProperty(t, 'pipedIn', { value: pipedIn, enumerable: false }); subs.push(t); };
 
     let i = 0;
     while (i < n) {
@@ -71,14 +77,15 @@ export function splitCommand(cmd, shell) {
         }
         if (sepLen > 0) {
             endToken();
-            if (tokens.length > 0) { subs.push(tokens); tokens = []; }
+            if (tokens.length > 0) { push(tokens); tokens = []; pipedIn = false; }
+            if (c === '|' && sepLen === 1) pipedIn = true;
             i += sepLen; continue;
         }
         if (isWs(c)) { endToken(); i++; continue; }
         cur += c; haveToken = true; i++;
     }
     if (haveToken) tokens.push(cur);
-    if (tokens.length > 0) subs.push(tokens);
+    if (tokens.length > 0) push(tokens);
     return subs;
 }
 

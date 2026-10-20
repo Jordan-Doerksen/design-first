@@ -24,8 +24,9 @@
 //                      The git commands that move HEAD or a branch are open-ended: the list in
 //                      lib/guard-loop-rules.mjs is what is covered, and any other is a residual.
 //  12. ledger        - an Edit, Write or NotebookEdit to the story ledger on a loop branch (AUTO-04).
-//  13. no-python-heredoc - a Bash or PowerShell command that pipes a heredoc into Python: python,
-//                      python3 or py (py -3), a lone '-', then '<<' (owner ruling 2026-10-20).
+//  13. no-python-heredoc - a Bash or PowerShell command where a heredoc is Python's code: python,
+//                      python3 or py (py -3) with no script file, -m or -c, then '<<'; or a
+//                      heredoc piped into such an interpreter (owner ruling 2026-10-20).
 // Rules 1-3, 7 and 10-13 run with or without a brain. Rule 4 needs the brain's doctor.config.json;
 // without one it is skipped and says so once per session. Rules 8 and 9 run only when the brain
 // turns them on (forbidScheduling, contentRules). Rules 5 and 6 advise and never deny. Rules 7-9 and
@@ -146,7 +147,7 @@ try {
             // every probe failed, and 'cd "$(git rev-parse --show-toplevel)" && git add -A' staged a
             // secret that the tool call's own folder would have shown.
             let runCwd = cwd;
-            for (const tokens of subs) {
+            for (const [k, tokens] of subs.entries()) {
                 if (tokens.length >= 2 && C.iin(tokens[0], ['cd', 'Set-Location', 'sl', 'pushd', 'Push-Location', 'chdir'])) {
                     const to = C.toFullPath(tokens[tokens.length - 1], runCwd);
                     if (to && C.isDir(to)) runCwd = to;
@@ -165,8 +166,9 @@ try {
                 }
                 if (!result && cfg.present) result = R.pathRuleShell(tokens, call, runCwd, cfg.protected, owner);
                 if (!result && cfg.forbidScheduling) result = O.scheduleRuleShell(tokens, owner);
-                // Rule 13 denies a Python heredoc ('python3 - <<EOF'), always, brain or no brain.
-                if (!result) result = O.pythonHeredocRule(tokens);
+                // Rule 13 denies a heredoc that is Python's code ('python3 - <<EOF', 'python <<EOF',
+                // 'cat <<EOF | python'), always, brain or no brain. It reads the whole pipeline.
+                if (!result) result = O.pythonHeredocRule(subs, k);
                 if (result) break;
             }
             if (!result && cfg.contentRules.length > 0) result = O.contentRuleShell(cmd, runCwd, cfg.contentRules, owner);

@@ -219,45 +219,119 @@ export function contentRuleShell(cmd, cwd, rules, owner) {
 // anchor: no-python-heredoc  mode: deny  verbs: pipe-heredoc
 // Owner ruling 2026-10-20 (Intake item 31a, kit-next batch entry 3): "a hook that refuses any shell
 // command containing "python - <<" or "python3 - <<" before it runs, for every session". Approved
-// variants: "py - <<" and "py -3 - <<". Why: seven runaway Python processes from broken heredoc
-// one-liners burned about 40 hours of CPU on 2026-10-20. It serves SAFE-08's spirit (nothing runs
-// that the owner did not start) operationally; it is not a law clause. Always on, with or without a
-// brain, like rules 1-3: there is no config key.
-// The pattern lives here and nowhere else. It is read against ONE sub-command from splitCommand: its
-// command word reduced to the file name (a path and an .exe suffix are allowed), then the rest of its
-// words joined by one space. So spacing does not matter ('-  <<', '-<<EOF', '<<-EOF', '<< EOF').
-// Matched: python, python3, python3.12 (any version suffix), py; for py, a version flag (-3, -3.12,
-// -3.12-64); then a lone '-' as the script argument; then '<<'. A here-string ('<<<') starts with
-// '<<' and is matched too. Not matched: 'python script.py', '-m', '-c', and 'python - < file.py' (one
-// '<' is a file redirect, not a heredoc).
+// variants: "py - <<" and "py -3 - <<". Follow-up the same day (the owner's pick): also refuse the
+// three gaps the first cut recorded, so the rule refuses every command where a heredoc IS the
+// Python code. Why: seven runaway Python processes from broken heredoc one-liners burned about 40
+// hours of CPU on 2026-10-20. It serves SAFE-08's spirit (nothing runs that the owner did not start)
+// operationally; it is not a law clause. Always on, with or without a brain, like rules 1-3: there
+// is no config key.
+//
+// The logic lives here and nowhere else: PY_INTERP_RX names the interpreter, pyCodeSource reads its
+// words. One sub-command from splitCommand is read at a time. Before the command word these are
+// skipped: the PowerShell call operator '&', NAME=value words, and the wrappers env, command, exec,
+// nohup and time when they carry no option of their own. The command word is reduced to its file
+// name, so a path and an .exe suffix are allowed: python, python3, python3.12 (any version suffix),
+// py. Its words are then read in order:
+//   - '-c' or '-m' (alone or inside a short-option group such as -uc), or a word that is not an
+//     option or a redirect (a script file): the code comes from there, so a heredoc is input DATA
+//     to that program. Allowed. This is the boundary: 'python script.py <<EOF', 'python -m mod
+//     <<EOF' and 'python -c "..." <<EOF' are allowed.
+//   - '-' (the script is stdin) and any other option are read past. -X, -W and
+//     --check-hash-based-pycs take the next word as their value. py's version flag (-3, -3.12,
+//     -3.12-64, -V:3.12) is an option like any other. A word after '-' is an argument to stdin's
+//     script, not a script file.
+//   - a word that starts with '<<' (a heredoc, '<<-EOF', '<< EOF', or a here-string '<<<'), or
+//     '-<<EOF' (the '-' joined to it): the heredoc IS the code. Refused.
+//   - a redirect ('<', '>', '2>&1', '>>out') is read past with its target; one '<' is a file
+//     redirect, so 'python - < file.py' is allowed.
+// When the words end with no code source, the interpreter reads its code from stdin. If this
+// sub-command is on the right of a pipe ('|', recorded by splitCommand as pipedIn) and any command
+// earlier in the same pipeline carries a heredoc word, the heredoc is the code: 'cat <<EOF |
+// python', 'cat <<EOF | python -', 'cat <<EOF | sed s/a/b/ | py -3'. Refused. 'cat <<EOF | grep x'
+// and 'cat <<EOF > run.py' are not an interpreter and are allowed.
 // Quoted text: the tokeniser keeps a quoted string as one word with its quotes removed, and this rule
-// reads the command word only, so 'echo "python - <<"', 'grep "python - <<" f' and 'git commit -m
-// "python - <<"' are data and allowed. This is the Startup rule's token reading (rule 8 above), but
-// not its every-token scan: rule 8 refuses a Startup path in any word, quoted or not, because naming
-// that folder is the risk; here only running Python is. A command word that holds a space after its
-// path is cut is a quoted string, not a program, and is not read.
-// Before the command word, these are skipped: the PowerShell call operator '&', NAME=value words, and
-// the wrappers env, command, exec, nohup and time when they carry no option of their own.
+// reads a command from its command word, so 'echo "python - <<"', 'grep "python - <<" f' and 'git
+// commit -m "python - <<"' are data and allowed. This is the Startup rule's token reading (rule 8
+// above), but not its every-token scan: rule 8 refuses a Startup path in any word, quoted or not,
+// because naming that folder is the risk; here only running Python is. A command word that holds a
+// space after its path is cut is a quoted string, not a program, and is not read.
 // Cannot see: the shell residual (bash -c "...", pwsh -c "...", a script on disk); a wrapper with its
-// own options (env -i, time -p, sudo, nice, timeout, uv run, poetry run); an option before the '-'
-// ('python -u - <<'); a heredoc piped in ('cat <<EOF | python -'); and 'python <<EOF' with no '-'.
-// The owner's words name only the '-' form. A line inside another command's heredoc body is split as
-// its own sub-command, so a body line that itself starts 'python - <<' is refused (a false refusal).
-const PY_HEREDOC_RX = /^(?:python(?:\d+(?:\.\d+)*)?|py)(?:\.exe)?(?:\s+-\d+(?:\.\d+)*(?:-(?:32|64))?)?\s+-\s*<</i;
+// own options (env -i, time -p, sudo, nice, timeout, uv run, poetry run); stdin fed from something
+// that is not a heredoc word (echo "code" | python, a here-string in PowerShell's @'...'@ form);
+// and a heredoc word given in quotes upstream of a pipe ('echo "<<EOF" | python' is read as a
+// heredoc, a false refusal). A line inside another command's heredoc body is split as its own
+// sub-command, so a body line that itself starts 'python - <<' is refused (a false refusal).
+const PY_INTERP_RX = /^(?:python(?:\d+(?:\.\d+)*)?|py)(?:\.exe)?$/i;
 const PY_WRAPPERS = ['env', 'command', 'exec', 'nohup', 'time'];
+const PY_VALUED = ['-X', '-W', '--check-hash-based-pycs'];
+const HEREDOC_RX = /^-?<</;
+const REDIRECT_RX = /^(?:\d*|&)(?:>>?|<(?!<))/;
+const REDIRECT_ALONE_RX = /^(?:\d*|&)(?:>>?|<)$/;
 
-export function pythonHeredocRule(tokens) {
-    if (!tokens || tokens.length === 0) return null;
+// The index of the command word in a sub-command, past the prefixes this rule reads; -1 for none.
+function commandWordAt(tokens) {
     let i = 0;
     while (i < tokens.length && (tokens[i] === '&' || /^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[i]) || iin(tokens[i], PY_WRAPPERS))) i++;
-    if (i >= tokens.length) return null;
+    return i < tokens.length ? i : -1;
+}
+
+// Reads a Python interpreter's words. Returns 'heredoc' (a heredoc word is the code), 'data' (a script
+// file, -m or -c is the code), 'stdin' (no code source in the words), or null (not an interpreter).
+// words: the interpreter's own words up to the one that decided, for the refusal text.
+function pyCodeSource(tokens) {
+    const i = commandWordAt(tokens);
+    if (i < 0) return null;
     const head = getLeaf(tokens[i]);
-    if (!head || /\s/.test(head)) return null;
-    const m = PY_HEREDOC_RX.exec([head, ...tokens.slice(i + 1)].join(' '));
-    if (!m) return null;
-    const hit = m[0].replace(/\s+/g, ' ');
+    if (!head || /\s/.test(head) || !PY_INTERP_RX.test(head)) return null;
+    let stdinScript = false;
+    for (let k = i + 1; k < tokens.length; k++) {
+        const t = tokens[k];
+        const words = [head, ...tokens.slice(i + 1, k + 1)];
+        if (HEREDOC_RX.test(t)) return { kind: 'heredoc', words };
+        if (REDIRECT_RX.test(t)) { if (REDIRECT_ALONE_RX.test(t)) k++; continue; }   // an operator alone: its target is the next word
+        if (t === '-') { stdinScript = true; continue; }
+        if (stdinScript) continue;                                    // an argument to stdin's script
+        if (PY_VALUED.includes(t)) { k++; continue; }
+        if (/^-[A-Za-z]/.test(t)) {
+            // A short-option group (-u, -uc, -Xutf8, -V:3.12): c or m ends the options with the code
+            // source; X or W takes the rest of the word, or the next word, as its value.
+            let valued = false;
+            for (const ch of t.slice(1)) {
+                if (ch === 'c' || ch === 'm') return { kind: 'data', words };
+                if (ch === 'X' || ch === 'W') { valued = true; break; }
+                if (!/[A-Za-z]/.test(ch)) break;
+            }
+            if (valued && /^-[A-Za-z]*[XW]$/.test(t)) k++;
+            continue;
+        }
+        if (t.startsWith('-')) continue;                             // a long option, --, or py's -3.12
+        return { kind: 'data', words };                              // a script file
+    }
+    return { kind: 'stdin', words: [head, ...tokens.slice(i + 1)] };
+}
+
+function pyHeredocDeny(hit) {
     const reason = `BLOCKED - no-python-heredoc: this command pipes a heredoc into Python (${hit}).\n\n` +
         'A Python heredoc is refused because broken heredoc one-liners left runaway Python processes behind. ' +
         'Write the code into a script file with the Write or Edit tool, then run that file (python <file>.py).';
     return newDeny('guard', `no-python-heredoc (${hit})`, reason);
+}
+
+// subs: every sub-command of the call, from splitCommand; k: the one to read.
+export function pythonHeredocRule(subs, k) {
+    const tokens = subs && subs[k];
+    if (!tokens || tokens.length === 0) return null;
+    const src = pyCodeSource(tokens);
+    if (!src || src.kind === 'data') return null;
+    if (src.kind === 'heredoc') return pyHeredocDeny(src.words.join(' '));
+    // No code source in the words: the code is stdin. A heredoc earlier in the same pipeline is it.
+    for (let j = k; j > 0 && subs[j].pipedIn; j--) {
+        const up = subs[j - 1];
+        const h = up.find((t) => HEREDOC_RX.test(t));
+        if (h) {
+            const w = commandWordAt(up);
+            return pyHeredocDeny(`${w >= 0 ? up[w] : ''} ${h} | ${src.words.join(' ')}`.trim());
+        }
+    }
+    return null;
 }
