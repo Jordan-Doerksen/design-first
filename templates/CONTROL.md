@@ -28,6 +28,9 @@ by the owner, never by a session (SAFE-06). No secret in it (SAFE-01). Written b
   `Voice: terse, for your master, not the owner; no hype, no recap prose.` A work session answers its
   master, not the owner (owner ruling 29, 2026-10-20), and the router leaves the policy's `writerSkip`
   law out of a session whose first prompt has `Reports to:` at the start of a line.
+- A brief may also carry a report rule (owner ruling 32, 2026-10-20). Template text:
+  `Report rule: message only for done, blocked, or a question for the owner; no progress, acknowledgement or state lines.`
+  The master holds this rule toward Intake too: no progress or acknowledgement line goes up.
 - Report format, four lines: repo and branch; files changed or posts made; needs from the owner;
   blocked on.
 - A decision reaches the owner by its rank (OWN-10). Low or medium: the master decides what it can
