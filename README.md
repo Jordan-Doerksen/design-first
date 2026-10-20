@@ -92,6 +92,7 @@ To see every step with nothing written, run the script yourself with `-DryRun`:
 | command | what it does |
 |---|---|
 | `/design-first:adopt` | Set up design-first on this machine. Asks seven questions one at a time, then a script writes root, brain and pointer, generates LAW.md and runs the Doctor. |
+| `/design-first:control` | Open a domain's master control session. Reads the domain's row from the Intake card or asks for it, renames the session, writes the control card from a template, lists and messages the domain's sessions, files them in the sidebar and pins the master. `intake` writes the Intake card. |
 | `/design-first:council` | Run a pitch past every council seat in the project's agents folder, one question at a time, and record the verdicts. Writes the manifest only after the owner says yes. |
 | `/design-first:gut` | Stress-test an idea before committing to it. Blunt devil's advocate. |
 | `/design-first:move` | Get a recommendation (not a survey) on a decision. |
@@ -134,10 +135,10 @@ loops and gates, drawn: [`LOOPS.md`](LOOPS.md). The map: [`ARCHITECTURE.md`](ARC
 | `tools/doctor/` | disk checker |
 | `tools/vcs/` | git-side checks |
 | `tools/tests/` | hook self-test |
-| `commands/` | adopt, remove, council, gut, move, scope, ship |
-| `tools/adopt.mjs`, `tools/remove.mjs` | the writers |
+| `commands/` | adopt, remove, control, council, gut, move, scope, ship |
+| `tools/adopt.mjs`, `tools/remove.mjs`, `tools/control.mjs` | the writers |
 | `agents/` | read-only reviewer |
-| `templates/` | root and brain files |
+| `templates/` | root and brain files; the two control cards |
 | `instructions/`, `workflows/`, `lessons/` | the rule text |
 | `LOOPS.md` | the loops and gates, drawn |
 | `docs/` | the public page |

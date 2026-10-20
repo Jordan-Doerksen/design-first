@@ -14,7 +14,7 @@
 
 <header class="top" data-chrome="identity_navigation">
   <a class="home" href="https://jordan-doerksen.github.io/">Home</a>
-  <span class="title"><b>design-first</b> <span class="ver">0.2.4</span></span>
+  <span class="title"><b>design-first</b> <span class="ver">0.2.5</span></span>
   <a class="repo" href="https://github.com/Jordan-Doerksen/design-first">Code</a>
 </header>
 
@@ -460,7 +460,8 @@ hooks/hooks.json --------&gt; guard.mjs / fence.mjs / ask.mjs / agent.mjs --&gt;
                            entry.mjs --&gt; entry path + state card (GAME-13, DES-14), into context
                            stop.mjs --&gt; the first stop of a source turn refused once, with the card (DES-07, GATE-01/05/06/07, GAME-12)
 commands/adopt.md -------&gt; tools/adopt.mjs --&gt; &lt;root&gt;/CLAUDE.md, &lt;root&gt;/.claude/settings*.json,
-                                               &lt;brain&gt;/*, ~/.claude/design-first.json</pre>
+                                               &lt;brain&gt;/*, ~/.claude/design-first.json
+commands/control.md -----&gt; tools/control.mjs --&gt; &lt;brain&gt;/control/&lt;DOMAIN&gt;-CONTROL.md, &lt;brain&gt;/control/INTAKE.md</pre>
         </div>
       </article>
 
@@ -612,6 +613,7 @@ commands/adopt.md -------&gt; tools/adopt.mjs --&gt; &lt;root&gt;/CLAUDE.md, &lt
   <h3>Commands</h3>
   <ul class="ix">
 <li><span class="ix-id"><code>/design-first:adopt</code></span><span class="ix-grades">Set up design-first on this machine. Asks seven questions one at a time, then a script writes root, brain and pointer, generates LAW.md and runs the Doctor.</span></li>
+<li><span class="ix-id"><code>/design-first:control</code></span><span class="ix-grades">Open a domain&#39;s master control session. Reads the domain&#39;s row from the Intake card or asks for it, renames the session, writes the control card from a template, lists and messages the domain&#39;s sessions, files them in the sidebar and pins the master. `intake` writes the Intake card.</span></li>
 <li><span class="ix-id"><code>/design-first:council</code></span><span class="ix-grades">Run a pitch past every council seat in the project&#39;s agents folder, one question at a time, and record the verdicts. Writes the manifest only after the owner says yes.</span></li>
 <li><span class="ix-id"><code>/design-first:gut</code></span><span class="ix-grades">Stress-test an idea before committing to it. Blunt devil&#39;s advocate.</span></li>
 <li><span class="ix-id"><code>/design-first:move</code></span><span class="ix-grades">Get a recommendation (not a survey) on a decision.</span></li>
@@ -841,7 +843,7 @@ claude plugin install design-first@design-first
 
 <footer class="foot">
   <a href="https://jordan-doerksen.github.io/">Home</a>
-  <span>Generated from design-first 0.2.4 by <code>docs/build.mjs</code>. Recordings 2026-10-17 on 0.2.0.</span>
+  <span>Generated from design-first 0.2.5 by <code>docs/build.mjs</code>. Recordings 2026-10-17 on 0.2.0.</span>
 </footer>
 
 <script src="page.js"></script>
