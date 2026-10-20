@@ -269,7 +269,8 @@ try {
     check('control: the folders and the test are on the card; the typed period is not doubled', rail.includes('`rail`, `map-reading-trainer`') && rail.includes('The test: it teaches or checks a rule.') && !rail.includes('rule..'), rail);
     const railHeads = rail.split('\n').filter((l) => /^## /.test(l));
     check('control: the five sections, in order', railHeads.length === 5 && /^## How it works$/.test(railHeads[0]) && /^## Plumbing checks/.test(railHeads[1]) && /^## Roster, \d{4}-\d{2}-\d{2}$/.test(railHeads[2]) && railHeads[3] === '## Ladder' && railHeads[4] === '## Open for the owner', railHeads.join(' | '));
-    check('control: the card says how a decision reaches the owner by rank (0.2.7)', rail.includes('A decision reaches the owner by its rank (OWN-10).') && rail.includes("the owner opens this chat by Intake's link"), rail);
+    check('control: the card says how a decision reaches the owner by rank (0.2.7)', rail.includes('A decision reaches the owner by its rank (OWN-10).') && rail.includes('a fresh Fable planning session') && rail.includes("the owner opens the planning session\n  by Intake's link"), rail);
+    check('control: the card says which model does which work (0.2.7)', rail.includes('- Fable plans, and only plans. This master and Intake run on Opus. Builds run on Sonnet.') && rail.includes('so every brief names Opus or Sonnet unless the owner did.'), rail);
     check('control: the four-line report and the sidebar rule are on the card', rail.includes('Report format, four lines: repo and branch; files changed or posts made; needs from the owner;') && rail.includes('A nested session moves with its parent'), rail);
     check('control: the Doctor shim row is pre-filled and the kit rows are not (the domain is not Method)', rail.includes(`| Disk law | \`${path.join(brainC, IS_WIN ? 'Doctor.bat' : 'doctor.sh')}\` | exit 0; 2 is not a pass | |`) && !rail.includes('run.mjs'), rail);
     check("control: the roster holds the master's own row and no other", rail.includes('| Rail Master Control (this) | | controls | |') && rail.split('(this)').length === 2, rail);
@@ -312,7 +313,10 @@ try {
     check('control: the Intake card line (a brain file with a history, committed by the owner)', intake.includes('a brain file with a history') && intake.includes('committed by the\nowner') && intake.includes('`local_intake_0001`'), intake);
     // 0.2.7: how a decision reaches the owner, by rank: low and medium by question through Intake,
     // high and a new project by an interview in the master's chat opened by Intake's link.
-    check('control: the Intake card says how a decision reaches the owner by rank', intake.includes('- **Low or medium.** The master decides what it can defend (OWN-05)') && intake.includes('- **High, or a new project.** The master runs a real design-first interview in its own chat.') && intake.includes("Intake gives the owner the link to the master's chat."), intake);
+    check('control: the Intake card says how a decision reaches the owner by rank', intake.includes('- **Low or medium.** The master decides what it can defend (OWN-05)') && intake.includes('- **High, or a new project.** The item gets a real design-first interview in a fresh planning') && intake.includes('Intake gives the owner the link\n  to the planning session.'), intake);
+    // Which model does which work: Fable plans only; Opus for Intake, masters and safety-critical
+    // writes; Sonnet for builds; a Fable write only when the owner names it.
+    check('control: the Intake card says which model does which work', intake.includes('- **Fable plans, and only plans.**') && intake.includes('- **Opus** runs Intake and the masters') && intake.includes('- **Sonnet** runs the builds.') && intake.includes('only when the owner names Fable for that item'), intake);
     const rc4b = run(control, ['-Domain', 'intake', '-Brain', brainC, '-Session', 'local_intake_0001', '-PluginRoot', kit], ptr3, markers);
     check('control: -Domain intake is the same Intake card (same line, nothing written)', rc4b.code === 0 && /^\s*same\s+.*INTAKE\.md/m.test(rc4b.out) && !exists(jp(brainC, 'control', 'INTAKE-CONTROL.md')), rc4b.out);
 

@@ -48,12 +48,22 @@ How a decision reaches the owner, by the master's rank (OWN-10):
 
 - **Low or medium.** The master decides what it can defend (OWN-05) and sends Intake one
   question at a time. Intake asks the owner and relays the answer.
-- **High, or a new project.** The master runs a real design-first interview in its own chat. It
-  sends Intake one line: the item is waiting on the owner, and the interview is ready, with the
-  number of questions. Intake gives the owner the link to the master's chat. The owner does the
-  whole interview there in one sitting, one question at a time (OWN-04), each ranked (OWN-10).
-  The master lays out the plan, and the go comes back to Intake as one line. A question in the
-  master's chat outside an interview the owner opened by Intake's link is still a breach.
+- **High, or a new project.** The item gets a real design-first interview in a fresh planning
+  session (the models are below). The master sends Intake one line: the item is waiting on the
+  owner, and the interview is ready, with the number of questions. Intake gives the owner the link
+  to the planning session. The owner does the whole interview there in one sitting, one question
+  at a time (OWN-04), each ranked (OWN-10). The session writes the plan and the spawn-ready briefs
+  onto the master's card, then ends, and the go comes back to Intake as one line. A question to
+  the owner outside an interview the owner opened by Intake's link is still a breach.
+
+Which model does which work:
+
+- **Fable plans, and only plans.** It runs the planning session above and nothing else.
+- **Opus** runs Intake and the masters, and writes reviews, order code and every other
+  safety-critical change.
+- **Sonnet** runs the builds.
+- A Fable session writes code or files only when the owner names Fable for that item. Every
+  other brief names Opus or Sonnet.
 
 ## The prompt Intake sends
 
