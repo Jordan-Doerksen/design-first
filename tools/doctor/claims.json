@@ -226,6 +226,16 @@
       "path": "${KIT}/ARCHITECTURE.md",
       "needle": "## Stack",
       "why": "STACK-01: the kit's own architecture map carries a Stack section that names each runtime the kit needs, its version pin, its lockfile and its install verb. The kit runs on Node.js with no packages, so the section says what is pinned (nothing but the README's version line) and what is not; a map without the section is a RED run. The brain template ships SCAN-STACK-01, the same check over an adopter's repositories. The section's rows are prose, and nothing compares them with a pin file."
+    },
+    {
+      "id": "KIT-CONTROL-01",
+      "type": "config_paths_each",
+      "configKey": "controlCards",
+      "base": "${BRAIN}/control",
+      "contains": [
+        "Master Control|Intake"
+      ],
+      "why": "CTRL-03: every control card the brain lists under controlCards in doctor.config.json exists under <brain>/control/ and names its master (the words Master Control, or Intake for the card above the masters). No `file` field: each listed path is itself the card. The kit lists none, so this passes with that said out loud; templates/claims.json ships CTRL-CARD-01, the same claim for the adopter's own list, and the brain Doctor runs it. The claim sees the file and the words, never whether the master's chat is alive."
     }
   ]
 }

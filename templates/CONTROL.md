@@ -21,8 +21,9 @@ by the owner, never by a session (SAFE-06). No secret in it (SAFE-01). Written b
   by message; it may not.
 - A session that writes gets its own branch, and its own worktree where the host gives one. Two
   writers never touch the same files. A session that only reads may share the checkout.
-- Every brief names: goal, files or area, done-check, ruled out, and the report format below
-  (DES-11; the agent hook refuses a subagent brief without the headings).
+- Every brief names: goal, files or area, done-check, ruled out, and what it reports to in the
+  format below, on a `Reports to:` line (DES-11, CTRL-02; the agent hook refuses a subagent brief
+  or a session brief without the headings).
 - Report format, four lines: repo and branch; files changed or posts made; needs from the owner;
   blocked on.
 - The go-word for a push, a post or a merge is said in the session that does it; a relayed approval

@@ -49,8 +49,12 @@ export function fileFreshClaim(c, ctx) {
 
 // ---------------------------------------------------------------- config_paths_each
 // Fields: configKey (a list key in doctor.config.json, already expanded by the config reader) or
-// paths[] (claim paths, expanded here); file; contains[]. Every folder must hold `file` with every
-// string in `contains`. An empty list is a PASS that says so: nothing listed, nothing to prove.
+// paths[] (claim paths, expanded here); base?; file?; contains[]. Every folder must hold `file` with
+// every string in `contains`. An empty list is a PASS that says so: nothing listed, nothing to prove.
+// CTRL-03 (CR-2026-10-19-CONTROL): with `base`, a relative entry is joined under that folder (the
+// control cards are relative to <brain>/control/); with no `file`, each entry is itself the file to
+// read. A string in `contains` may hold alternatives split by `|`, the way a glob does: the file
+// must hold one of them ('Master Control|Intake'). TOMBSTONE-01's fields are unchanged.
 function configListForClaim(key, ctx) {
     const cfgPath = ctx.brain ? path.join(ctx.brain, 'doctor.config.json') : path.join(ctx.kit, 'templates', 'doctor.config.json');
     const cr = readDoctorConfig(cfgPath, ctx);
@@ -61,18 +65,35 @@ function configListForClaim(key, ctx) {
     return { list: (Array.isArray(v) ? v : v == null ? [] : [v]).filter((x) => x).map(String) };
 }
 
+const isAbsLike = (p) => path.isAbsolute(p) || /^(%|\$\{)/.test(p) || /^[A-Za-z]:[\\/]/.test(p);
+
 export function configPathsEachClaim(c, ctx) {
     const file = String(c.file ?? '');
-    if (!file.trim()) return claimResult(c, 'UNKNOWN', "claim has no 'file'");
+    const eachIsFile = !file.trim();
     const needles = (Array.isArray(c.contains) ? c.contains : c.contains == null ? [] : [c.contains]).filter((x) => x).map(String);
+    if (eachIsFile && needles.length === 0) return claimResult(c, 'UNKNOWN', "claim has no 'file' and no 'contains': nothing to check on each path");
+    // `base` is resolved only once something is listed: the kit's own run has no brain, so ${BRAIN}
+    // cannot expand there, and an empty list is a PASS that never needs the folder.
+    let base = null;
+    const resolveBase = () => {
+        if (c.base == null || !String(c.base).trim()) return null;
+        const b = resolveClaimPath(String(c.base), ctx);
+        if (!b.path) return b.detail;
+        base = b.path; return null;
+    };
+    const under = (p) => (base && !isAbsLike(p) ? path.join(base, p) : p);
     let list; let source;
     if (c.configKey) {
         const got = configListForClaim(String(c.configKey), ctx);
         if (!got.list) return claimResult(c, 'UNKNOWN', got.detail);
-        list = got.list; source = `config '${c.configKey}'`;
+        if (got.list.length > 0) { const bad = resolveBase(); if (bad) return claimResult(c, 'UNKNOWN', bad); }
+        list = got.list.map(under); source = `config '${c.configKey}'`;
     } else if (Object.prototype.hasOwnProperty.call(c, 'paths')) {
         list = [];
-        for (const raw of Array.isArray(c.paths) ? c.paths : [c.paths]) {
+        const raws = Array.isArray(c.paths) ? c.paths : [c.paths];
+        if (raws.length > 0) { const bad = resolveBase(); if (bad) return claimResult(c, 'UNKNOWN', bad); }
+        for (const raw of raws) {
+            if (base && !isAbsLike(String(raw))) { list.push(path.join(base, String(raw))); continue; }
             const r = resolveClaimPath(raw, ctx);
             if (!r.path) return claimResult(c, 'UNKNOWN', r.detail);
             list.push(r.path);
@@ -80,14 +101,25 @@ export function configPathsEachClaim(c, ctx) {
         source = 'the claim';
     } else return claimResult(c, 'UNKNOWN', "claim needs 'configKey' or 'paths'");
     if (list.length === 0) return claimResult(c, 'PASS', `nothing listed under ${source}; nothing to prove, said out loud`);
+    const lacks = (body) => needles.find((n) => !n.split('|').some((alt) => alt && body.includes(alt)));
     const faults = [];
+    if (eachIsFile) {
+        for (const f of list) {
+            const leaf = getLeaf(f);
+            if (!isFile(f)) { faults.push(`${leaf}: file missing (${f})`); continue; }
+            const n = lacks(readText(f));
+            if (n !== undefined) faults.push(`${leaf}: lacks '${n}'`);
+        }
+        if (faults.length > 0) return claimResult(c, 'FAIL', faults.join('; '));
+        return claimResult(c, 'PASS', `${list.length} file(s) from ${source} each exist${base ? ` under ${base}` : ''} and carry ${needles.join(', ')}`);
+    }
     for (const folder of list) {
         const leaf = getLeaf(folder);
         if (!isDir(folder)) { faults.push(`${leaf}: folder missing (${folder})`); continue; }
         const f = path.join(folder, file);
         if (!isFile(f)) { faults.push(`${leaf}: missing ${file}`); continue; }
-        const body = readText(f);
-        for (const n of needles) { if (!body.includes(n)) { faults.push(`${leaf}: ${file} lacks '${n}'`); break; } }
+        const n = lacks(readText(f));
+        if (n !== undefined) faults.push(`${leaf}: ${file} lacks '${n}'`);
     }
     if (faults.length > 0) return claimResult(c, 'FAIL', faults.join('; '));
     return claimResult(c, 'PASS', `${list.length} folder(s) from ${source} each carry ${file} with ${needles.join(', ')}`);

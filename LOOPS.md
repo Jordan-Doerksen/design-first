@@ -42,51 +42,57 @@ The outer loop, from an idea to the next chunk. The sections below draw each par
       owner: an idea or an addition
                    |
                    v
-+--------> 1  INTERVIEW               GATE-01
+           1  INTAKE, MASTER          CTRL-01
+              intake sorts, the master
+              starts the session
+                   |
+                   v
++--------> 2  INTERVIEW               GATE-01
 |             one verdict per element  OWN-04
 |             rank each decision       OWN-10
 |             one question, reasons
 |             frontier first           GATE-15
 |                  |
 |                  v
-|          2  LOCK DECISIONS.md        DES-01
+|          3  LOCK DECISIONS.md        DES-01
 |             map ARCHITECTURE.md
 |             record the stack         STACK-01
 |                  |
 |                  v
-|          3  STAKES?                  GATE-08
+|          4  STAKES?                  GATE-08
 |             money, safety or trust:
 |             gap review first; source
 |             writes denied till clear
 |                  |
 |                  v
-|   +----> 4  BUILD one slice          DES-05
+|   +----> 5  BUILD one slice          DES-05
 |   |              |
 |   |              v
-|   +-fail 5  INNER GATE               GAME-12
+|   +-fail 6  INNER GATE               GAME-12
 |   |         verify, stop, show, wait
 |   |              |
 |   |              v
-|   +-fail 6  OUTER GATE               GATE-05
+|   +-fail 7  OUTER GATE               GATE-05
 |             cross-check, Definition  GATE-07
 |             of Done; Stop card
 |                  |
-+---- CR --- 7  LOCKED DECISION        GATE-06
++---- CR --- 8  LOCKED DECISION        GATE-06
                 must change? write a
                 Change Request
                    |
                    v
-             8  NEXT CHUNK, or DONE
+             9  NEXT CHUNK, or DONE
 ```
 
-1. Interview: restate the request, give each element one verdict (approve, redact, add, flavour), rank each decision and research by its rank, and ask one question at a time with a reason on every option. Work the questions as a design tree: ask next a question whose prerequisites are settled, and find facts about the environment yourself instead of asking the owner for them. (GATE-01, OWN-04, OWN-10, GATE-15)
-2. Lock the decisions in DECISIONS.md and map the domains in ARCHITECTURE.md, with a Stack section that records each runtime, its version pin, its lockfile and its install verb. (DES-01, STACK-01)
-3. If a wrong output costs money, safety or trust, run an adversarial gap review of the spec first. In a repository that declares the gate, the guard refuses source writes until the gate is cleared. (GATE-08, GATE-09)
-4. Build the smallest slice of one chunk. (DES-05)
-5. Inner gate after each change: run the verify gate, stop, say what changed and what it proves, and wait. If it fails, go back to step 4. (GAME-12)
-6. Outer gate at the end of the chunk: cross-check against the manifest, the architecture and the goal, and check the Definition of Done; the Stop card asks once per turn. If it fails, go back to step 4. (GATE-05, GATE-07)
-7. If a locked decision must change, write a Change Request and go back to step 1. (GATE-06)
-8. Next chunk, or done.
+1. Intake sorts the owner's item by the domain test and sends it to that domain's master; the master starts the work session with a brief that names what it reports to, and the session reports to the master at turn end. (CTRL-01, CTRL-02)
+2. Interview: restate the request, give each element one verdict (approve, redact, add, flavour), rank each decision and research by its rank, and ask one question at a time with a reason on every option. Work the questions as a design tree: ask next a question whose prerequisites are settled, and find facts about the environment yourself instead of asking the owner for them. (GATE-01, OWN-04, OWN-10, GATE-15)
+3. Lock the decisions in DECISIONS.md and map the domains in ARCHITECTURE.md, with a Stack section that records each runtime, its version pin, its lockfile and its install verb. (DES-01, STACK-01)
+4. If a wrong output costs money, safety or trust, run an adversarial gap review of the spec first. In a repository that declares the gate, the guard refuses source writes until the gate is cleared. (GATE-08, GATE-09)
+5. Build the smallest slice of one chunk. (DES-05)
+6. Inner gate after each change: run the verify gate, stop, say what changed and what it proves, and wait. If it fails, go back to step 5. (GAME-12)
+7. Outer gate at the end of the chunk: cross-check against the manifest, the architecture and the goal, and check the Definition of Done; the Stop card asks once per turn. If it fails, go back to step 5. (GATE-05, GATE-07)
+8. If a locked decision must change, write a Change Request and go back to step 2. (GATE-06)
+9. Next chunk, or done.
 
 ## 1. The project method loop
 
@@ -261,7 +267,8 @@ This chart shows what the kit's hooks do when the agent calls a tool. Each step 
 |                  |
 |                  v
 +-deny --- 8  AGENT CALL: DENY, ASK              DES-11
-|             brief lacks a heading: deny
+|             brief lacks a heading: deny       CTRL-02
+|             session start, same check
 +-no -------- over the cap: ask the owner
 |             under it, no model named: rewrite
 |                  |
@@ -272,14 +279,14 @@ This chart shows what the kit's hooks do when the agent calls a tool. Each step 
 +-its calls - each one starts at step 1
 ```
 
-1. THE HOST RUNS THE HOOKS. The agent calls a tool. The host runs, side by side, each kit hook whose matcher names that tool: the guard on Edit, Write, NotebookEdit, Bash and PowerShell; the fence on Edit, Write, Bash and PowerShell; the ask hook on AskUserQuestion; the agent hook on Agent. No kit hook runs on any other tool at this layer. One deny from any hook refuses the call. Each step below acts only on its own tools, and a call that a step does not name goes on to the next step. If a hook has an internal error, it allows the call, writes an ERROR line to the hooks log and tells the agent and the owner. Go to step 2.
+1. THE HOST RUNS THE HOOKS. The agent calls a tool. The host runs, side by side, each kit hook whose matcher names that tool: the guard on Edit, Write, NotebookEdit, Bash and PowerShell; the fence on Edit, Write, Bash and PowerShell; the ask hook on AskUserQuestion; the agent hook on Agent and on the host's session-start tool (the one the kit names is the desktop app's start_session). No kit hook runs on any other tool at this layer. One deny from any hook refuses the call. Each step below acts only on its own tools, and a call that a step does not name goes on to the next step. If a hook has an internal error, it allows the call, writes an ERROR line to the hooks log and tells the agent and the owner. Go to step 2.
 2. FILE WRITE: GUARD DENIES. For Edit, Write and NotebookEdit, the guard runs its deny rules in this order and stops at the first deny. (a) A .env file that git tracks or does not ignore; outside a repository the rule only advises. (b) A frozen or tombstoned path; the frozen list also holds copies that are not canonical. This rule needs the brain's config, and a tombstoned folder's own TOMBSTONE.md stays writable. A path spelled with a \\?\ or \\.\ prefix, or through this machine's admin share (\\localhost\C$, \\127.0.0.1\C$), is read as the drive path; an 8.3 short name, a junction or a mapped drive is not. (c) A write into the Startup folder, and (d) a content ban; these two rules run only when the brain turns them on. (e) A source write in a repository whose DECISIONS.md, at the root or in docs/, says 'Design gate: on' while its gate-cleared record is missing or does not clear the gate, and an Edit or Write that removes that line while the gate is not cleared; documents, config and data stay writable. (f) An edit of the story ledger while the repository is on the loop branch; the owner's loop runner, outside the kit, writes the pass mark. With no brain, rules (b), (c) and (d) are off, and the guard says so once per session. A deny goes back to the agent with its reason, and the guard writes a BLOCKED line to the fence log: go back to step 1. Otherwise, go to step 3.
 3. EDIT OR WRITE: FENCE. The fence is a separate hook that runs beside the guard, on Edit and Write only; NotebookEdit has no fence. It checks an Edit whose old text is not empty, and a Write over a file that exists (the file on disk is the old text), in a path where a folder or file name holds as a word part a word that starts with test, probe, verify or assert, or the word spec or specs (tests/, testutils/ and x.test.js count; latest/ and special/ do not). There it denies an edit that removes a paren-form assertion (such as assert( or expect( ; a .expect( method call does not count), and an edit that adds a '* 0' term (not a multiply by 0.5, and not a C comment that opens with a zero, such as '/* 0 = off */'), unless the same edit also removes a loose-form assertion, which only advises. It only advises when a loose-form assertion goes, such as a bare assert, assert_eq! or pytest.raises. On any path, it advises when an Edit empties a block or removes several lines, and when a Write keeps too small a share of the file's bytes. A deny goes back to the agent: go back to step 1. The fence questions in the advice are law text; nothing checks the answers. Otherwise, go to step 4.
 4. FILE WRITE: GUARD ADVISES. When the guard denied nothing, it runs two advise rules, and the call goes on. A source write in a git repository with no DECISIONS.md at its root or in docs/ gets a note, once per repository per session. The read check: an Edit or Write that grows a source file past one Read gets a note, once per file per session. The note goes to the agent's context only, and the owner does not see it. It asks the agent to list the file's subjects, and it never asks for a split for size. The read check skips generated files, exempt paths and NotebookEdit. Last, the guard records an edit inside a git repository for the Stop card, and records its repository. It flags a DECISIONS.md write that adds a Change Log row. The guard records the edit before the fence or the owner answers, because the hooks run side by side. Go to step 5.
 5. SHELL: GUARD DENIES. For Bash and PowerShell, the guard splits the command into parts at &&, ||, ;, |, & and new lines that are outside quotes. Each part is read in the folder it runs in, after any cd, Set-Location or pushd before it in the same command, when that folder exists; a folder the guard cannot find, such as a variable, leaves it where it was. For each part, in this order, it denies: (a) a git add or git commit -a that stages a file that looks like a secret, also through a pathspec with magic such as :/ that covers the whole tree; (b) a git command that destroys history, such as gc --prune, reflog expire, a force push or a remote branch delete; (c) a git command that overwrites or hides work while the tree is dirty, and stash drop or stash clear at any time; (d) git push (or git send-pack, the plumbing under it), merge or pull on the loop branch, a push, merge or pull from any branch that names a loop branch, a push --all or --mirror while a loop branch exists, a checkout or switch that leaves the loop branch, and a git branch -m, -M, -c, -C or -f, a git update-ref or a git symbolic-ref write on the loop branch, or from any branch when it names a loop branch, and a git worktree add on the loop branch whose new worktree is not on a loop branch, and on the loop branch a git rebase that names a branch other than a local loop branch, a git bisect that can check out a commit, and a git fetch into a local branch, and from any branch a git fetch that writes a loop branch or writes a local branch from one or from a glob that can cover one; a rebase or a bisect of the loop branch that is stopped at a detached HEAD counts as the loop branch, and git rebase --quit is denied there; rebase --root, fetch --stdin and fetch --refmap are read in any abbreviation git takes; any other git command or form that moves HEAD or a branch is a residual of this rule; (e) a destructive command on a frozen or tombstoned path, which needs the brain, also when the path is spelled with a \\?\ prefix, through this machine's admin share (\\localhost\C$) or as a PowerShell provider path (FileSystem::C:\...); and (f) a schedule, when the brain turns that rule on. It stops at the first deny. Then each content ban that the brain applies to commands checks the whole command, when the command runs from a folder in the ban's scope. The guard does not see nested shells, substitutions, git aliases or scripts on disk. A deny goes back to the agent: go back to step 1. Otherwise, go to step 6.
 6. SHELL: FENCE ADVISES. For Bash and PowerShell, the fence advises on a destructive command, such as a recursive delete, a hard reset or a forced branch delete, and the call goes on. The answer that it asks for is law text; nothing checks it. When the guard allowed the command, it records each repository that the command points at, so the Stop card can ask git what changed. Go to step 7.
 7. QUESTION: ASK HOOK DENIES. For AskUserQuestion, the ask hook denies a call that holds more than one question. For one question, it names every problem at once. It denies when an option description is too short to carry a reason. It denies when a phrase offers the options as equally fine, except when the phrase is negated, quoted, or in a sentence that has a contrast word such as 'but'. It denies when the first option's label is not marked recommended. A deny goes back to the agent: go back to step 1. An allowed question writes the session's interview marker, which the Stop card reads. Go to step 8.
-8. AGENT CALL: DENY, ASK. For Agent, the agent hook first checks the brief. It denies a brief whose lines do not start with the headings that the policy names for that agent type: the goal, the files or area, the done-check and what is ruled out. A search type needs fewer headings. The hook checks the heading words only. It does not count a denied brief: go back to step 1. Next, the hook counts the spawns of this turn. Over the cap, the host asks the owner, and the hook counts the spawn whatever the answer. If the owner says no, go back to step 1. If the owner says yes, the spawn runs with no routed model: go to step 9. At or under the cap, the hook rewrites a call that names no model with the model from the role table, if the table routes that type, and allows it. Any other call gets a note with the count. With no brain policy, the kit's template is the policy, and the hook says so once per session. Go to step 9.
+8. AGENT CALL: DENY, ASK. For Agent, the agent hook first checks the brief. It denies a brief whose lines do not start with the headings that the policy names for that agent type: the goal, the files or area, the done-check, what is ruled out, and what it reports to (DES-11, CTRL-02). A search type needs fewer headings, and still the report line. The hook checks the heading words only. It does not count a denied brief: go back to step 1. For the host's session-start tool, named in the policy, the hook reads the call's prompt as the brief and checks the same headings, and does nothing else: no count, no model, since a session's model is the host's. A session-start call with no prompt (an offer card, or a proposal started by its id) passes through. Go to step 9. Next, the hook counts the spawns of this turn. Over the cap, the host asks the owner, and the hook counts the spawn whatever the answer. If the owner says no, go back to step 1. If the owner says yes, the spawn runs with no routed model: go to step 9. At or under the cap, the hook rewrites a call that names no model with the model from the role table, if the table routes that type, and allows it. Any other call gets a note with the count. With no brain policy, the kit's template is the policy, and the hook says so once per session. Go to step 9.
 9. THE CALL RUNS. The host runs the call when no hook denied it and the owner said yes to any ask. For an Agent call, the subagent hook runs as the subagent starts, and it never denies. It injects the law rows of two kinds of group: the groups that the policy sends to every subagent, and the groups active in the session, less the session-only groups. It names a group past the size cap without its rows. Then it adds the advise-by-role clauses, the interview frontier (GATE-15) among them, or only their ids when they do not fit. The Reviewer must name each of these clauses in its report (law text; nothing in the kit checks it). With no pointer file, the hook injects nothing. On an internal error, it injects a note and no law. Each tool call that the subagent makes starts again at step 1.
 
 ## 4. The end of a turn

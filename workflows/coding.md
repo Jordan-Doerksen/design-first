@@ -37,9 +37,11 @@ spawns than the cap in one turn ask the owner.**
 The mechanism is `hooks/agent.mjs`, on every call to the Agent tool. The tunables are in
 `<brain>/agent-policy.json` (the kit template is the default until a brain has one).
 
-**The brief contract.** Four headings, each at the start of its own line: `Goal:`, `Files:` (or
-`Area:`), `Done when:`, `Ruled out:`. A search-type agent (`Explore`, `claude-code-guide`) needs
-only `Goal:` and `Done when:`. A brief without them is refused with the missing headings named,
+**The brief contract.** Four work headings, each at the start of its own line: `Goal:`, `Files:`
+(or `Area:`), `Done when:`, `Ruled out:`. A search-type agent (`Explore`, `claude-code-guide`)
+needs only `Goal:` and `Done when:`. The fifth heading, `Reports to:`, is `CTRL-02`'s
+(`instructions/control-law.md`), carried by every brief, light types included, and by a session
+brief on the host's session-start tool. A brief without them is refused with the missing headings named,
 and the spawn is re-issued in one turn. The hook checks only that each heading starts a line; it
 does not read what follows, so an empty `Goal:` passes. The content under each heading is the
 agent's job. The brief is the only context a subagent has; it does not get the entry path, and it

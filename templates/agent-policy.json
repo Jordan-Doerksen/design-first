@@ -1,10 +1,11 @@
 {
   "schema": 1,
-  "_comment": "Subagent policy read by the kit's hooks/agent.mjs on every Agent call (DES-11). Tunables only, no logic. adopt copies this into the brain; edit the brain copy, never this template. brief.required: headings a brief must carry at line start, 'A:|B:' means either. brief.lightTypes: agent types that search rather than build and need only brief.lightRequired. routes: model by agent type when the call names none; 'inherit' leaves the session model; 'default' covers any type not listed; a route matches the exact type name, there is no wildcard, so a family of agents (council-spark, council-skeptic, ...) is one line per name in the brain copy. cap.perTurn: spawns per turn (session + prompt) before the hook stops and asks; 0 disables the cap.",
+  "_comment": "Subagent policy read by the kit's hooks/agent.mjs on every Agent call (DES-11). Tunables only, no logic. adopt copies this into the brain; edit the brain copy, never this template. brief.required: headings a brief must carry at line start, 'A:|B:' means either. brief.lightTypes: agent types that search rather than build and need only brief.lightRequired. brief.sessionTools: the host's session-start tools by full tool name (CTRL-02); on one of these the hook reads the input's prompt as the brief and checks brief.required, and nothing else; the same name must be in the hook's matcher, so a tool added here is added to the matcher in the brain's settings. routes: model by agent type when the call names none; 'inherit' leaves the session model; 'default' covers any type not listed; a route matches the exact type name, there is no wildcard, so a family of agents (council-spark, council-skeptic, ...) is one line per name in the brain copy. cap.perTurn: spawns per turn (session + prompt) before the hook stops and asks; 0 disables the cap.",
   "brief": {
-    "required": ["Goal:", "Files:|Area:", "Done when:", "Ruled out:"],
+    "required": ["Goal:", "Files:|Area:", "Done when:", "Ruled out:", "Reports to:"],
     "lightTypes": ["Explore", "claude-code-guide"],
-    "lightRequired": ["Goal:", "Done when:"]
+    "lightRequired": ["Goal:", "Done when:", "Reports to:"],
+    "sessionTools": ["mcp__ccd_session__start_session"]
   },
   "routes": {
     "Explore": "haiku",
