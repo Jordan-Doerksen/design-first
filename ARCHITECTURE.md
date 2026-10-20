@@ -6,6 +6,17 @@ A Claude Code plugin whose hooks guard the session, whose `adopt` command sets u
 private brain from an interview, and whose two tools (Doctor, law generator) keep the written law
 honest about what is actually enforced on the disk.
 
+## Stack
+
+| runtime | version | pinned by | lockfile | install | why |
+|---|---|---|---|---|---|
+| Node.js | 18 or newer | nothing but the requirement line in `README.md`; no `.node-version`, no `engines` | none; no packages | none | every hook, the Doctor, the law generator, adopt and the docs build are plain `node` scripts |
+| git | any on PATH | none | none | none | the guard's probes, the Stop card and the Doctor's repository scan ask git |
+
+A runtime this table does not name is a Change Request (GATE-06). The kit pins nothing because it
+installs nothing; the README's line is the record, and `adopt` checks for Node.js 18 before its
+first question.
+
 ## Core flow
 
 ```
@@ -78,7 +89,7 @@ holds what the README does not: the lib each one leans on and the markers it rea
   what is installed on that machine (`state/law-installed.json`, written by adopt: every hook
   `hooks.json` registers). Each is built again by a Doctor claim and is RED on any difference:
   `KIT-LAW-01` for the kit, `BRAIN-LAW-01` (shipped in the brain's claims) for the brain.
-- **Runtime:** Node.js 18 or newer, no packages. Every hook is one `node` process that reads one
+- **Runtime:** the Stack section names it. Every hook is one `node` process that reads one
   JSON document on stdin; it loads `child_process` and `crypto` only on the path that needs them,
   asks git each question once per process, and finds a plain repository's root from its `.git`
   without starting git. Paths are compared the way the file system compares them: without case on

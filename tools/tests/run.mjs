@@ -431,6 +431,10 @@ const sub = (session, type) => invokeHook('subagent.mjs', hookJson({ session_id:
     route('ok', 'r3', root);   // the session's first prompt takes the always group (OWN), so the next check can demand silence
     r = route('the designer looped', 'r3', root);
     record('route: substrings do not match (designer, looped)', 'silent', blank(r.out) ? 'silent' : 'matched', r.out);
+    // CR-2026-10-19-STACK: the STACK group routes on the stack words of the template policy, and the
+    // kit's LAW.md carries its three rows with the kit's grades.
+    r = route('which runtime does this repo pin, and where is its lockfile', 'r-stack', root);
+    record('route: a stack word injects the STACK group, STACK-01 at GATE and STACK-03 at ADVISE (CR-2026-10-19-STACK)', 'stack', r.code === 0 && /group STACK/i.test(r.out) && /STACK-01 \[GATE\]/i.test(r.out) && /STACK-03 \[ADVISE\]/i.test(r.out) ? 'stack' : 'wrong', r.out);
     r = sub('r1', 'general-purpose');
     record('subagent: gets SAFE plus the session active groups as JSON context', 'safe+active', r.code === 0 && /group SAFE/i.test(r.out) && /group DES/i.test(r.out) && /group OBS/i.test(r.out) && /"hookEventName":"SubagentStart"/i.test(r.out) ? 'safe+active' : 'wrong', r.out);
     r = sub('r-fresh', 'Explore');
@@ -438,6 +442,8 @@ const sub = (session, type) => invokeHook('subagent.mjs', hookJson({ session_id:
     // advise-by-role (CR-2026-10-13-HONOUR): the ADVISE clauses ride with the role that judges them
     r = sub('r1', 'design-first:reviewer');
     record('subagent: the Reviewer gets the ADVISE clauses with the report instruction', 'advised', /ADVISE clauses/i.test(r.out) && /OWN-06 \(deliver\)/i.test(r.out) && /You are the Reviewer/i.test(r.out) ? 'advised' : 'wrong', r.out);
+    // CR-2026-10-19-STACK: STACK-03 rides the advise-by-role block, so the Reviewer answers for it.
+    record('subagent: the ADVISE block carries STACK-03 (pick-stack) (CR-2026-10-19-STACK)', 'advised', /ADVISE clauses/i.test(r.out) && /STACK-03 \(pick-stack\)/.test(r.out) ? 'advised' : 'missing', r.out);
     r = sub('r1', 'general-purpose');
     record('subagent: a Builder gets the same clauses, told the Reviewer names them', 'advised', /ADVISE clauses/i.test(r.out) && /GAME-14 \(cite\)/i.test(r.out) && /the Reviewer names each one/i.test(r.out) && !/You are the Reviewer/i.test(r.out) ? 'advised' : 'wrong', r.out);
     // CR-2026-10-17-PATHS: an installed kit sits in the plugin cache, about 66 characters deep. Each
