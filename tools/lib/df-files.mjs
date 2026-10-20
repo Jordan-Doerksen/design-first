@@ -85,16 +85,17 @@ export function writeInstalled(p, records) {
 
 // ---------------------------------------------------------------- diffs (attach mode, finding 37)
 
-// Unified diff: what adopt would have written -> the existing file, so a `+` line is something the
-// owner has that the template lacks (their edit), and a `-` line is template text they removed.
+// Unified diff: what the writer would have written -> the existing file, so a `+` line is something
+// the owner has that the template lacks (their edit), and a `-` line is template text they removed.
 // Nothing is changed. git diff --no-index when git is on PATH; a plain line diff otherwise. Line
-// endings are ignored because the hash rule treats CRLF and LF as the same bytes.
-export function showDiff(existing, proposed, label) {
+// endings are ignored because the hash rule treats CRLF and LF as the same bytes. `who` names the
+// writer in the header line: adopt (the default) or control.
+export function showDiff(existing, proposed, label, who = 'adopt') {
     const tmpDir = path.join(os.tmpdir(), 'design-first-adopt');
     fs.mkdirSync(tmpDir, { recursive: true });
     const tmp = path.join(tmpDir, 'proposed-' + path.basename(existing));
     fs.writeFileSync(tmp, proposed);
-    const lines = [`  --- diff ${label}  (what adopt would write -> what is on disk; + is yours; the file was NOT changed)`];
+    const lines = [`  --- diff ${label}  (what ${who} would write -> what is on disk; + is yours; the file was NOT changed)`];
     const r = spawnSync('git', ['diff', '--no-index', '--no-color', '--ignore-cr-at-eol', '--', tmp, existing], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true });
     if (!r.error) {
         // The four git header lines name the temp file; they carry nothing the reader needs.

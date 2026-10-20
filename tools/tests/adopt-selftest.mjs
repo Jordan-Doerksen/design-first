@@ -1,4 +1,4 @@
-// adopt-selftest.mjs - proves adopt.mjs and remove.mjs against SPEC 5.6 on throwaway folders.
+// adopt-selftest.mjs - proves adopt.mjs, remove.mjs and control.mjs against SPEC 5.6 on throwaway folders.
 //   node tools/tests/adopt-selftest.mjs [-KeepTemp]
 //
 // Cases: fresh adopt (root not a repo) -> every file exists, pointer valid, installed.json carries
@@ -7,7 +7,10 @@
 // edit; the law build keeps the kit grade for a hook the installed state does not name; second adopt (attach) ->
 // nothing overwritten, diff printed for a file edited between runs; remove -> edited file kept and
 // listed, unedited + generated deleted, pointer gone; -DryRun writes nothing; root-is-repo ->
-// no snapshot pairs and settings.local.json when scope=personal.
+// no snapshot pairs and settings.local.json when scope=personal; control (CR-2026-10-19-CONTROL
+// chunk 1) -> a domain card written from the template, the Method card with the kit's four checks,
+// an existing card kept with its diff printed, the Intake card written, -DryRun writes nothing,
+// a missing or two-word domain refused.
 //
 // The pointer and the marker folder go through DF_POINTER_PATH / DF_MARKER_DIR, so the real
 // pointer and the real markers are never touched. The Doctor is the real one, run by adopt.mjs.
@@ -248,6 +251,77 @@ try {
     check('remove: empty entry-point/ and instructions/ removed, brain folder and .git left', !exists(path.join(brain, 'entry-point')) && !exists(path.join(brain, 'instructions')) && exists(path.join(brain, '.git')));
     check('remove: prints the uninstall line', r7.out.includes('claude plugin uninstall design-first'));
     check('remove: frozen folder (never recorded) untouched', exists(jp(root, 'frozen', 'ref.txt')));
+
+    // ---------------------------------------------------------------- 7. control cards (CR-2026-10-19-CONTROL chunk 1)
+    // tools/control.mjs writes a domain's card or the Intake card from the templates, never
+    // overwrites, and records nothing in installed.json. Proven on a throwaway brain folder; the
+    // pointer passed is brain3's, so the one default-brain case reads a throwaway pointer.
+    say('-- control: a domain card written from the template');
+    const control = path.join(kit, 'tools', 'control.mjs');
+    const brainC = path.join(T, 'brain-c');
+    fs.mkdirSync(brainC, { recursive: true });
+    const rc1 = run(control, ['-Domain', 'Rail', '-Brain', brainC, '-Session', 'local_rail_0001', '-Folders', 'rail,map-reading-trainer', '-Test', 'it teaches or checks a rule.', '-PluginRoot', kit], ptr3, markers);
+    const railCard = jp(brainC, 'control', 'RAIL-CONTROL.md');
+    check('control: a domain card is written (exit 0, wrote line, file exists)', rc1.code === 0 && /^\s*wrote\s+.*RAIL-CONTROL\.md/m.test(rc1.out) && isFile(railCard), rc1.out);
+    const rail = isFile(railCard) ? F.readText(railCard) : '';
+    check('control: the card is filled, not a template (no {{ token left)', rail.length > 0 && !/\{\{/.test(rail), rail);
+    check('control: the name line carries the title, the session id and the sidebar section', rail.startsWith('# RAIL-CONTROL: Rail Master Control\n') && rail.includes('"Rail Master Control"') && rail.includes('`local_rail_0001`') && rail.includes('sidebar section Rail'), rail);
+    check('control: the folders and the test are on the card; the typed period is not doubled', rail.includes('`rail`, `map-reading-trainer`') && rail.includes('The test: it teaches or checks a rule.') && !rail.includes('rule..'), rail);
+    const railHeads = rail.split('\n').filter((l) => /^## /.test(l));
+    check('control: the five sections, in order', railHeads.length === 5 && /^## How it works$/.test(railHeads[0]) && /^## Plumbing checks/.test(railHeads[1]) && /^## Roster, \d{4}-\d{2}-\d{2}$/.test(railHeads[2]) && railHeads[3] === '## Ladder' && railHeads[4] === '## Open for the owner', railHeads.join(' | '));
+    check('control: the four-line report and the sidebar rule are on the card', rail.includes('Report format, four lines: repo and branch; files changed or posts made; needs from the owner;') && rail.includes('A nested session moves with its parent'), rail);
+    check('control: the Doctor shim row is pre-filled and the kit rows are not (the domain is not Method)', rail.includes(`| Disk law | \`${path.join(brainC, IS_WIN ? 'Doctor.bat' : 'doctor.sh')}\` | exit 0; 2 is not a pass | |`) && !rail.includes('run.mjs'), rail);
+    check("control: the roster holds the master's own row and no other", rail.includes('| Rail Master Control (this) | | controls | |') && rail.split('(this)').length === 2, rail);
+    check('control: the card line (a brain file with a history, committed by the owner, a pointer at an old path)', rail.includes('a brain file with a history') && rail.includes('committed\nby the owner') && rail.includes('one-line pointer at its old path') && rail.includes(railCard), rail);
+    const railBytes = fs.readFileSync(railCard);
+    check('control: the card is UTF-8 without BOM, LF only', railBytes[0] !== 0xef && !railBytes.includes(13));
+    check('control: nothing recorded in installed.json (no state folder made)', !exists(path.join(brainC, 'state')));
+    check('control: the card is printed and the next step says the owner commits', rc1.out.includes('# RAIL-CONTROL: Rail Master Control') && /owner commits/i.test(rc1.out), rc1.out);
+
+    say('-- control: the Method card carries the kit checks');
+    const rc2 = run(control, ['-Domain', 'method', '-Brain', brainC, '-PluginRoot', kit], ptr3, markers);
+    const methodCard = jp(brainC, 'control', 'METHOD-CONTROL.md');
+    const method = isFile(methodCard) ? F.readText(methodCard) : '';
+    const kitRows = ['node tools/tests/run.mjs', 'node tools/doctor/selftest.mjs', 'node tools/tests/adopt-selftest.mjs', 'node tools/doctor/doctor.mjs -Kit'];
+    check("control: the Method card carries the kit's four checks after the Doctor shim row; the word is capitalised", rc2.code === 0 && method.startsWith('# METHOD-CONTROL: Method Master Control\n') && kitRows.every((c) => method.includes(`| \`${c}\``)) && method.indexOf('| Disk law |') < method.indexOf('| Hook self-test |'), rc2.out);
+    check('control: a session id, folders or test not given are written as not recorded, never invented', method.includes('`not recorded: the owner reads it from the app and writes it here`') && method.includes('not recorded yet; the master lists the folders here') && method.includes('not recorded yet; the master writes the one sentence here'), method);
+
+    say('-- control: an existing card is kept, its diff printed');
+    fs.appendFileSync(railCard, '- Decide the first item (edited by the master).\n');
+    const railEdited = F.fileSha256(railCard);
+    const rc3 = run(control, ['-Domain', 'Rail', '-Brain', brainC, '-Session', 'local_rail_0001', '-Folders', 'rail,map-reading-trainer', '-Test', 'it teaches or checks a rule', '-PluginRoot', kit], ptr3, markers);
+    check('control: an existing card is kept (exit 0, kept line, no wrote line)', rc3.code === 0 && /^\s*kept\s+.*RAIL-CONTROL\.md/m.test(rc3.out) && !/^\s*wrote\s/m.test(rc3.out), rc3.out);
+    check("control: the diff is printed, names control as the writer and marks the master's line as theirs (+)", /--- diff[\s\S]*RAIL-CONTROL\.md[\s\S]*what control would write/.test(rc3.out) && rc3.out.includes('+- Decide the first item (edited by the master).'), rc3.out);
+    check('control: the edited card is not overwritten', F.fileSha256(railCard) === railEdited);
+    check('control: the kept run prints the card on disk, with the edit', /card\s+\(on disk, unchanged/.test(rc3.out) && rc3.out.includes('  - Decide the first item (edited by the master).'), rc3.out);
+
+    say('-- control: the Intake card');
+    const rc4 = run(control, ['-Intake', '-Brain', brainC, '-Session', 'local_intake_0001', '-PluginRoot', kit], ptr3, markers);
+    const intakeCard = jp(brainC, 'control', 'INTAKE.md');
+    const intake = isFile(intakeCard) ? F.readText(intakeCard) : '';
+    check('control: the Intake card is written (exit 0), filled, not a template', rc4.code === 0 && isFile(intakeCard) && intake.startsWith('# INTAKE: ') && !/\{\{/.test(intake), rc4.out);
+    const iLines = intake.split('\n');
+    const routeHdr = iLines.indexOf('| Domain | Owns | Test | Master | Card | Sidebar |');
+    check('control: the routing table has its six columns and no rows', routeHdr > 0 && iLines[routeHdr + 1] === '|---|---|---|---|---|---|' && iLines[routeHdr + 2] === '', iLines.slice(routeHdr, routeHdr + 3).join(' | '));
+    const decisionRows = iLines.filter((l) => /^\| [1-6] \| [^|]+\? \| \| \|$/.test(l));
+    check('control: the decisions table has six questions with the decision and the why blank', decisionRows.length === 6, iLines.filter((l) => /^\| [1-6] \|/.test(l)).join(' | '));
+    const queueHdr = iLines.indexOf('| # | Item | Domain | State | Sent to | Report |');
+    check('control: the queue is empty and the spend note is there', queueHdr > 0 && iLines[queueHdr + 2] === '' && intake.includes('## Spend') && intake.includes('not its total spend'), intake);
+    check('control: the item flow and the prompt shape ending with the report-back line', intake.includes('1. **Dumped.**') && intake.includes('6. **Reported.**') && intake.includes('Report: when this item is done or blocked, message Intake (local_intake_0001) one line:') && intake.includes('"item <n> done: <proof>" or "item <n> blocked: <why>".'), intake);
+    check('control: the Intake card line (a brain file with a history, committed by the owner)', intake.includes('a brain file with a history') && intake.includes('committed by the\nowner') && intake.includes('`local_intake_0001`'), intake);
+    const rc4b = run(control, ['-Domain', 'intake', '-Brain', brainC, '-Session', 'local_intake_0001', '-PluginRoot', kit], ptr3, markers);
+    check('control: -Domain intake is the same Intake card (same line, nothing written)', rc4b.code === 0 && /^\s*same\s+.*INTAKE\.md/m.test(rc4b.out) && !exists(jp(brainC, 'control', 'INTAKE-CONTROL.md')), rc4b.out);
+
+    say('-- control: dry run, default brain, refusals');
+    const rc5 = run(control, ['-Domain', 'Site', '-Brain', brainC, '-DryRun', '-PluginRoot', kit], ptr3, markers);
+    check('control dry: exits 0, says DRY RUN, prints a would-write line and the card', rc5.code === 0 && rc5.out.includes('DRY RUN') && /^\s*would write\s+.*SITE-CONTROL\.md/m.test(rc5.out) && rc5.out.includes('# SITE-CONTROL: Site Master Control'), rc5.out);
+    check('control dry: nothing written', !exists(jp(brainC, 'control', 'SITE-CONTROL.md')));
+    const rc5b = run(control, ['-Domain', 'Tools', '-DryRun', '-PluginRoot', kit], ptr3, markers);
+    check("control: -Brain defaults to the pointer's brain", rc5b.code === 0 && rc5b.out.includes(jp(brain3, 'control', 'TOOLS-CONTROL.md')) && !exists(jp(brain3, 'control', 'TOOLS-CONTROL.md')), rc5b.out);
+    const rc6 = run(control, ['-Brain', brainC, '-PluginRoot', kit], ptr3, markers);
+    check('control: no -Domain and no -Intake is refused (exit 1, ERROR line)', rc6.code === 1 && /control: ERROR/.test(rc6.out), rc6.out);
+    const rc7 = run(control, ['-Domain', 'Trade Desk', '-Brain', brainC, '-PluginRoot', kit], ptr3, markers);
+    check('control: a domain of two words is refused (exit 1, nothing written); one word, one meaning', rc7.code === 1 && /control: ERROR/.test(rc7.out) && !exists(jp(brainC, 'control', 'TRADE DESK-CONTROL.md')), rc7.out);
 } catch (e) {
     check(`selftest crashed: ${e && e.message ? e.message : e}`, false, e && e.stack ? e.stack : '');
 }
