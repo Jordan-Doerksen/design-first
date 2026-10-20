@@ -27,6 +27,7 @@ function installedFlag(installed, c) {
         case 'permission-rule': return Boolean(getProp(installed, 'rootSettings'));
         case 'doctor-claim': return Boolean(getProp(installed, 'pointer'));
         case 'tool': return Boolean(getProp(installed, 'pointer'));
+        case 'survey': return Boolean(getProp(installed, 'pointer'));   // the Doctor runs with a brain
         default: return true;
     }
 }

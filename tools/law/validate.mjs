@@ -6,7 +6,11 @@ import path from 'node:path';
 import { parseJson } from '../../hooks/lib/json.mjs';
 
 export const GRADE_ORDER = ['DENY', 'HOOK', 'ADVISE', 'GATE', 'BUILDABLE', 'OWNER', 'HONOUR'];
-const MECH_KINDS = ['permission-rule', 'hook', 'doctor-claim', 'tool', 'planned'];
+// 'survey' (0.2.7): a Doctor survey finding at warn severity, cited by its anchor in
+// tools/doctor/survey.mjs. A warn never changes the verdict, so it grades ADVISE and nothing above;
+// until 0.2.7 such a clause had to name kind 'hook' on a script that is not a hook (DES-09 and
+// VCS-04 in a brain overlay did), which LAW.md then printed as a hook.
+const MECH_KINDS = ['permission-rule', 'hook', 'doctor-claim', 'tool', 'survey', 'planned'];
 // A declaration in a comment line: '// anchor: <name>  mode: <deny|advise|gate>  verbs: <a,b>' ('#'
 // starts the comment in a JSON-free text file or a shell script).
 const ANCHOR_RX = /^\s*(?:\/\/|#)\s*anchor:\s*(?<name>\S+)\s+mode:\s*(?<mode>deny|advise|gate)\s+verbs:\s*(?<verbs>\S+)/i;
@@ -181,7 +185,7 @@ export function newValidator({ kitRoot, brainRoot }) {
     // generation, so a GATE grade cannot be claimed on a fictitious refusal.
     function anchor(c, file, name, kind) {
         const id = c.id;
-        const want = kind === 'tool' ? 'gate' : ieq(c.grade, 'HOOK') ? 'deny' : 'advise';
+        const want = kind === 'tool' ? 'gate' : kind === 'survey' ? 'advise' : ieq(c.grade, 'HOOK') ? 'deny' : 'advise';
         const files = [file];
         const lib = path.join(path.dirname(file), 'lib');
         if (isDir(lib)) {
@@ -287,7 +291,7 @@ export function newValidator({ kitRoot, brainRoot }) {
         const kind = String(e.kind ?? ''); const ref = String(e.ref ?? '');
         if (!iin(kind, MECH_KINDS)) { addProblem(id, `enforcedBy.kind '${kind}' is not one of ${MECH_KINDS.join(', ')}`); return; }
         if (!ref.trim()) { addProblem(id, 'enforcedBy.ref is empty'); return; }
-        const need = { DENY: ['permission-rule'], HOOK: ['hook'], ADVISE: ['hook'], GATE: ['permission-rule', 'doctor-claim', 'tool'], BUILDABLE: ['planned'] }[g] || [];
+        const need = { DENY: ['permission-rule'], HOOK: ['hook'], ADVISE: ['hook', 'survey'], GATE: ['permission-rule', 'doctor-claim', 'tool'], BUILDABLE: ['planned'] }[g] || [];
         if (!iin(kind, need)) { addProblem(id, `grade ${c.grade} cannot be enforced by kind '${kind}' (allowed: ${need.join(', ')})`); return; }
         const k = kind.toLowerCase();
         if (k === 'planned') return;   // a CR reference; not resolved against the disk
@@ -309,6 +313,7 @@ export function newValidator({ kitRoot, brainRoot }) {
         if (!requiredFile(id, p, `mechanism file for ${kind}`, skipHooks)) return;
         if (k === 'hook') { if (!frag) addProblem(id, 'a hook ref needs #<anchor>'); else { anchor(c, p, frag, k); hookRegistered(c, p); } }
         else if (k === 'permission-rule') { if (!frag) addProblem(id, 'a permission-rule ref needs #<json.path>'); else jsonPath(c, p, frag); }
+        else if (k === 'survey') { if (!frag) addProblem(id, 'a survey ref needs #<anchor> (the line that files the warn finding)'); else anchor(c, p, frag, k); }
         else if (k === 'tool') { if (!frag) addProblem(id, 'a tool ref needs #<anchor> (a tool refusal is a real line in the script, not a file name)'); else anchor(c, p, frag, k); }
     }
 

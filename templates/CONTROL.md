@@ -26,6 +26,12 @@ by the owner, never by a session (SAFE-06). No secret in it (SAFE-01). Written b
   or a session brief without the headings).
 - Report format, four lines: repo and branch; files changed or posts made; needs from the owner;
   blocked on.
+- A decision reaches the owner by its rank (OWN-10). Low or medium: the master decides what it can
+  defend (OWN-05) and sends Intake one question at a time. High, or a new project: the master runs
+  a real design-first interview in this chat, sends Intake one line saying the interview is ready
+  and how many questions it has, and the owner opens this chat by Intake's link and does the whole
+  interview in one sitting (OWN-04). The master lays out the plan; the go returns to Intake as one
+  line. A question to the owner in this chat outside that interview is a breach.
 - The go-word for a push, a post or a merge is said in the session that does it; a relayed approval
   does not post. Work sessions draft and report; the master acts on the owner's word.
 - Before any merge, push to a shared branch or post is asked of the owner, the master runs the

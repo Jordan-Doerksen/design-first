@@ -55,6 +55,14 @@ export function fileFreshClaim(c, ctx) {
 // control cards are relative to <brain>/control/); with no `file`, each entry is itself the file to
 // read. A string in `contains` may hold alternatives split by `|`, the way a glob does: the file
 // must hold one of them ('Master Control|Intake'). TOMBSTONE-01's fields are unchanged.
+// 0.2.7: `regex[]` beside `contains[]`, each a pattern the file must match, written as a bare
+// source (flags im) or as /source/flags, so a claim can carry the guard's own GATE_ON_RX and read
+// the table, bold and case forms the way the guard does (DISP-07); a "lacks" row names the file
+// path, since a leaf alone ("DECISIONS.md: lacks ...") said nothing about which repository.
+function compileRegex(src) {
+    const m = /^\/(.*)\/([a-z]*)$/s.exec(src);
+    try { return m ? new RegExp(m[1], m[2]) : new RegExp(src, 'im'); } catch (e) { return { error: e.message }; }
+}
 function configListForClaim(key, ctx) {
     const cfgPath = ctx.brain ? path.join(ctx.brain, 'doctor.config.json') : path.join(ctx.kit, 'templates', 'doctor.config.json');
     const cr = readDoctorConfig(cfgPath, ctx);
@@ -71,7 +79,15 @@ export function configPathsEachClaim(c, ctx) {
     const file = String(c.file ?? '');
     const eachIsFile = !file.trim();
     const needles = (Array.isArray(c.contains) ? c.contains : c.contains == null ? [] : [c.contains]).filter((x) => x).map(String);
-    if (eachIsFile && needles.length === 0) return claimResult(c, 'UNKNOWN', "claim has no 'file' and no 'contains': nothing to check on each path");
+    const rxSources = (Array.isArray(c.regex) ? c.regex : c.regex == null ? [] : [c.regex]).filter((x) => x).map(String);
+    const regexes = [];
+    for (const src of rxSources) {
+        const rx = compileRegex(src);
+        if (rx.error) return claimResult(c, 'UNKNOWN', `regex ${src} does not compile: ${rx.error}`);
+        regexes.push({ src, rx });
+    }
+    if (eachIsFile && needles.length === 0 && regexes.length === 0) return claimResult(c, 'UNKNOWN', "claim has no 'file' and no 'contains' or 'regex': nothing to check on each path");
+    const wants = [...needles, ...regexes.map((r) => r.src)].join(', ');
     // `base` is resolved only once something is listed: the kit's own run has no brain, so ${BRAIN}
     // cannot expand there, and an empty list is a PASS that never needs the folder.
     let base = null;
@@ -101,26 +117,32 @@ export function configPathsEachClaim(c, ctx) {
         source = 'the claim';
     } else return claimResult(c, 'UNKNOWN', "claim needs 'configKey' or 'paths'");
     if (list.length === 0) return claimResult(c, 'PASS', `nothing listed under ${source}; nothing to prove, said out loud`);
-    const lacks = (body) => needles.find((n) => !n.split('|').some((alt) => alt && body.includes(alt)));
+    // The first want the file lacks: a literal (with | alternatives) quoted, a regex shown as written.
+    const lacks = (body) => {
+        const n = needles.find((x) => !x.split('|').some((alt) => alt && body.includes(alt)));
+        if (n !== undefined) return `'${n}'`;
+        const r = regexes.find((x) => !x.rx.test(body));
+        return r ? `a line matching ${r.src}` : undefined;
+    };
     const faults = [];
     if (eachIsFile) {
         for (const f of list) {
             const leaf = getLeaf(f);
             if (!isFile(f)) { faults.push(`${leaf}: file missing (${f})`); continue; }
             const n = lacks(readText(f));
-            if (n !== undefined) faults.push(`${leaf}: lacks '${n}'`);
+            if (n !== undefined) faults.push(`${leaf}: lacks ${n} (${f})`);
         }
         if (faults.length > 0) return claimResult(c, 'FAIL', faults.join('; '));
-        return claimResult(c, 'PASS', `${list.length} file(s) from ${source} each exist${base ? ` under ${base}` : ''} and carry ${needles.join(', ')}`);
+        return claimResult(c, 'PASS', `${list.length} file(s) from ${source} each exist${base ? ` under ${base}` : ''} and carry ${wants}`);
     }
     for (const folder of list) {
         const leaf = getLeaf(folder);
         if (!isDir(folder)) { faults.push(`${leaf}: folder missing (${folder})`); continue; }
         const f = path.join(folder, file);
-        if (!isFile(f)) { faults.push(`${leaf}: missing ${file}`); continue; }
+        if (!isFile(f)) { faults.push(`${leaf}: missing ${file} (${f})`); continue; }
         const n = lacks(readText(f));
-        if (n !== undefined) faults.push(`${leaf}: ${file} lacks '${n}'`);
+        if (n !== undefined) faults.push(`${leaf}: ${file} lacks ${n} (${f})`);
     }
     if (faults.length > 0) return claimResult(c, 'FAIL', faults.join('; '));
-    return claimResult(c, 'PASS', `${list.length} folder(s) from ${source} each carry ${file} with ${needles.join(', ')}`);
+    return claimResult(c, 'PASS', `${list.length} folder(s) from ${source} each carry ${file} with ${wants}`);
 }

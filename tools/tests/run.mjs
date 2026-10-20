@@ -605,7 +605,7 @@ const ctx = {
     entry, route, sub, stop, ledger, guardEdit, ledgerText,
 };
 for (const f of ['cases-law-claim.mjs', 'cases-state-card.mjs', 'cases-stop-git.mjs', 'cases-own.mjs', 'cases-size.mjs', 'cases-loops.mjs',
-    'cases-bypass.mjs', 'cases-gate.mjs', 'cases-truth.mjs', 'cases-grades.mjs', 'cases-wording.mjs', 'cases-gitcall.mjs', 'cases-kitroot.mjs']) {
+    'cases-bypass.mjs', 'cases-gate.mjs', 'cases-truth.mjs', 'cases-grades.mjs', 'cases-wording.mjs', 'cases-gitcall.mjs', 'cases-publish.mjs', 'cases-kitroot.mjs']) {
     const mod = await import(pathToFileURL(path.join(here, f)).href);
     try { await mod.default(ctx); }
     catch (e) { record(`${f}: ran to the end`, 'ran', `threw: ${e && e.message ? e.message : e}`, e && e.stack ? e.stack : ''); }

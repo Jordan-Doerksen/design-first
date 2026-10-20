@@ -197,6 +197,13 @@ try {
     W(jp(brain, 'control', 'GOOD-CONTROL.md'), '# GOOD-CONTROL: Good Master Control\n\nid planted.\n');
     W(jp(brain, 'control', 'INTAKE.md'), '# INTAKE: Intake\n\nthe layer above the masters.\n');
     W(jp(brain, 'control', 'THIN-CONTROL.md'), '# a card that names nobody\n');
+    // config_paths_each regex (0.2.7): three manifests armed the way the guard's GATE_ON_RX reads them
+    // (plain, table, bold and case), one that only quotes the words mid-sentence, one with no line
+    W(jp(root, 'gate-plain', 'DECISIONS.md'), '# M\n\nDesign gate: on\n');
+    W(jp(root, 'gate-table', 'DECISIONS.md'), '# M\n\n| Design gate | on |\n');
+    W(jp(root, 'gate-bold', 'DECISIONS.md'), '# M\n\n**DESIGN Gate**: **on**\n');
+    W(jp(root, 'gate-quoted', 'DECISIONS.md'), '# M\n\nThe words design gate: on appear mid-sentence here.\n');
+    W(jp(root, 'gate-off', 'DECISIONS.md'), '# M\n\nnothing armed\n');
 
     const cfg = {
         schema: 1, surveyStrict: false, maxDepth: 3,
@@ -312,6 +319,8 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
         { id: 'T-TOMB-NONE', type: 'config_paths_each', configKey: 'tombstonedPaths', file: 'TOMBSTONE.md', contains: ['status:', 'consumers:', 'remove:'], why: 't' },
         { id: 'T-TOMB-OK', type: 'config_paths_each', paths: ['${ROOT}/tomb-ok'], file: 'TOMBSTONE.md', contains: ['status:', 'consumers:', 'remove:'], why: 't' },
         { id: 'T-CARDS', type: 'config_paths_each', configKey: 'controlCards', base: '${BRAIN}/control', contains: ['Master Control|Intake'], why: 't' },
+        { id: 'T-GATE-RX', type: 'config_paths_each', paths: ['${ROOT}/gate-plain', '${ROOT}/gate-table', '${ROOT}/gate-bold'], file: 'DECISIONS.md', regex: ['^\\s*\\|?\\s*\\**\\s*design gate\\s*\\**\\s*(\\||:)\\s*\\**\\s*on\\b'], why: 't' },
+        { id: 'T-GATE-RX-FLAGS', type: 'config_paths_each', paths: ['${ROOT}/gate-bold/DECISIONS.md'], regex: ['/design gate/i'], contains: ['# M'], why: 't' },
         { id: 'T-REMOTE', type: 'remote_is', path: '${ROOT}/ownedrepo', remote: 'origin', pattern: 'github\\.com/test-owner/', why: 't' },
         { id: 'T-JSON', type: 'json_subset_equal', path: '${ROOT}/.claude/settings.json', subset: subsetOk, why: 't' },
         { id: 'T-KEYED', type: 'json_keyed_match', path: 'vectors-a.json', other: '${BRAIN}/vectors-b.json', collection: 'vectors.cases', key: 'id', why: 't' },
@@ -345,6 +354,8 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
         { id: 'F-TOMB-NONE', type: 'config_paths_each', paths: ['${ROOT}/tomb-none'], file: 'TOMBSTONE.md', contains: ['status:'], why: 'f' },
         { id: 'F-CARDS-THIN', type: 'config_paths_each', paths: ['GOOD-CONTROL.md', 'THIN-CONTROL.md'], base: '${BRAIN}/control', contains: ['Master Control|Intake'], why: 'f' },
         { id: 'F-CARDS-GONE', type: 'config_paths_each', paths: ['NONE-CONTROL.md'], base: '${BRAIN}/control', contains: ['Master Control|Intake'], why: 'f' },
+        { id: 'F-GATE-RX', type: 'config_paths_each', paths: ['${ROOT}/gate-plain', '${ROOT}/gate-quoted', '${ROOT}/gate-off'], file: 'DECISIONS.md', regex: ['^\\s*\\|?\\s*\\**\\s*design gate\\s*\\**\\s*(\\||:)\\s*\\**\\s*on\\b'], why: 'f' },
+        { id: 'F-GATE-RX-FILE', type: 'config_paths_each', paths: ['${ROOT}/gate-off/DECISIONS.md'], regex: ['^\\s*\\|?\\s*\\**\\s*design gate\\s*\\**\\s*(\\||:)\\s*\\**\\s*on\\b'], why: 'f' },
         { id: 'F-REMOTE', type: 'remote_is', path: '${ROOT}/foreign', remote: 'origin', pattern: 'github\\.com/test-owner/', why: 'f' },
         { id: 'F-JSON', type: 'json_subset_equal', path: '${ROOT}/.claude/settings.json', subset: subsetBad, why: 'f' },
         { id: 'F-KEYED', type: 'json_keyed_match', path: 'vectors-a.json', other: 'vectors-c.json', collection: 'vectors.cases', key: 'id', why: 'f' },
@@ -373,6 +384,7 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
         { id: 'U-FRESH', type: 'file_fresh', path: '${BRAIN}/records/restore-fresh.log', maxDays: 0, why: 'u' },
         { id: 'U-TOMB', type: 'config_paths_each', configKey: 'noSuchKey', file: 'TOMBSTONE.md', contains: ['status:'], why: 'u' },
         { id: 'U-CARDS', type: 'config_paths_each', paths: ['GOOD-CONTROL.md'], base: '${BRAIN}/control', why: 'u' },
+        { id: 'U-GATE-RX', type: 'config_paths_each', paths: ['${ROOT}/gate-plain'], file: 'DECISIONS.md', regex: ['(unclosed'], why: 'u' },
         { id: 'U-KEYED', type: 'json_keyed_match', path: 'vectors-a.json', other: 'vectors-b.json', collection: 'vectors.nope', key: 'id', why: 'u' },
         { id: 'U-SMOKE', type: 'hook_smoke', hook: 'unregistered', event: 'PreToolUse', why: 'u' },
         { id: 'U-TREEEQ', type: 'tree_equals', path: '${KIT}/eq-a', other: '${KIT}/eq-d', why: 'u' },
@@ -424,7 +436,7 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
     has('A: soft_deny counted against frozenPaths', a.out, 'soft_deny: 2 rule(s), 1 naming a frozen path');
     has('A: registered-but-missing hook', a.out, 'hook REGISTERED BUT MISSING');
     has('A: deny/ask rules read from root settings', a.out, 'root settings: 1 deny, 1 ask');
-    has('A: every true claim holds (emptyOk: nothing selected is a pass that says so)', a.out, 'CLAIMS  31 pass  0 fail  0 could not look');
+    has('A: every true claim holds (emptyOk: nothing selected is a pass that says so)', a.out, 'CLAIMS  33 pass  0 fail  0 could not look');
     hasNot('A: no COULD-NOT-LOOK band', a.out, 'COULD-NOT-LOOK');
     has('A: ratchet with no record says the baseline was recorded', a.out, 'ratchet T-RATCHET-NEW: baseline recorded, HONOUR = 26');
     has('A: ratchet reads the row under its heading, and reports a fall', a.out, 'ratchet T-RATCHET-FALL: HONOUR fell from 30 to 26');
@@ -477,6 +489,12 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
     has('C: config_paths_each names the folder with no tombstone', c.out, 'F-TOMB-NONE  tomb-none: missing TOMBSTONE.md');
     has('C: config_paths_each with base and no file names the card that names no master (CTRL-03)', c.out, "F-CARDS-THIN  THIN-CONTROL.md: lacks 'Master Control|Intake'");
     has('C: config_paths_each with base names the missing card under the base folder', c.out, `F-CARDS-GONE  NONE-CONTROL.md: file missing (${jp(brain, 'control', 'NONE-CONTROL.md')})`);
+    has('C: config_paths_each names the file path on a lacks row (0.2.7)', c.out, `F-TOMB-THIN  tomb-thin: TOMBSTONE.md lacks 'consumers:' (${jp(root, 'tomb-thin', 'TOMBSTONE.md')})`);
+    has('C: config_paths_each names the file path on a missing-file row (0.2.7)', c.out, `F-TOMB-NONE  tomb-none: missing TOMBSTONE.md (${jp(root, 'tomb-none', 'TOMBSTONE.md')})`);
+    has('C: config_paths_each regex: the quoted words mid-sentence do not arm (line start, as the guard reads it)', c.out, 'F-GATE-RX  gate-quoted: DECISIONS.md lacks a line matching ^\\s*\\|?');
+    has('C: config_paths_each regex: the unarmed manifest is named with its path', c.out, `gate-off: DECISIONS.md lacks a line matching ^\\s*\\|?\\s*\\**\\s*design gate\\s*\\**\\s*(\\||:)\\s*\\**\\s*on\\b (${jp(root, 'gate-off', 'DECISIONS.md')})`);
+    hasNot('C: config_paths_each regex: the plain form arms and is not listed', c.out, 'gate-plain:');
+    has('C: config_paths_each regex with no file: each entry is the file read', c.out, 'F-GATE-RX-FILE  DECISIONS.md: lacks a line matching');
     has('C: SessionStart silent hook is a fail', c.out, 'printed nothing');
     has('C: PreToolUse non-JSON is a fail', c.out, 'stdout is not JSON');
     hasNot('C: no COULD-NOT-LOOK from false claims', c.out, 'COULD-NOT-LOOK');
@@ -495,7 +513,8 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
     has('D: missing file for file_contains is unknown', d.out, '????  U-CONTAINS');
     has('D: file_fresh with maxDays 0 is unknown', d.out, "????  U-FRESH  'maxDays' must be a positive integer");
     has('D: config_paths_each with an absent config key is unknown', d.out, "????  U-TOMB  config key 'noSuchKey'");
-    has('D: config_paths_each with no file and no contains is unknown', d.out, "????  U-CARDS  claim has no 'file' and no 'contains'");
+    has('D: config_paths_each with no file and no contains is unknown', d.out, "????  U-CARDS  claim has no 'file' and no 'contains' or 'regex'");
+    has('D: config_paths_each with a regex that does not compile is unknown', d.out, '????  U-GATE-RX  regex (unclosed does not compile');
     has('D: json_keyed_match with a missing collection path is unknown', d.out, "????  U-KEYED  collection 'vectors.nope' not found in");
     has('D: unregistered hook is unknown', d.out, '????  U-SMOKE');
     has('D: tree_equals with a missing folder is unknown', d.out, '????  U-TREEEQ  folder missing');

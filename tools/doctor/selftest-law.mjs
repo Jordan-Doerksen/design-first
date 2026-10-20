@@ -87,6 +87,25 @@ export function lawRuns(t) {
     exitIs('L: no hooks.json fails a hook clause instead of passing it', r.code, 1);
     has('L: the failure says hooks.json is missing', r.out, 'hooks/hooks.json does not exist');
 
+    // L5 (0.2.7): kind 'survey' grades ADVISE on a Doctor survey anchor that declares advise, with no
+    // hooks.json needed (a survey line is not a hook); GATE on it is refused, and so is an ADVISE on a
+    // survey anchor that declares gate.
+    W(jp(lk, 'tools', 'doctor', 'survey.mjs'), '// anchor: t-warn  mode: advise  verbs: test-warn\n// anchor: t-fail  mode: gate  verbs: test-fail\n');
+    W(jp(lk, 'instructions', 'survey-law.md'), '# Survey law\n\n### TSV-01\n\nWarn.\n\n### TSV-02\n\nGate on warn.\n\n### TSV-03\n\nAdvise on a gate anchor.\n\n### TSV-04\n\nNo anchor.\n');
+    const sv = (id, grade, ref, verb) => ({ id, group: 'TSV', verb, rule: 'A planted rule for the survey kind.', owner: 'kit:instructions/survey-law.md', grade, since: '2026-10-20', enforcedBy: { kind: 'survey', ref } });
+    const svOk = [sv('TSV-01', 'ADVISE', 'tools/doctor/survey.mjs#t-warn', 'test-warn')];
+    WJ(path.join(lk, 'law-survey.json'), { schema: 1, groups: { TSV: 'Survey' }, clauses: svOk });
+    r = node(lkBuild, ['-Source', path.join(lk, 'law-survey.json'), '-Out', path.join(T, 'law-survey.md')]);
+    exitIs('L: an ADVISE clause of kind survey on an advise anchor builds', r.code, 0);
+    has('L: it keeps its ADVISE grade', fs.existsSync(path.join(T, 'law-survey.md')) ? fs.readFileSync(path.join(T, 'law-survey.md'), 'utf8') : '', '| TSV-01 | ADVISE |');
+    WJ(path.join(lk, 'law-survey-bad.json'), { schema: 1, groups: { TSV: 'Survey' }, clauses: [...svOk, sv('TSV-02', 'GATE', 'tools/doctor/survey.mjs#t-warn', 'test-warn'), sv('TSV-03', 'ADVISE', 'tools/doctor/survey.mjs#t-fail', 'test-fail'), sv('TSV-04', 'ADVISE', 'tools/doctor/survey.mjs', 'test-warn')] });
+    r = node(lkBuild, ['-Source', path.join(lk, 'law-survey-bad.json'), '-Out', path.join(T, 'law-survey-bad.md')]);
+    exitIs('L: a GATE, a gate anchor or no anchor on kind survey fails the build', r.code, 1);
+    has('L: GATE cannot rest on a survey warn', r.out, "FAIL TSV-02: grade GATE cannot be enforced by kind 'survey'");
+    has('L: an ADVISE survey clause needs an advise anchor', r.out, "FAIL TSV-03: anchor 't-fail' declares mode gate but grade ADVISE needs advise");
+    has('L: a survey ref names its anchor', r.out, 'FAIL TSV-04: a survey ref needs #<anchor>');
+    hasNot('L: the good survey clause is not failed with them', r.out, 'FAIL TSV-01');
+
     // ================================================================ run M: the docs build accepts DENY
     say('  Run M: the docs build with a planted DENY clause', 36);
     // A scratch kit with every input docs/build.mjs reads, and the kit's law.json with one clause that
@@ -94,7 +113,7 @@ export function lawRuns(t) {
     // shows as a count one short.
     const dk = newDir(path.join(T, 'docskit'));
     // The adopt plan (the README's adopt block) brings its own imports and the templates it fills.
-    for (const rel of ['.claude-plugin/plugin.json', '.claude-plugin/marketplace.json', 'hooks/hooks.json', 'tools/doctor/claims.json', 'README.md', 'ARCHITECTURE.md', 'LOOPS.md', 'agents/reviewer.md', 'LICENSE', 'docs/build.mjs', 'tools/lib/args.mjs', 'tools/lib/adopt-plan.mjs', 'tools/lib/df-files.mjs', 'hooks/lib/json.mjs', 'hooks/lib/common.mjs', 'hooks/lib/stdin.mjs']) copy(kitRoot, rel, dk);
+    for (const rel of ['.claude-plugin/plugin.json', '.claude-plugin/marketplace.json', 'hooks/hooks.json', 'tools/doctor/claims.json', 'README.md', 'ARCHITECTURE.md', 'LOOPS.md', 'agents/reviewer.md', 'LICENSE', 'docs/build.mjs', 'docs/data.mjs', 'tools/lib/args.mjs', 'tools/lib/adopt-plan.mjs', 'tools/lib/df-files.mjs', 'hooks/lib/json.mjs', 'hooks/lib/common.mjs', 'hooks/lib/stdin.mjs']) copy(kitRoot, rel, dk);
     for (const [dir, rx] of [['hooks', /\.mjs$/], ['commands', /\.md$/], ['docs/src', /./], ['templates', /./]]) {
         const from = jp(kitRoot, dir); const to = newDir(jp(dk, dir));
         for (const f of fs.readdirSync(from, { withFileTypes: true })) if (f.isFile() && rx.test(f.name)) fs.copyFileSync(path.join(from, f.name), path.join(to, f.name));
