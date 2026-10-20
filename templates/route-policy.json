@@ -7,7 +7,8 @@
     "AUTO": ["loop", "harness", "autonomous", "unattended", "story", "stories", "overnight", "builder", "reviewer", "verify gate"],
     "VCS":  ["commit", "push", "repo", "repos", "repository", "branch", "merge", "git", "clone", "backup", "archive", "worktree", "remote", "secret", "token", ".env"],
     "OBS":  ["server", "dashboard", "log", "logs", "desk", "bot", "feed", "alert", "launch", "run it", "start it", "port", "probe", "health", "watchdog"],
-    "STACK": ["stack", "runtime", "toolchain", "lockfile", "node", "npm", "python", "uv", "cargo", "rust", "tauri", "godot", "pwsh", "powershell"]
+    "STACK": ["stack", "runtime", "toolchain", "lockfile", "node", "npm", "python", "uv", "cargo", "rust", "tauri", "godot", "pwsh", "powershell"],
+    "CTRL":  ["control", "master", "intake", "roster", "card", "session", "sessions", "report-back"]
   },
   "folders": {},
   "_stateCard": "GAME-13, read by hooks/entry.mjs at session start. A session that starts inside a repository whose top-level folder is mapped (in folders) to one of stateCard.groups gets a state card built from that repository's DECISIONS.md, HANDOFF.md and git. Map your games folder to GAME in folders to switch it on, for example \"games\": [\"GAME\", \"DES\"]. staleCommits: a hand-off further behind HEAD than this is flagged. lineChars, maxChars: size caps. closedWords (optional): the status words that mean a timeline row is closed. groups empty: no card. anyRepoWithHandoff (DES-14, default false): true also gives a card to any repository under root that holds HANDOFF.md or docs\\HANDOFF.md, whatever its folder; the card then prints the hand-off's '## Next session' section as the next prompt.",

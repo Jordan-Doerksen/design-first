@@ -168,15 +168,23 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | STACK-02 | BUILDABLE | A runtime's version pin and its lockfile are files at the repository root that the Doctor reads, never a line in prose. | `kit:instructions/stack-law.md` |
 | STACK-03 | ADVISE | A new repository takes its stack from the brain's default table for its kind, and a departure is a decision in the manifest with its reason. | `kit:instructions/stack-law.md` |
 
+## CTRL - Control
+
+| id | grade | rule | owner |
+|---|---|---|---|
+| CTRL-01 | OWNER | One control session per domain and one intake above them, each started from a fresh chat and never from another domain's session; a work session starts from its master, never from a loose chat, and reports to it at turn end. | `kit:instructions/control-law.md` |
+| CTRL-02 | HOOK | Every brief, for a subagent or for a session, names what it reports to and in what shape; a brief that does not is refused. | `kit:instructions/control-law.md` |
+| CTRL-03 | GATE | Every control card lives in the brain's control folder, exists at its path and names its master. | `kit:instructions/control-law.md` |
+
 ## Summary
 
 | grade | count |
 |---|---|
 | DENY | 0 |
-| HOOK | 13 |
+| HOOK | 14 |
 | ADVISE | 37 |
-| GATE | 14 |
+| GATE | 15 |
 | BUILDABLE | 15 |
-| OWNER | 2 |
+| OWNER | 3 |
 | HONOUR | 5 |
-| total | 86 |
+| total | 89 |

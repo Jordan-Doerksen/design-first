@@ -65,6 +65,7 @@ export const CONFIG_READERS = {
     ownerRemotePatterns: 'repos.mjs (repoFacts: a remote matching none is FOREIGN)',
     frozenPaths: 'repos.mjs (frozenDirty) / enforcement.mjs (soft_deny count) / hooks/guard.mjs (path deny)',
     tombstonedPaths: 'repos.mjs (flag) / hooks/guard.mjs (path deny)',
+    controlCards: 'claims-fresh.mjs (config_paths_each, CTRL-CARD-01 / KIT-CONTROL-01: the control cards, relative to <brain>/control/)',
     unversionedMaxDepth: 'repos.mjs (unversionedFolders)',
     unversionedIgnorePathParts: 'repos.mjs (unversionedFolders)',
     secretExceptions: 'repos.mjs (trackedSecrets) / hooks/guard.mjs (staging and write rules)',
@@ -108,6 +109,7 @@ export function defaultConfig() {
         ownerRemotePatterns: [],
         frozenPaths: [],
         tombstonedPaths: [],
+        controlCards: [],
         unversionedMaxDepth: 3,
         unversionedIgnorePathParts: ['/_archive/', '/_backups/', '/node_modules/', '/__pycache__/', '/.venv/'],
         secretExceptions: [],
@@ -172,7 +174,7 @@ export function readDoctorConfig(p, ctx, readers = CONFIG_READERS) {
         }
     }
     // Normalise list-valued keys so a single string or null never breaks a loop.
-    for (const lk of ['excludePathParts', 'archivedPathParts', 'ownerRemotePatterns', 'frozenPaths', 'tombstonedPaths',
+    for (const lk of ['excludePathParts', 'archivedPathParts', 'ownerRemotePatterns', 'frozenPaths', 'tombstonedPaths', 'controlCards',
         'unversionedIgnorePathParts', 'secretExceptions', 'acceptedExceptions', 'entryPointSnapshots']) cfg[lk] = asList(cfg[lk]);
     // Path lists are absolute or ${ROOT}-relative (SPEC 5.3). Expand them once, here, so no reader
     // has to know the rule. A bare relative path means root-relative for these three keys.

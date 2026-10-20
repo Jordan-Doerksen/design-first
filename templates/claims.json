@@ -51,6 +51,16 @@
       "why": "VCS-12: every folder listed under tombstonedPaths in doctor.config.json holds a TOMBSTONE.md with status:, consumers: and remove: lines. A retired folder with no tombstone is a folder someone will delete while something still reads it. An empty list passes and says so."
     },
     {
+      "id": "CTRL-CARD-01",
+      "type": "config_paths_each",
+      "configKey": "controlCards",
+      "base": "${BRAIN}/control",
+      "contains": [
+        "Master Control|Intake"
+      ],
+      "why": "CTRL-03: every control card listed under controlCards in doctor.config.json (paths relative to <brain>/control/) exists and names its master: the words Master Control on a domain card, Intake on the card above the masters. A card that is missing is a master with no record; a card that names no master is a file nobody answers for. No `file` field: each listed path is itself the card. An empty list passes and says so. The claim sees the file, not whether the master's chat is alive; a stale card is a later claim (file_fresh) when a card has gone stale once."
+    },
+    {
       "id": "SCAN-MANIFEST-01",
       "type": "tree_each",
       "root": "${ROOT}",

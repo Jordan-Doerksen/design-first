@@ -89,7 +89,7 @@ brain-relative (kit-relative under `-Kit`). A path with an unexpandable variable
 | `path_absent` | `path` | absent | present | unexpanded variable |
 | `file_contains` | `path`, `needle` | literal substring found anywhere in the file | absent | file missing |
 | `file_fresh` | `path`, `maxDays`, `graceFromInstall?` | the last line that starts with an ISO date is at most `maxDays` old; with `graceFromInstall` a missing file passes until `maxDays` after the write time of `state/installed.json` | file missing (past the grace), no dated line, or the last dated line is older | `maxDays` not a positive integer |
-| `config_paths_each` | `configKey` or `paths[]`, `file`, `contains[]` | every listed folder holds `file` with every string in `contains`; an empty list passes and says so | a folder missing the file, or the file missing a string | the config key absent, or no list given |
+| `config_paths_each` | `configKey` or `paths[]`, `base?`, `file?`, `contains[]` | every listed folder holds `file` with every string in `contains`; with `base`, a relative entry is joined under that folder; with no `file`, each entry is itself the file read; a string in `contains` may hold alternatives split by `\|` and one of them must be present; an empty list passes and says so | a folder missing the file, a file missing, or the file missing a string | the config key absent, no list given, or no `file` and no `contains` |
 | `file_not_contains` | `path`, `needle` | absent | present | file missing |
 | `log_window_free_of` | `path`, `needle`, `days` | no line that starts with an ISO date/timestamp within `days` contains `needle`. No log file at all is a PASS, said in the detail. | such a line exists | `days` not a positive integer |
 | `remote_is` | `path`, `remote` (default `origin`), `pattern` (regex) | `git remote get-url` matches | no such remote, or no match | folder missing, not a work tree |
@@ -222,6 +222,7 @@ Finding kinds for `acceptedExceptions`: `noRemote`, `emptyRepo`, `foreignRemote`
 | `ownerRemotePatterns` | repos.mjs | A remote URL containing none is FOREIGN. |
 | `frozenPaths` | repos.mjs, enforcement.mjs, hooks/guard.mjs | Do-not-edit trees. Absolute or `${ROOT}`-relative. |
 | `tombstonedPaths` | repos.mjs, hooks/guard.mjs | Retired but load-bearing. Absolute or `${ROOT}`-relative. |
+| `controlCards` | claims-fresh.mjs (`CTRL-CARD-01`) | The control cards, relative to `<brain>/control/` (`DESK-CONTROL.md`, `INTAKE.md`). Each must exist and name its master (CTRL-03). Empty: the claim passes and says so. |
 | `unversionedMaxDepth` | repos.mjs | How deep the no-git-at-all sweep walks. |
 | `unversionedIgnorePathParts` | repos.mjs | Folders deliberately outside git. Add a reason next to each. |
 | `secretExceptions` | repos.mjs, hooks/guard.mjs | Tracked secret files you accept. Absolute or `${ROOT}`-relative. Apply to staging and write rules alike. |

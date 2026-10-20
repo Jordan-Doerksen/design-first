@@ -1,10 +1,15 @@
-// agent.mjs - holds a subagent spawn to its brief contract, routes its model from the brain's policy, and asks past the spawn cap (DES-11).
+// agent.mjs - holds a subagent spawn, or a session start, to its brief contract, routes a subagent's model from the brain's policy, and asks past the spawn cap (DES-11, CTRL-02).
 //
 // Three rules, in this order. Every one is a cost already paid: 516 subagents in two weeks, 97% on
 // the most expensive model, briefs with no done-check, one session spawning 33.
 //   1. agent-brief  - DENY a spawn whose brief lacks the contract headings (Goal:, Files: or Area:,
-//                     Done when:, Ruled out:). Search-type agents need only Goal: and Done when:.
-//                     Only the headings are checked, not what follows them.
+//                     Done when:, Ruled out:, Reports to:). Search-type agents need only Goal:,
+//                     Done when: and Reports to:. Only the headings are checked, not what follows
+//                     them. The same check runs on the host's session-start tools, named in the
+//                     policy's brief.sessionTools (CTRL-02): the tool input's prompt is the brief,
+//                     and nothing else is done to the call (no count, no route; a session's model
+//                     is the host's). A session-start call with no prompt carries no brief (the
+//                     offer card is a title alone; a proposal starts by its id) and passes through.
 //   2. agent-cap    - count spawns per turn (session_id + prompt_id; with no prompt_id, per clock
 //                     hour); above the cap, ASK the owner, naming the count and the models so far.
 //                     The cap is checked before routing, so the ask can name the models so far; a
@@ -19,7 +24,7 @@
 // is proven by a live probe (a spawn whose first line reports its own model), not by this file.
 // Failure policy: an internal error ALLOWS the call, logs an ERROR line and says so on both channels.
 //
-// anchor: agent-brief  mode: deny  verbs: parallelise,spawn
+// anchor: agent-brief  mode: deny  verbs: parallelise,spawn,report-to
 // anchor: agent-route  mode: advise  verbs: route-model
 // anchor: agent-cap  mode: gate  verbs: cap-spawn
 
@@ -86,7 +91,35 @@ try {
     const raw = C.readStdin();
     if (C.isBlank(raw)) throw new Error('empty stdin (no tool call payload)');
     const j = JSON.parse(raw);
-    if (C.str(j.tool_name) === 'Agent') {
+    const toolName = C.str(j.tool_name);
+    const ptr0 = toolName === 'Agent' ? null : C.readPointer();
+    const pol0 = toolName === 'Agent' ? null : readAgentPolicy(C, ptr0);
+    const sessionTools = pol0 ? list(prop(prop(pol0.policy, 'brief') || {}, 'sessionTools')) : [];
+    if (toolName !== 'Agent' && sessionTools.some((t) => t === toolName)) {
+        // ---------------------------------------------------------------- CTRL-02: a session brief
+        // The host's session-start tool. The brief is the input's prompt; a call with no prompt is an
+        // offer (a title alone) or a proposal started by its id, whose brief was checked when it was
+        // sent, so it passes through with nothing said.
+        const ti = j.tool_input;
+        if (ti == null) throw new Error(`payload has no tool_input (tool_name='${toolName}')`);
+        if (ti.prompt != null && !C.isBlank(C.str(ti.prompt))) {
+            const prompt = C.str(ti.prompt);
+            const owner = C.getOwnerName(ptr0.brain);
+            const fenceLog = C.getFenceLogPath();
+            const required = list(prop(prop(pol0.policy, 'brief') || {}, 'required'));
+            const missing = required.filter((h) => !hasHeading(prompt, h));
+            if (missing.length > 0) {
+                const reason = `A session brief must carry these headings at line start: ${required.join(', ')}. Missing: ${missing.join(', ')}. ` +
+                    "Write the brief with every heading on its own line (for example 'Reports to: Method Master Control, the four-line report at turn end'), then start the session again. " +
+                    `This is ${owner}'s rule CTRL-02 (with DES-11 for the work headings); the policy is ${pol0.source}.`;
+                C.addTextLine(fenceLog, `${C.stampNow()}  BLOCKED[AGENT: session brief rejected, ${missing.join(', ')}, tool ${toolName}]`);
+                C.writeJson(C.newDeny('agent', `session brief rejected (${missing.join(', ')} missing)`, reason));
+            } else {
+                C.writeJson(C.newAdvisory('agent', [{ title: 'session brief carries the contract headings',
+                    body: `design-first: the session brief carries ${required.join(', ')} (CTRL-02); the session's model and count are the host's, not routed here.` }]));
+            }
+        }
+    } else if (toolName === 'Agent') {
         const ti = j.tool_input;
         if (ti == null) throw new Error("payload has no tool_input (tool_name='Agent')");
         const sessionId = C.str(j.session_id);

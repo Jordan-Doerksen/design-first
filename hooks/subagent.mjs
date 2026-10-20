@@ -125,14 +125,22 @@ try {
         if (wanted.length > 0) {
             const law = L.lawPath(ptr, kit);
             const groups = L.readLawGroups(law);
+            // Workaround (CR-2026-10-19-CONTROL, found by the six-group self-test case at a 36-character
+            // kit path): the deferral line below was written after the admission loop and counted
+            // nowhere, so a group admitted into the last 40 characters of room left the line itself to
+            // push the ADVISE block over the cap, and the Reviewer got the ids with no text. The room
+            // the line can take, at most every wanted group's name, is reserved with the block, so a
+            // group is admitted only when the block and the line that may follow both still fit.
+            const deferralLine = (names) => `Over the size cap, not injected: ${names.join(', ')}; index at ${inFolder(law)}.\n\n`;
+            const deferralRoom = deferralLine(wanted).length;
             for (const g of wanted) {
                 const grp = L.findGroup(groups, g);
                 if (!grp) continue;
                 const text = L.formatLawGroup(g, grp, ptr, kit);
-                if (out.length + text.length + 2 + reserved > maxChars) { deferred.push(g); continue; }
+                if (out.length + text.length + 2 + reserved + deferralRoom > maxChars) { deferred.push(g); continue; }
                 out += text + '\n\n'; injected.push(g);
             }
-            if (deferred.length > 0) out += `Over the size cap, not injected: ${deferred.join(', ')}; index at ${inFolder(law)}.\n\n`;
+            if (deferred.length > 0) out += deferralLine(deferred);
         }
 
         // advise-by-role: after the groups, in the room reserved above. Over the cap (the block alone

@@ -326,6 +326,12 @@ section('-- guard and fence cases');
                     if (c.type) ti.subagent_type = String(c.type);
                     if (c.model) ti.model = String(c.model);
                     break;
+                case 'mcp__ccd_session__start_session':
+                    // CTRL-02: the host's session-start tool. A case with no prompt is an offer (a title
+                    // alone) or a proposal started by its id, so the prompt is set only when the case has one.
+                    ti.title = 'case'; ti.initiation = 'user_asked';
+                    if ('prompt' in c) ti.prompt = String(c.prompt);
+                    break;
                 default:
                     ti.file_path = expand(c.path); ti.old_string = c.old != null ? String(c.old) : 'a'; ti.new_string = c.new != null ? String(c.new) : 'b';
             }
@@ -435,6 +441,10 @@ const sub = (session, type) => invokeHook('subagent.mjs', hookJson({ session_id:
     // kit's LAW.md carries its three rows with the kit's grades.
     r = route('which runtime does this repo pin, and where is its lockfile', 'r-stack', root);
     record('route: a stack word injects the STACK group, STACK-01 at GATE and STACK-03 at ADVISE (CR-2026-10-19-STACK)', 'stack', r.code === 0 && /group STACK/i.test(r.out) && /STACK-01 \[GATE\]/i.test(r.out) && /STACK-03 \[ADVISE\]/i.test(r.out) ? 'stack' : 'wrong', r.out);
+    // CR-2026-10-19-CONTROL: the CTRL group routes on the control words of the template policy, and
+    // the kit's LAW.md carries its three rows with the kit's grades (OWNER, HOOK, GATE).
+    r = route('open the master control card and list the sessions', 'r-ctrl', root);
+    record('route: a control word injects the CTRL group, CTRL-01 at OWNER, CTRL-02 at HOOK and CTRL-03 at GATE (CR-2026-10-19-CONTROL)', 'ctrl', r.code === 0 && /group CTRL/i.test(r.out) && /CTRL-01 \[OWNER\]/i.test(r.out) && /CTRL-02 \[HOOK\]/i.test(r.out) && /CTRL-03 \[GATE\]/i.test(r.out) ? 'ctrl' : 'wrong', r.out);
     r = sub('r1', 'general-purpose');
     record('subagent: gets SAFE plus the session active groups as JSON context', 'safe+active', r.code === 0 && /group SAFE/i.test(r.out) && /group DES/i.test(r.out) && /group OBS/i.test(r.out) && /"hookEventName":"SubagentStart"/i.test(r.out) ? 'safe+active' : 'wrong', r.out);
     r = sub('r-fresh', 'Explore');

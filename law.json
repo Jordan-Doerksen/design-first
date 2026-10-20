@@ -15,7 +15,8 @@
     "SKIN": "Skins",
     "VOICE": "Voice",
     "MAP": "Canonical copies",
-    "STACK": "Development stack"
+    "STACK": "Development stack",
+    "CTRL": "Control"
   },
   "clauses": [
     {
@@ -1106,6 +1107,41 @@
       "enforcedBy": {
         "kind": "hook",
         "ref": "hooks/subagent.mjs#advise-by-role"
+      }
+    },
+    {
+      "id": "CTRL-01",
+      "group": "CTRL",
+      "verb": "control",
+      "rule": "One control session per domain and one intake above them, each started from a fresh chat and never from another domain's session; a work session starts from its master, never from a loose chat, and reports to it at turn end.",
+      "owner": "kit:instructions/control-law.md",
+      "grade": "OWNER",
+      "since": "2026-10-20"
+    },
+    {
+      "id": "CTRL-02",
+      "group": "CTRL",
+      "verb": "report-to",
+      "rule": "Every brief, for a subagent or for a session, names what it reports to and in what shape; a brief that does not is refused.",
+      "owner": "kit:instructions/control-law.md",
+      "grade": "HOOK",
+      "since": "2026-10-20",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/agent.mjs#agent-brief"
+      }
+    },
+    {
+      "id": "CTRL-03",
+      "group": "CTRL",
+      "verb": "keep-card",
+      "rule": "Every control card lives in the brain's control folder, exists at its path and names its master.",
+      "owner": "kit:instructions/control-law.md",
+      "grade": "GATE",
+      "since": "2026-10-20",
+      "enforcedBy": {
+        "kind": "doctor-claim",
+        "ref": "KIT-CONTROL-01"
       }
     }
   ]

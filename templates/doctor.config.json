@@ -12,6 +12,7 @@
     "ownerRemotePatterns": "repos.mjs - a remote URL containing none of these is FOREIGN",
     "frozenPaths": "repos.mjs (frozenDirty finding) / enforcement.mjs (soft_deny count) / hooks/guard.mjs (path deny)",
     "tombstonedPaths": "repos.mjs (flag) / hooks/guard.mjs (path deny)",
+    "controlCards": "tools/doctor/claims-fresh.mjs (config_paths_each, claim CTRL-CARD-01) - the control cards, paths relative to <brain>/control/",
     "unversionedMaxDepth": "repos.mjs - how deep the no-git-at-all sweep walks",
     "unversionedIgnorePathParts": "repos.mjs - folders deliberately outside git; add one only with a reason written next to it",
     "secretExceptions": "repos.mjs (tracked secret scan) / hooks/guard.mjs (staging and write rules) - absolute or ${ROOT}-relative file paths",
@@ -45,6 +46,7 @@
   ],
   "frozenPaths": [],
   "tombstonedPaths": [],
+  "controlCards": [],
   "unversionedMaxDepth": 3,
   "unversionedIgnorePathParts": [
     "/_archive/",

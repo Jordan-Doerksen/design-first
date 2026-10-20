@@ -193,12 +193,16 @@ try {
     W(jp(root, 'tomb-ok', 'TOMBSTONE.md'), 'status: retired\nconsumers: the desk reads it\nremove: the owner, after the desk moves\n');
     W(jp(root, 'tomb-thin', 'TOMBSTONE.md'), 'status: retired\n');
     newDir(path.join(root, 'tomb-none'));
+    // config_paths_each with base and no file (CTRL-03): two cards that name their master, one that names nobody
+    W(jp(brain, 'control', 'GOOD-CONTROL.md'), '# GOOD-CONTROL: Good Master Control\n\nid planted.\n');
+    W(jp(brain, 'control', 'INTAKE.md'), '# INTAKE: Intake\n\nthe layer above the masters.\n');
+    W(jp(brain, 'control', 'THIN-CONTROL.md'), '# a card that names nobody\n');
 
     const cfg = {
         schema: 1, surveyStrict: false, maxDepth: 3,
         excludePathParts: ['/_none_/'], archivedPathParts: ['/_archive/'],
         ownerRemotePatterns: ['github.com/test-owner/'],
-        frozenPaths: ['${ROOT}/frozenref', '${ROOT}/wtmain-wt2'], tombstonedPaths: [],
+        frozenPaths: ['${ROOT}/frozenref', '${ROOT}/wtmain-wt2'], tombstonedPaths: [], controlCards: ['GOOD-CONTROL.md', 'INTAKE.md'],
         unversionedMaxDepth: 3, unversionedIgnorePathParts: ['/_backups/'],
         secretExceptions: [],
         acceptedExceptions: [
@@ -307,6 +311,7 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
         { id: 'T-FRESH-GRACE', type: 'file_fresh', path: '${BRAIN}/records/none-yet.log', maxDays: 7, graceFromInstall: true, why: 't' },
         { id: 'T-TOMB-NONE', type: 'config_paths_each', configKey: 'tombstonedPaths', file: 'TOMBSTONE.md', contains: ['status:', 'consumers:', 'remove:'], why: 't' },
         { id: 'T-TOMB-OK', type: 'config_paths_each', paths: ['${ROOT}/tomb-ok'], file: 'TOMBSTONE.md', contains: ['status:', 'consumers:', 'remove:'], why: 't' },
+        { id: 'T-CARDS', type: 'config_paths_each', configKey: 'controlCards', base: '${BRAIN}/control', contains: ['Master Control|Intake'], why: 't' },
         { id: 'T-REMOTE', type: 'remote_is', path: '${ROOT}/ownedrepo', remote: 'origin', pattern: 'github\\.com/test-owner/', why: 't' },
         { id: 'T-JSON', type: 'json_subset_equal', path: '${ROOT}/.claude/settings.json', subset: subsetOk, why: 't' },
         { id: 'T-KEYED', type: 'json_keyed_match', path: 'vectors-a.json', other: '${BRAIN}/vectors-b.json', collection: 'vectors.cases', key: 'id', why: 't' },
@@ -338,6 +343,8 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
         { id: 'F-FRESH-UNDATED', type: 'file_fresh', path: '${BRAIN}/records/restore-undated.log', maxDays: 7, why: 'f' },
         { id: 'F-TOMB-THIN', type: 'config_paths_each', paths: ['${ROOT}/tomb-ok', '${ROOT}/tomb-thin'], file: 'TOMBSTONE.md', contains: ['status:', 'consumers:', 'remove:'], why: 'f' },
         { id: 'F-TOMB-NONE', type: 'config_paths_each', paths: ['${ROOT}/tomb-none'], file: 'TOMBSTONE.md', contains: ['status:'], why: 'f' },
+        { id: 'F-CARDS-THIN', type: 'config_paths_each', paths: ['GOOD-CONTROL.md', 'THIN-CONTROL.md'], base: '${BRAIN}/control', contains: ['Master Control|Intake'], why: 'f' },
+        { id: 'F-CARDS-GONE', type: 'config_paths_each', paths: ['NONE-CONTROL.md'], base: '${BRAIN}/control', contains: ['Master Control|Intake'], why: 'f' },
         { id: 'F-REMOTE', type: 'remote_is', path: '${ROOT}/foreign', remote: 'origin', pattern: 'github\\.com/test-owner/', why: 'f' },
         { id: 'F-JSON', type: 'json_subset_equal', path: '${ROOT}/.claude/settings.json', subset: subsetBad, why: 'f' },
         { id: 'F-KEYED', type: 'json_keyed_match', path: 'vectors-a.json', other: 'vectors-c.json', collection: 'vectors.cases', key: 'id', why: 'f' },
@@ -365,6 +372,7 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
         { id: 'U-CONTAINS', type: 'file_contains', path: '${BRAIN}/missing.md', needle: 'x', why: 'u' },
         { id: 'U-FRESH', type: 'file_fresh', path: '${BRAIN}/records/restore-fresh.log', maxDays: 0, why: 'u' },
         { id: 'U-TOMB', type: 'config_paths_each', configKey: 'noSuchKey', file: 'TOMBSTONE.md', contains: ['status:'], why: 'u' },
+        { id: 'U-CARDS', type: 'config_paths_each', paths: ['GOOD-CONTROL.md'], base: '${BRAIN}/control', why: 'u' },
         { id: 'U-KEYED', type: 'json_keyed_match', path: 'vectors-a.json', other: 'vectors-b.json', collection: 'vectors.nope', key: 'id', why: 'u' },
         { id: 'U-SMOKE', type: 'hook_smoke', hook: 'unregistered', event: 'PreToolUse', why: 'u' },
         { id: 'U-TREEEQ', type: 'tree_equals', path: '${KIT}/eq-a', other: '${KIT}/eq-d', why: 'u' },
@@ -416,7 +424,7 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
     has('A: soft_deny counted against frozenPaths', a.out, 'soft_deny: 2 rule(s), 1 naming a frozen path');
     has('A: registered-but-missing hook', a.out, 'hook REGISTERED BUT MISSING');
     has('A: deny/ask rules read from root settings', a.out, 'root settings: 1 deny, 1 ask');
-    has('A: every true claim holds (emptyOk: nothing selected is a pass that says so)', a.out, 'CLAIMS  30 pass  0 fail  0 could not look');
+    has('A: every true claim holds (emptyOk: nothing selected is a pass that says so)', a.out, 'CLAIMS  31 pass  0 fail  0 could not look');
     hasNot('A: no COULD-NOT-LOOK band', a.out, 'COULD-NOT-LOOK');
     has('A: ratchet with no record says the baseline was recorded', a.out, 'ratchet T-RATCHET-NEW: baseline recorded, HONOUR = 26');
     has('A: ratchet reads the row under its heading, and reports a fall', a.out, 'ratchet T-RATCHET-FALL: HONOUR fell from 30 to 26');
@@ -467,6 +475,8 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
     has('C: file_fresh with no dated line is a fail', c.out, 'F-FRESH-UNDATED  no dated line');
     has('C: config_paths_each names the thin tombstone and the missing line', c.out, "F-TOMB-THIN  tomb-thin: TOMBSTONE.md lacks 'consumers:'");
     has('C: config_paths_each names the folder with no tombstone', c.out, 'F-TOMB-NONE  tomb-none: missing TOMBSTONE.md');
+    has('C: config_paths_each with base and no file names the card that names no master (CTRL-03)', c.out, "F-CARDS-THIN  THIN-CONTROL.md: lacks 'Master Control|Intake'");
+    has('C: config_paths_each with base names the missing card under the base folder', c.out, `F-CARDS-GONE  NONE-CONTROL.md: file missing (${jp(brain, 'control', 'NONE-CONTROL.md')})`);
     has('C: SessionStart silent hook is a fail', c.out, 'printed nothing');
     has('C: PreToolUse non-JSON is a fail', c.out, 'stdout is not JSON');
     hasNot('C: no COULD-NOT-LOOK from false claims', c.out, 'COULD-NOT-LOOK');
@@ -485,6 +495,7 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
     has('D: missing file for file_contains is unknown', d.out, '????  U-CONTAINS');
     has('D: file_fresh with maxDays 0 is unknown', d.out, "????  U-FRESH  'maxDays' must be a positive integer");
     has('D: config_paths_each with an absent config key is unknown', d.out, "????  U-TOMB  config key 'noSuchKey'");
+    has('D: config_paths_each with no file and no contains is unknown', d.out, "????  U-CARDS  claim has no 'file' and no 'contains'");
     has('D: json_keyed_match with a missing collection path is unknown', d.out, "????  U-KEYED  collection 'vectors.nope' not found in");
     has('D: unregistered hook is unknown', d.out, '????  U-SMOKE');
     has('D: tree_equals with a missing folder is unknown', d.out, '????  U-TREEEQ  folder missing');
