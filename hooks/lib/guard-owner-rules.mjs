@@ -1,7 +1,8 @@
-// guard-owner-rules.mjs - guard rules 7-9: the owner's standing prohibitions, as refusals.
+// guard-owner-rules.mjs - guard rules 7-9 and 13: the owner's standing prohibitions, as refusals.
 // Imported by guard.mjs after guard-rules.mjs. Split from guard-rules.mjs by domain (DES-03): rules
-// 1-6 guard secrets, history, frozen paths and the build method; rules 7-9 guard the owner's
-// uncommitted work, their machine's start-up, and the content bans their brain configures.
+// 1-6 guard secrets, history, frozen paths and the build method; rules 7-9 and 13 guard the owner's
+// uncommitted work, their machine's start-up, the content bans their brain configures, and their
+// machine's processor (no Python heredoc).
 // Each rule returns null (no opinion) or a deny object from newDeny.
 
 import { newDeny, toFullPath, isUnder, getLeaf, getExt, git, gitFirst, exists, isFile, iin, countMatches, ieq } from './common.mjs';
@@ -212,4 +213,51 @@ export function contentRuleShell(cmd, cwd, rules, owner) {
         return newDeny('guard', `${rule.id} (${m})`, reason);
     }
     return null;
+}
+
+// ============================================================================ (13) python heredoc
+// anchor: no-python-heredoc  mode: deny  verbs: pipe-heredoc
+// Owner ruling 2026-10-20 (Intake item 31a, kit-next batch entry 3): "a hook that refuses any shell
+// command containing "python - <<" or "python3 - <<" before it runs, for every session". Approved
+// variants: "py - <<" and "py -3 - <<". Why: seven runaway Python processes from broken heredoc
+// one-liners burned about 40 hours of CPU on 2026-10-20. It serves SAFE-08's spirit (nothing runs
+// that the owner did not start) operationally; it is not a law clause. Always on, with or without a
+// brain, like rules 1-3: there is no config key.
+// The pattern lives here and nowhere else. It is read against ONE sub-command from splitCommand: its
+// command word reduced to the file name (a path and an .exe suffix are allowed), then the rest of its
+// words joined by one space. So spacing does not matter ('-  <<', '-<<EOF', '<<-EOF', '<< EOF').
+// Matched: python, python3, python3.12 (any version suffix), py; for py, a version flag (-3, -3.12,
+// -3.12-64); then a lone '-' as the script argument; then '<<'. A here-string ('<<<') starts with
+// '<<' and is matched too. Not matched: 'python script.py', '-m', '-c', and 'python - < file.py' (one
+// '<' is a file redirect, not a heredoc).
+// Quoted text: the tokeniser keeps a quoted string as one word with its quotes removed, and this rule
+// reads the command word only, so 'echo "python - <<"', 'grep "python - <<" f' and 'git commit -m
+// "python - <<"' are data and allowed. This is the Startup rule's token reading (rule 8 above), but
+// not its every-token scan: rule 8 refuses a Startup path in any word, quoted or not, because naming
+// that folder is the risk; here only running Python is. A command word that holds a space after its
+// path is cut is a quoted string, not a program, and is not read.
+// Before the command word, these are skipped: the PowerShell call operator '&', NAME=value words, and
+// the wrappers env, command, exec, nohup and time when they carry no option of their own.
+// Cannot see: the shell residual (bash -c "...", pwsh -c "...", a script on disk); a wrapper with its
+// own options (env -i, time -p, sudo, nice, timeout, uv run, poetry run); an option before the '-'
+// ('python -u - <<'); a heredoc piped in ('cat <<EOF | python -'); and 'python <<EOF' with no '-'.
+// The owner's words name only the '-' form. A line inside another command's heredoc body is split as
+// its own sub-command, so a body line that itself starts 'python - <<' is refused (a false refusal).
+const PY_HEREDOC_RX = /^(?:python(?:\d+(?:\.\d+)*)?|py)(?:\.exe)?(?:\s+-\d+(?:\.\d+)*(?:-(?:32|64))?)?\s+-\s*<</i;
+const PY_WRAPPERS = ['env', 'command', 'exec', 'nohup', 'time'];
+
+export function pythonHeredocRule(tokens) {
+    if (!tokens || tokens.length === 0) return null;
+    let i = 0;
+    while (i < tokens.length && (tokens[i] === '&' || /^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[i]) || iin(tokens[i], PY_WRAPPERS))) i++;
+    if (i >= tokens.length) return null;
+    const head = getLeaf(tokens[i]);
+    if (!head || /\s/.test(head)) return null;
+    const m = PY_HEREDOC_RX.exec([head, ...tokens.slice(i + 1)].join(' '));
+    if (!m) return null;
+    const hit = m[0].replace(/\s+/g, ' ');
+    const reason = `BLOCKED - no-python-heredoc: this command pipes a heredoc into Python (${hit}).\n\n` +
+        'A Python heredoc is refused because broken heredoc one-liners left runaway Python processes behind. ' +
+        'Write the code into a script file with the Write or Edit tool, then run that file (python <file>.py).';
+    return newDeny('guard', `no-python-heredoc (${hit})`, reason);
 }

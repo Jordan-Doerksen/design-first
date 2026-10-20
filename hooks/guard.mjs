@@ -1,4 +1,4 @@
-// guard.mjs - refuses the call that would stage a secret, rewrite git history, touch a frozen path, write source behind an open design gate, or leave or push the loop branch; advises on a write with no manifest or past one Read.
+// guard.mjs - refuses the call that would stage a secret, rewrite git history, touch a frozen path, write source behind an open design gate, leave or push the loop branch, or pipe a heredoc into Python; advises on a write with no manifest or past one Read.
 //
 // This one refuses. The deny rules, in this order, every one of them a cost already paid somewhere:
 //   1. stage-secret  - git add / git commit -a of a file that looks like a credential.
@@ -24,10 +24,12 @@
 //                      The git commands that move HEAD or a branch are open-ended: the list in
 //                      lib/guard-loop-rules.mjs is what is covered, and any other is a residual.
 //  12. ledger        - an Edit, Write or NotebookEdit to the story ledger on a loop branch (AUTO-04).
-// Rules 1-3, 7 and 10-12 run with or without a brain. Rule 4 needs the brain's doctor.config.json;
+//  13. no-python-heredoc - a Bash or PowerShell command that pipes a heredoc into Python: python,
+//                      python3 or py (py -3), a lone '-', then '<<' (owner ruling 2026-10-20).
+// Rules 1-3, 7 and 10-13 run with or without a brain. Rule 4 needs the brain's doctor.config.json;
 // without one it is skipped and says so once per session. Rules 8 and 9 run only when the brain
-// turns them on (forbidScheduling, contentRules). Rules 5 and 6 advise and never deny. Rules 7-9
-// live in lib/guard-owner-rules.mjs, rule 10 in lib/guard-gate-rules.mjs, rules 11 and 12 in
+// turns them on (forbidScheduling, contentRules). Rules 5 and 6 advise and never deny. Rules 7-9 and
+// 13 live in lib/guard-owner-rules.mjs, rule 10 in lib/guard-gate-rules.mjs, rules 11 and 12 in
 // lib/guard-loop-rules.mjs.
 //
 // What this hook cannot see (the written residual, self-tested as NOT denied so nobody believes
@@ -163,6 +165,8 @@ try {
                 }
                 if (!result && cfg.present) result = R.pathRuleShell(tokens, call, runCwd, cfg.protected, owner);
                 if (!result && cfg.forbidScheduling) result = O.scheduleRuleShell(tokens, owner);
+                // Rule 13 denies a Python heredoc ('python3 - <<EOF'), always, brain or no brain.
+                if (!result) result = O.pythonHeredocRule(tokens);
                 if (result) break;
             }
             if (!result && cfg.contentRules.length > 0) result = O.contentRuleShell(cmd, runCwd, cfg.contentRules, owner);

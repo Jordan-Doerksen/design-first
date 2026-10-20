@@ -411,6 +411,16 @@ on the PowerShell line, which the Node port did not carry until 0.2.3.)
 | The same refusal on `git -c core.excludesFile= add -A`, while `git add -A` alone passes | The call turns off the excludes file that ignores the secret, so git stages it. The guard probes with the call's `core.excludesFile` value. | Drop the `-c core.excludesFile=` override, or ignore the file in the repository's own `.gitignore`. |
 | `BLOCKED - git clean -f deletes untracked files ... and the work tree at <folder> has <n> uncommitted or untracked change(s)` on a call that names `--git-dir`, `--work-tree`, `GIT_DIR=` or `GIT_WORK_TREE=` | Rule 7 (SAFE-06) reads the status of the work tree git would change: the folder `--work-tree` names, or with a git dir alone the folder the call runs in. Before, it read the repository above the git dir, which can be clean while `<folder>` holds files. | Leave `<folder>` as it is. If the call named the wrong folder, check `--work-tree`, `--git-dir` and the folder it runs in. Tidying a dirty tree is the owner's call. |
 
+## A Python heredoc the guard refuses (rule 13, `no-python-heredoc`)
+
+Guard rule 13 runs in every session, with or without a brain, and has no config key. It reads each
+Bash or PowerShell sub-command: the command word reduced to its file name, then the other words.
+The pattern lives once, in `hooks/lib/guard-owner-rules.mjs`.
+
+| You see | Means | Do |
+|---|---|---|
+| `BLOCKED - no-python-heredoc: this command pipes a heredoc into Python (<text>)` on a command such as `python - <<'EOF'`, `python3 -  <<EOF`, `py - <<EOF`, `py -3 -<<EOF` or `C:\Python312\python3.exe - <<-EOF` | The command runs Python on a script typed into a heredoc: python, python3 (any version suffix) or py with an optional version flag, then a lone `-`, then `<<`. Broken heredoc one-liners left runaway Python processes on 2026-10-20 (owner ruling, kit-next batch entry 3). Not refused: `python script.py`, `-m`, `-c`, `python - < file.py` (one `<` is a redirect), and the same text inside a quoted string given to `echo`, `grep` or `git commit -m` (only the command word is read). | Write the code into a script file with the Write or Edit tool, then run that file (`python <file>.py`). |
+
 ## Known gaps, stated honestly
 
 - A repository is listed once per run and the list is reused by every scan claim, and git is
