@@ -27,11 +27,15 @@ by the owner, never by a session (SAFE-06). No secret in it (SAFE-01). Written b
 - Report format, four lines: repo and branch; files changed or posts made; needs from the owner;
   blocked on.
 - A decision reaches the owner by its rank (OWN-10). Low or medium: the master decides what it can
-  defend (OWN-05) and sends Intake one question at a time. High, or a new project: the master runs
-  a real design-first interview in this chat, sends Intake one line saying the interview is ready
-  and how many questions it has, and the owner opens this chat by Intake's link and does the whole
-  interview in one sitting (OWN-04). The master lays out the plan; the go returns to Intake as one
-  line. A question to the owner in this chat outside that interview is a breach.
+  defend (OWN-05) and sends Intake one question at a time. High, or a new project: the item gets a
+  real design-first interview in a fresh Fable planning session. The master sends Intake one line
+  saying the interview is ready and how many questions it has; the owner opens the planning session
+  by Intake's link and does the whole interview in one sitting (OWN-04). That session writes the
+  plan and the spawn-ready briefs onto this card, then ends; the go returns to Intake as one line.
+  A question to the owner outside that interview is a breach.
+- Fable plans, and only plans. This master and Intake run on Opus. Builds run on Sonnet. Reviews,
+  order code and other safety-critical writes run on Opus. A Fable session writes only when the
+  owner names Fable for that item, so every brief names Opus or Sonnet unless the owner did.
 - The go-word for a push, a post or a merge is said in the session that does it; a relayed approval
   does not post. Work sessions draft and report; the master acts on the owner's word.
 - Before any merge, push to a shared branch or post is asked of the owner, the master runs the
