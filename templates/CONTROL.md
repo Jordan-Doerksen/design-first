@@ -14,6 +14,26 @@ that sat elsewhere leaves a one-line pointer at its old path. Updated by the mas
 by the owner, never by a session (SAFE-06). No secret in it (SAFE-01). Written by
 `/design-first:control` on {{DATE}}.
 
+The card is read by Intake and by a fresh session, so it stays short: about 30,000 characters at most. The
+"Now" block comes first; every open item is one row, its state and its next step; spawn-ready briefs that have not
+started stay on the card. Closed items, histories, done briefs and old log lines move word for word to
+`{{DOMAIN_UPPER}}-ARCHIVE.md` beside this card: copy first, then cut, never delete.
+
+## Now
+
+At most 15 lines, rewritten whenever the state changes:
+- Running: each session's id, its chunk and its branch, or "none".
+- Waits on the owner: any question word for word, with its options, or "nothing".
+- Next move: the one recommended next move and its reason.
+- Ready briefs: the headings of spawn-ready briefs that have not started, or "none".
+- Last verified: each repository's last verified commit, equal to its origin.
+- Release batch: the number of changes waiting for a release, or "none".
+
+## Open items (state; next)
+
+| # | Item | State | Next |
+|---|---|---|---|
+
 ## How it works
 
 - The master starts every {{DOMAIN}} session. A session the master starts reports back to it when
@@ -70,9 +90,7 @@ by the owner, never by a session (SAFE-06). No secret in it (SAFE-01). Written b
 Spend: the app reports a session's context size, not its total spend. A total per chunk is not
 measured.
 
-## Ladder
+## Commit log
 
-| Chunk | State | Proof |
-|---|---|---|
-
-## Open for the owner
+| Date | Hash | Repo, branch | Files | Why |
+|---|---|---|---|---|
