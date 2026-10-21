@@ -7,13 +7,17 @@
 // had just written, and a turn that changed source only through commands got no card at all. A
 // ledger of tool calls is a record of intentions. What changed is a fact about the disk (PRIN-03),
 // so it is read from the disk: the tool calls only NOMINATE repositories, and git says what changed
-// in each of them since the prompt.
+// in each of them since the prompt. A call nominates a repository only on WRITE EVIDENCE (an Edit,
+// Write or NotebookEdit inside it, or a command that can change its tree or history: WRITE_EVIDENCE
+// below). Before 2026-10-21 a call that merely pointed at a repository nominated it, and with
+// parallel writer sessions a turn that only read one was carded for another session's commits.
 //
 //   <markers>/<session>.turn    when the owner's last prompt arrived (route.mjs writes it)
-//   <markers>/<session>.repos   one line per repository this turn's tool calls pointed at, with
-//                               the commit HEAD was on at the first such call (guard.mjs appends;
-//                               "none" when the repository had no commit). A wrong nomination
-//                               costs a few git calls and changes nothing, because git is the judge.
+//   <markers>/<session>.repos   one line per repository this turn's tool calls had write evidence
+//                               in, with the commit HEAD was on at the first such call (guard.mjs appends;
+//                               "none" when the repository had no commit). A nomination only
+//                               names where to look; git says what changed. A nomination by write evidence also
+//                               counts commits other sessions made there since the prompt.
 //   <markers>/<session>.guard-error  one line per call the guard failed on inside this turn, so it
 //                               recorded nothing for that call (guard.mjs's catch block appends;
 //                               route.mjs clears it with the others). The card says the count may be short.
@@ -23,7 +27,10 @@
 // brought in), or it is uncommitted now and was written since the prompt, or it is gone and its
 // folder was written since the prompt.
 //
-// Honest limits. A repository no tool call pointed at is not looked at: a script run from folder A
+// Honest limits. A repository no write call pointed at is not looked at (a turn that only reads one
+// gets no card for it, whoever committed there). A script run is write evidence unless the run reads
+// as a check (WRITE_EVIDENCE.checkWords), so a check with an unlucky name still nominates. A command
+// nested in another shell, an alias, xargs and a substitution are not read (tokenise.mjs). Also: a script run from folder A
 // that writes into repository B, with B named nowhere on the command line, is not seen. A write
 // that keeps the old last-write time (a copy that preserves times) is not seen. A commit made this
 // turn counts every file in it, also one that was edited before the prompt. A file git ignores is
@@ -32,9 +39,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-    sessionFile, toFullPath, isUnder, pathEq, nearestExistingDir, exists, isFile, git, addTextLine, readText,
+    sessionFile, toFullPath, isUnder, pathEq, nearestExistingDir, exists, isFile, isDir, iin, git, addTextLine, readText,
     parseIso, getLeaf, FOLD_CASE,
 } from './common.mjs';
+import { getGitCall } from './tokenise.mjs';
+import { DESTRUCTIVE_HEADS } from './guard-rules.mjs';
 
 export { sessionFile };
 
@@ -53,25 +62,112 @@ export function findRepoDir(full, stopAt) {
     return null;
 }
 
-// The repositories a shell call points at: the one holding its working folder, and the one holding
-// any word of the command that is a path under the root (cd <dir>, git -C <dir>, a file argument).
-// Words that are not paths resolve to nothing or to the working folder's own repository.
-export function shellRepos(subs, cwd, root) {
+// WRITE EVIDENCE (DECISIONS.md, 2026-10-21, kit-next entry 5). A shell call nominates a repository
+// only when it can change the tree or the history there. Workaround for drift: the nomination used to
+// be every repository a call POINTED AT, and the card then counted every commit made there since the
+// prompt, by anyone. With parallel writer sessions, a turn that only ran git log or cat in a
+// repository got a source-change card for another session's commits. A read-only command (git log,
+// status, show, diff, fetch, rev-parse, branch, cat, grep, a test run) nominates nothing. Every word
+// list that decides this lives here and nowhere else (DES-08).
+export const WRITE_EVIDENCE = {
+    // git sub-commands that change the working tree, the index or the history.
+    gitWrites: ['commit', 'merge', 'cherry-pick', 'revert', 'am', 'rebase', 'pull', 'reset', 'restore', 'checkout', 'switch',
+        'apply', 'add', 'rm', 'mv', 'clean'],
+    // 'git stash' writes unless its first argument is one of these; pop, apply, push, save and a bare stash write.
+    gitStashReads: ['list', 'show'],
+    // Shell heads that write files. rm, mv, del and the rest come from the frozen-path rule's own list (guard-rules.mjs).
+    fileWriters: ['cp', 'copy', 'copy-item', 'touch', 'tee', 'tee-object', 'set-content', 'add-content', 'out-file', 'new-item', 'ni',
+        'mkdir', 'md', 'ln', 'install', 'patch', 'truncate', 'dd'],
+    // Heads whose LAST path word is the only one written (the earlier ones are read).
+    destinationLast: ['cp', 'copy', 'copy-item', 'ln', 'install'],
+    // An interpreter running a script file is opaque: it may write. Unless the run is a check, it counts as write evidence.
+    // This is the 0.1.15 case, a patch script that edits files, which an Edit-only ledger never saw.
+    interpreters: ['python', 'python3', 'py', 'node', 'pwsh', 'powershell', 'bash', 'sh', 'ruby', 'perl'],
+    scriptExtensions: ['.py', '.mjs', '.js', '.cjs', '.ps1', '.sh', '.rb', '.pl'],
+    // A word in the script's name, an option or the -m module that marks a script run as a read-only check, not a write.
+    checkWords: /(^|[^a-z])(tests?|spec|selftest|self-test|check|checks|lint|verify|doctor|validate|status|list|show|dry-run|help)([^a-z]|$)/i,
+    // A null device is not a tree change.
+    nullTargets: ['/dev/null', 'nul', '$null'],
+};
+
+const REDIRECT = /^(?:\d?>>?|&>>?)(?!&)(.*)$/;      // >, >>, 1>, 2>, &>: the target is attached or the next word
+const CD_HEADS = ['cd', 'Set-Location', 'sl', 'pushd', 'Push-Location', 'chdir'];
+
+// The first word that runs, after env, time, command, a call operator and NAME=value words.
+function headIndex(tokens) {
+    let i = 0;
+    while (i < tokens.length) {
+        const t = tokens[i];
+        if (t === '&' || /^[A-Za-z_][A-Za-z0-9_]*=/.test(t) || /^(.*[\\/])?(env|time|command|nohup)(\.exe)?$/i.test(t)) { i++; continue; }
+        break;
+    }
+    return i;
+}
+const headName = (w) => getLeaf(w).toLowerCase().replace(/\.exe$/, '');
+
+// The repositories this shell call can WRITE in (see WRITE_EVIDENCE). Follows a cd in the same
+// command line, as the guard's rules do, and git -C / env -C through getGitCall. A path word counts
+// only for a command that writes; a repository that is only read from is never added.
+export function shellWriteRepos(subs, cwd, root) {
     const set = new Map();
-    const add = (r) => { const k = FOLD_CASE ? r.toLowerCase() : r; if (!set.has(k)) set.set(k, r); };
-    const r0 = findRepoDir(cwd, root);
-    if (r0) add(r0);
-    let n = 0;
-    outer:
+    const add = (r) => { if (!r) return; const k = FOLD_CASE ? r.toLowerCase() : r; if (!set.has(k)) set.set(k, r); };
+    const repoOf = (w, dir) => {
+        if (!w || w.length > 400 || /[*?<>|"=;]/.test(w)) return null;
+        const full = toFullPath(w, dir);
+        if (!full || (root && !isUnder(full, root))) return null;
+        return findRepoDir(full, root);
+    };
+    // The repositories of a write command's path words; with none, the repository of the folder it runs in.
+    const addPaths = (words, dir) => {
+        let hit = false;
+        for (const w of words.slice(0, 200)) {
+            if (w.length > 1 && w.startsWith('-')) continue;
+            const r = repoOf(w, dir);
+            if (r) { add(r); hit = true; }
+        }
+        if (!hit) add(findRepoDir(dir, root));
+    };
+    let runCwd = cwd;
     for (const tokens of subs || []) {
-        for (const w of tokens || []) {
-            if (w.length < 2 || w.length > 400 || w.startsWith('-') || /[*?<>|"=;]/.test(w)) continue;
-            if (++n > 200) break outer;
-            const full = toFullPath(w, cwd);
-            if (!full) continue;
-            if (root && !isUnder(full, root)) continue;
-            const r = findRepoDir(full, root);
-            if (r) add(r);
+        if (!tokens || tokens.length === 0) continue;
+        if (tokens.length >= 2 && iin(tokens[0], CD_HEADS)) {
+            const to = toFullPath(tokens[tokens.length - 1], runCwd);
+            if (to && isDir(to)) runCwd = to;
+            continue;
+        }
+        // 1. a redirect: its target is written (a null device is not), also on a read-only command.
+        for (let k = 0; k < tokens.length; k++) {
+            const m = REDIRECT.exec(tokens[k]);
+            if (!m) continue;
+            const target = m[1] || tokens[k + 1] || '';
+            if (!target || WRITE_EVIDENCE.nullTargets.includes(target.toLowerCase())) continue;
+            addPaths([target], runCwd);
+        }
+        // 2. git: a sub-command that changes the tree or the history, in the repository git works on.
+        const call = getGitCall(tokens, runCwd);
+        if (call) {
+            const stash = call.sub === 'stash' && !WRITE_EVIDENCE.gitStashReads.includes((call.args[0] || '').toLowerCase());
+            if (stash || WRITE_EVIDENCE.gitWrites.includes(call.sub)) add(findRepoDir(call.cwd, root));
+            continue;
+        }
+        const h = headIndex(tokens);
+        const head = tokens[h] ? headName(tokens[h]) : '';
+        const rest = tokens.slice(h + 1);
+        // 3. a command that removes, moves or writes files.
+        const sedInPlace = head === 'sed' && rest.some((w) => /^-[a-zA-Z]*i/.test(w) || w.startsWith('--in-place'));
+        if (DESTRUCTIVE_HEADS.includes(head) || WRITE_EVIDENCE.fileWriters.includes(head) || sedInPlace) {
+            const words = rest.filter((w) => !REDIRECT.test(w));
+            addPaths(WRITE_EVIDENCE.destinationLast.includes(head) ? words.filter((w) => !w.startsWith('-')).slice(-1) : words, runCwd);
+            continue;
+        }
+        // 4. an interpreter running a script file, unless the run reads as a check.
+        if (WRITE_EVIDENCE.interpreters.includes(head)) {
+            const script = rest.find((w) => WRITE_EVIDENCE.scriptExtensions.includes(path.extname(w).toLowerCase()));
+            // Read the check words in the script's own path (tools/tests/run.mjs), the options and the -m module only: a file argument
+            // such as spec.json is data the script may well rewrite (the patch-script case), not a mark of a check.
+            const m = rest.findIndex((w) => w === '-m');
+            const marks = [script || '', ...rest.filter((w) => w.length > 1 && w.startsWith('-')), m >= 0 ? rest[m + 1] || '' : ''].join(' ');
+            if (script && !WRITE_EVIDENCE.checkWords.test(marks)) add(repoOf(script, runCwd) || findRepoDir(runCwd, root));
         }
     }
     return [...set.values()];

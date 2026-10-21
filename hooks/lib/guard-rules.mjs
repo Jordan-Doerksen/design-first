@@ -274,7 +274,7 @@ export function envWriteRule(full, exceptions, owner) {
 // MAP-01 rides here (owner decision 2026-10-13): a copy that is not canonical and must not be
 // edited is a frozen path; the brain's frozenPaths list is the machine-readable column of its
 // canonical.md, and this rule refuses the edit.
-const DESTRUCTIVE_HEADS = ['rm', 'rmdir', 'del', 'erase', 'rd', 'ri', 'mv', 'move', 'remove-item', 'move-item', 'rename-item', 'clear-content'];
+export const DESTRUCTIVE_HEADS = ['rm', 'rmdir', 'del', 'erase', 'rd', 'ri', 'mv', 'move', 'remove-item', 'move-item', 'rename-item', 'clear-content'];
 
 function protectedHit(full, prot) {
     for (const r of prot) if (isUnder(full, r)) return r;

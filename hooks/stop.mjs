@@ -13,7 +13,8 @@
 // block once, then yield.
 //
 // What changed is read from the disk, not from the tool calls (lib/turn-changes.mjs). The guard
-// nominates every repository this turn's calls pointed at; for each one git says which files are in
+// nominates every repository this turn's calls had write evidence in (an edit inside it, or a command that
+// can change its tree or history; lib/turn-changes.mjs WRITE_EVIDENCE), never one that was only read; for each one git says which files are in
 // a commit made since the prompt, or are uncommitted and were written since the prompt. So a
 // document a script wrote is a document touched, and a source file a command changed counts.
 // Before 0.1.15 the card saw only Edit and Write calls, and said "Documents touched: none" over five

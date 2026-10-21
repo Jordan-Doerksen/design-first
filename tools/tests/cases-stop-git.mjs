@@ -125,4 +125,54 @@ export default function stopGitCases(t) {
     r = stop('tg12', false);
     record("git: stopFromGit false -> a command's change is not seen, as before 0.1.15", 'silent', stopVerdict(r), r.out);
     put(cfgPath, cfgSaved);
+
+    // 13-17. write evidence (kit-next entry 5): a repository is nominated only by a call that can change it.
+    // Parallel writer sessions commit in the same repositories, and a turn that only reads one must not be
+    // carded for their commits.
+    const wsA = newRepo('repo-ws-a'); const wsB = newRepo('repo-ws-b');
+    for (const r of [wsA, wsB]) { put(jp(r, 'src', 'm.py'), 'm = 1'); runGit(r, ['add', '-A']); runGit(r, ['commit', '-q', '-m', 'init']); }
+    const otherSessionCommits = (r, n) => { put(jp(r, 'src', 'm.py'), 'm = ' + n); runGit(r, ['add', '-A']); runGit(r, ['commit', '-q', '-m', 'someone else ' + n]); };
+
+    // 13. read-only commands only, and commits appear in the repository meanwhile (another session)
+    route('look at the log', 'tg13', root);
+    for (const c of ['git log --oneline', 'git status', 'git diff HEAD', 'git show HEAD', 'git fetch origin', 'git rev-parse HEAD', 'git branch --list',
+        'git ls-remote origin', 'git stash list', 'cat src/m.py', 'grep -rn m src', 'node tools/tests/run.mjs', 'git log > /dev/null 2>&1']) guardShell('tg13', wsA, c);
+    otherSessionCommits(wsA, 2);
+    r = stop('tg13', false);
+    record('write evidence: read-only commands in a repository others committed to -> NO card', 'silent', stopVerdict(r), r.out);
+
+    // 14. an Edit inside the repository
+    route('edit a file', 'tg14', root);
+    guardEdit('tg14', jp(wsA, 'src', 'm.py'));
+    put(jp(wsA, 'src', 'm.py'), 'm = 3');
+    r = stop('tg14', false);
+    record('write evidence: an Edit of a file in a repository -> card', 'block', stopVerdict(r), r.out);
+
+    // 15. git commit run in the repository
+    route('commit work', 'tg15', root);
+    guardShell('tg15', wsA, 'git commit -am work');
+    otherSessionCommits(wsA, 4);
+    r = stop('tg15', false);
+    record('write evidence: a git commit run in a repository -> card', 'block', stopVerdict(r), r.out);
+
+    // 16. writes in A, only reads B (a commit appears in B meanwhile): A only
+    route('write in A, read B', 'tg16', root);
+    guardShell('tg16', wsA, 'git commit -am work');
+    guardShell('tg16', wsB, 'git log --oneline');
+    guardShell('tg16', wsA, `git -C ${TMSYS}/root/repo-ws-b status`);
+    otherSessionCommits(wsA, 5); otherSessionCommits(wsB, 5);
+    r = stop('tg16', false);
+    record('write evidence: write in A, read B -> carded for A only', 'A only', stopVerdict(r) === 'block' && like(r.out, '*repo-ws-a: 1 source file(s) changed*') && !like(r.out, '*repo-ws-b*') ? 'A only' : `wrong:${stopVerdict(r)}`, r.out);
+
+    // 17. the same write forms from the other side: git -C names the repository, a command line cd, a redirect, a read-only pipeline
+    route('git -C and cd', 'tg17', root);
+    guardShell('tg17', root, `git -C ${TMSYS}/root/repo-ws-b commit -am work`);
+    otherSessionCommits(wsB, 6);
+    r = stop('tg17', false);
+    record('write evidence: git -C <repo> commit run from outside -> card for that repository', 'B', stopVerdict(r) === 'block' && like(r.out, '*repo-ws-b: 1 source file(s) changed*') ? 'B' : `wrong:${stopVerdict(r)}`, r.out);
+    route('cd then read', 'tg17b', root);
+    guardShell('tg17b', root, `cd ${TMSYS}/root/repo-ws-b && git log --oneline && cat src/m.py | head -3`);
+    otherSessionCommits(wsB, 7);
+    r = stop('tg17b', false);
+    record('write evidence: cd <repo> then only reads -> NO card', 'silent', stopVerdict(r), r.out);
 }

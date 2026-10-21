@@ -209,13 +209,13 @@ try {
         C.addTextLine(C.sessionFile(sessionId, '.edits'), `${full}\t${flags}`);
     }
 
-    // Nominate the repositories this call points at (lib/turn-changes.mjs). The ledger above only
+    // Nominate the repositories this call wrote in or could have (lib/turn-changes.mjs WRITE_EVIDENCE); a call that only reads one nominates nothing. The ledger above only
     // holds Edit and Write calls; a file a command changes is never in it. stop.mjs asks git what
     // changed since the prompt in every nominated repository, so a script's edits are seen too.
     if (!result) {
         let noms = [];
         if (isFileTool) { if (full) noms = [T.findRepoDir(full, ptr.root)]; }
-        else if (isShell && !C.isBlank(ti.command)) noms = T.shellRepos(subs, cwd, ptr.root);
+        else if (isShell && !C.isBlank(ti.command)) noms = T.shellWriteRepos(subs, cwd, ptr.root);
         T.addNominations(sessionId, noms.filter((x) => x));
     }
 
