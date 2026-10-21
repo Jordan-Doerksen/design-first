@@ -1601,5 +1601,338 @@
     "cmd": "python -c \"ib.place_order(c, o)\"",
     "cwd": "${T}/root/trading/desk",
     "expect": "deny"
+  },
+  {
+    "_": "---- kit-next batch entry 3 (owner ruling 2026-10-20, Intake item 31a): rule 13 no-python-heredoc, always on, brain or no brain ----"
+  },
+  {
+    "name": "py-heredoc: python - <<EOF -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "python - <<'EOF'\nprint(1)\nEOF",
+    "expect": "deny",
+    "contains": "no-python-heredoc"
+  },
+  {
+    "name": "py-heredoc: python3 - <<EOF -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "python3 - <<'EOF'\nprint(1)\nEOF",
+    "expect": "deny",
+    "contains": "no-python-heredoc"
+  },
+  {
+    "name": "py-heredoc: py - <<EOF -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "py - <<EOF\nprint(1)\nEOF",
+    "expect": "deny",
+    "contains": "no-python-heredoc"
+  },
+  {
+    "name": "py-heredoc: py -3 - <<EOF -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "py -3 - <<'EOF'\nprint(1)\nEOF",
+    "expect": "deny",
+    "contains": "no-python-heredoc"
+  },
+  {
+    "name": "py-heredoc: spacing, python3 -  <<EOF -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "python3 -  <<'EOF'\nprint(1)\nEOF",
+    "expect": "deny",
+    "contains": "no-python-heredoc"
+  },
+  {
+    "name": "py-heredoc: spacing, python - <<-EOF -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "python - <<-EOF\nprint(1)\nEOF",
+    "expect": "deny",
+    "contains": "no-python-heredoc"
+  },
+  {
+    "name": "py-heredoc: spacing, py -3 -<<EOF -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "py -3 -<<EOF\nprint(1)\nEOF",
+    "expect": "deny",
+    "contains": "no-python-heredoc"
+  },
+  {
+    "name": "py-heredoc: version flag, py -3.12 - <<EOF -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "py -3.12 - <<EOF\nprint(1)\nEOF",
+    "expect": "deny",
+    "contains": "no-python-heredoc"
+  },
+  {
+    "name": "py-heredoc: a path and .exe, C:\\Python312\\python3.exe - <<EOF -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "C:\\Python312\\python3.exe - <<EOF\nprint(1)\nEOF",
+    "expect": "deny",
+    "contains": "no-python-heredoc"
+  },
+  {
+    "name": "py-heredoc: after cd and &&, python3 - <<EOF -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "cd src && python3 - <<'EOF'\nprint(1)\nEOF",
+    "expect": "deny",
+    "contains": "no-python-heredoc"
+  },
+  {
+    "name": "py-heredoc: PowerShell, the same text -> denied",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "python3 - <<'EOF'\nprint(1)\nEOF",
+    "expect": "deny",
+    "contains": "no-python-heredoc"
+  },
+  {
+    "name": "py-heredoc: no brain (every session), python3 - <<EOF -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "python3 - <<'EOF'\nprint(1)\nEOF",
+    "expect": "deny",
+    "contains": "no-python-heredoc",
+    "pointer": "none"
+  },
+  {
+    "name": "py-heredoc: python script.py -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "python script.py",
+    "expect": "allow"
+  },
+  {
+    "name": "py-heredoc: python3 -m pytest -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "python3 -m pytest",
+    "expect": "allow"
+  },
+  {
+    "name": "py-heredoc: py -3 -m pytest -q -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "py -3 -m pytest -q",
+    "expect": "allow"
+  },
+  {
+    "name": "py-heredoc: python -c \"print(1)\" -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "python -c \"print(1)\"",
+    "expect": "allow"
+  },
+  {
+    "name": "py-heredoc: python - < file.py, one < is a redirect -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "python - < file.py",
+    "expect": "allow"
+  },
+  {
+    "name": "py-heredoc: echo with the text quoted -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "echo \"python - <<\"",
+    "expect": "allow"
+  },
+  {
+    "name": "py-heredoc: grep with the text quoted -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "grep \"python - <<\" notes.txt",
+    "expect": "allow"
+  },
+  {
+    "name": "py-heredoc: git commit -m with the text quoted -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git commit -m \"refuse python - << in the guard\"",
+    "expect": "allow"
+  },
+  {
+    "name": "py-heredoc: cat <<EOF > script.py, then python script.py -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "cat <<'EOF' > script.py\nprint(1)\nEOF\npython script.py",
+    "expect": "allow"
+  },
+  {
+    "_": "---- kit-next batch entry 3, follow-up (owner pick 2026-10-20): rule 13 refuses every heredoc that IS the code; a script file, -m or -c makes it data ----"
+  },
+  {
+    "name": "py-heredoc gap 1: python <<EOF, no - -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "python <<'EOF'\nprint(1)\nEOF",
+    "expect": "deny",
+    "contains": "no-python-heredoc"
+  },
+  {
+    "name": "py-heredoc gap 1: python3 <<EOF, no - -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "python3 <<EOF\nprint(1)\nEOF",
+    "expect": "deny",
+    "contains": "no-python-heredoc"
+  },
+  {
+    "name": "py-heredoc gap 1: py -3 <<EOF, no - -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "py -3 <<'EOF'\nprint(1)\nEOF",
+    "expect": "deny",
+    "contains": "no-python-heredoc"
+  },
+  {
+    "name": "py-heredoc gap 1: python -u <<EOF, options then << -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "python -u <<EOF\nprint(1)\nEOF",
+    "expect": "deny",
+    "contains": "no-python-heredoc"
+  },
+  {
+    "name": "py-heredoc gap 1: a .exe path, C:\\Python312\\python.exe <<EOF -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "C:\\Python312\\python.exe <<EOF\nprint(1)\nEOF",
+    "expect": "deny",
+    "contains": "no-python-heredoc"
+  },
+  {
+    "name": "py-heredoc gap 2: cat <<EOF | python -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "cat <<EOF | python\nprint(1)\nEOF",
+    "expect": "deny",
+    "contains": "no-python-heredoc"
+  },
+  {
+    "name": "py-heredoc gap 2: cat <<EOF | python - -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "cat <<EOF | python -\nprint(1)\nEOF",
+    "expect": "deny",
+    "contains": "no-python-heredoc"
+  },
+  {
+    "name": "py-heredoc gap 2: cat <<'EOF' | py -3 -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "cat <<'EOF' | py -3\nprint(1)\nEOF",
+    "expect": "deny",
+    "contains": "no-python-heredoc"
+  },
+  {
+    "name": "py-heredoc gap 2: cat <<EOF | sed s/a/b/ | python3, two pipes -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "cat <<EOF | sed s/a/b/ | python3\nprint(1)\nEOF",
+    "expect": "deny",
+    "contains": "no-python-heredoc"
+  },
+  {
+    "name": "py-heredoc gap 2: PowerShell, cat <<EOF | python -> denied",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "cat <<EOF | python\nprint(1)\nEOF",
+    "expect": "deny",
+    "contains": "no-python-heredoc"
+  },
+  {
+    "name": "py-heredoc gap 3: python -u - <<EOF -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "python -u - <<EOF\nprint(1)\nEOF",
+    "expect": "deny",
+    "contains": "no-python-heredoc"
+  },
+  {
+    "name": "py-heredoc gap 3: python -X utf8 - <<EOF -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "python -X utf8 - <<EOF\nprint(1)\nEOF",
+    "expect": "deny",
+    "contains": "no-python-heredoc"
+  },
+  {
+    "name": "py-heredoc gap 3: py -3 -u - <<EOF -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "py -3 -u - <<EOF\nprint(1)\nEOF",
+    "expect": "deny",
+    "contains": "no-python-heredoc"
+  },
+  {
+    "name": "py-heredoc data: python script.py <<EOF, a script file -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "python script.py <<EOF\n1 2 3\nEOF",
+    "expect": "allow"
+  },
+  {
+    "name": "py-heredoc data: python -m mymod <<EOF -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "python -m mymod <<EOF\n1 2 3\nEOF",
+    "expect": "allow"
+  },
+  {
+    "name": "py-heredoc data: python -c \"...\" <<EOF -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "python -c \"import sys; print(sys.stdin.read())\" <<EOF\n1 2 3\nEOF",
+    "expect": "allow"
+  },
+  {
+    "name": "py-heredoc data: python -uc \"...\" <<EOF, c in an option group -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "python -uc \"print(1)\" <<EOF\n1 2 3\nEOF",
+    "expect": "allow"
+  },
+  {
+    "name": "py-heredoc data: cat <<EOF > run.py -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "cat <<'EOF' > run.py\nprint(1)\nEOF",
+    "expect": "allow"
+  },
+  {
+    "name": "py-heredoc data: cat <<EOF | grep x -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "cat <<EOF | grep x\nx\nEOF",
+    "expect": "allow"
+  },
+  {
+    "name": "py-heredoc data: cat <<EOF | python script.py -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "cat <<EOF | python script.py\n1 2 3\nEOF",
+    "expect": "allow"
+  },
+  {
+    "name": "py-heredoc data: cat file | python, no heredoc in the pipeline -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "cat notes.txt | python",
+    "expect": "allow"
+  },
+  {
+    "name": "py-heredoc data: cat <<EOF ; python, a ; is not a pipe -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "cat <<EOF ; python\nx\nEOF",
+    "expect": "allow"
   }
 ]
