@@ -377,7 +377,7 @@ function defaultBrainConfig() {
     return {
         protected: [], tombstoned: [], exceptions: [], present: false, reason: null,
         readCeilingBytes: READ_CEILING_DEFAULT, readCeilingExempt: [], sourceExtensions: [], stopDocs: [],
-        stopFromGit: true, stopBudgetSeconds: STOP_BUDGET_DEFAULT,
+        stopFromGit: true, stopBudgetSeconds: STOP_BUDGET_DEFAULT, stopCard: { owner: true, writer: true },
         forbidScheduling: false, contentRules: [], contentRuleProblems: [],
         loopBranchPrefix: 'harness/', loopLedgerGlobs: ['docs/specs/*.tasks.json', 'specs/*.tasks.json'],
         ask: askDefaults(), keys: new Set(),
@@ -428,6 +428,14 @@ export function readBrainConfig(ptr) {
     if (has(cfg, 'stopBudgetSeconds')) {
         const v = Number(str(cfg.stopBudgetSeconds).trim());
         if (str(cfg.stopBudgetSeconds).trim() !== '' && Number.isFinite(v) && v > 0 && v <= 18) out.stopBudgetSeconds = v;
+    }
+    // The Stop card per session role (0.2.11, CR-2026-10-21-COMMAND STOP-1): owner or writer, the
+    // role the router wrote in <session>.role. Only an explicit false turns a role's card off; any
+    // other value, or a missing key, keeps it on, so every adopter before 0.2.11 sees no change.
+    if (has(cfg, 'stopCard') && cfg.stopCard != null && typeof cfg.stopCard === 'object') {
+        for (const role of ['owner', 'writer']) {
+            if (has(cfg.stopCard, role)) out.stopCard[role] = !(cfg.stopCard[role] === false || str(cfg.stopCard[role]).toLowerCase() === 'false');
+        }
     }
     // Guard rules 8 and 9 (guard-owner-rules.mjs). forbidScheduling is opt-in: off unless the brain says true.
     if (has(cfg, 'forbidScheduling')) out.forbidScheduling = cfg.forbidScheduling === true || str(cfg.forbidScheduling).toLowerCase() === 'true';

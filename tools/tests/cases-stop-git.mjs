@@ -125,4 +125,38 @@ export default function stopGitCases(t) {
     r = stop('tg12', false);
     record("git: stopFromGit false -> a command's change is not seen, as before 0.1.15", 'silent', stopVerdict(r), r.out);
     put(cfgPath, cfgSaved);
+
+    // 13. stopCard (0.2.11, STOP-1): the card off per session role. The role is what route.mjs wrote
+    // on the first prompt: a brief with a line-start "Reports to:" is a writer, anything else an owner.
+    const hooksLog = process.env.DF_LOG_PATH;
+    const logTail = () => (exists(hooksLog) ? readText(hooksLog) : '');
+    const withCard = (card, fn) => { const o = JSON.parse(cfgSaved); if (card !== undefined) o.stopCard = card; put(cfgPath, JSON.stringify(o, null, 2)); try { return fn(); } finally { put(cfgPath, cfgSaved); } };
+    const sourceTurn = (session, prompt) => { route(prompt, session, root); guardShell(session, turnRepo, 'python tools/patch.py'); put(jp(turnRepo, 'src', 'a.py'), `a = ${session}`); };
+    withCard({ owner: false, writer: true }, () => {
+        sourceTurn('tg13o', 'patch it');
+        r = stop('tg13o', false);
+        record('stopCard: owner false -> an owner session with source changed ends with no card', 'silent', stopVerdict(r), r.out);
+        record('stopCard: the off line is in the hooks log, with the role and the config path', 'logged', like(logTail(), '*INFO stop card off for this owner session (stopCard.owner false in*doctor.config.json)*') ? 'logged' : 'missing', logTail().split('\n').slice(-3).join('\n'));
+        sourceTurn('tg13w', 'Goal: patch it\nReports to: the master\nDone when: done');
+        r = stop('tg13w', false);
+        record('stopCard: owner false, writer true -> a writer session still gets the card', 'block', stopVerdict(r), r.out);
+    });
+    withCard({ owner: true, writer: false }, () => {
+        sourceTurn('tg14w', 'Goal: patch it\nReports to: the master\nDone when: done');
+        r = stop('tg14w', false);
+        record('stopCard: writer false -> a writer session with source changed ends with no card', 'silent', stopVerdict(r), r.out);
+        sourceTurn('tg14o', 'patch it again');
+        r = stop('tg14o', false);
+        record('stopCard: writer false, owner true -> an owner session still gets the card', 'block', stopVerdict(r), r.out);
+    });
+    withCard({ owner: 'no', writer: 0 }, () => {
+        sourceTurn('tg15o', 'patch it');
+        r = stop('tg15o', false);
+        record('stopCard: only an explicit false turns the card off ("no" and 0 keep it)', 'block', stopVerdict(r), r.out);
+    });
+    withCard(undefined, () => {
+        sourceTurn('tg16o', 'patch it');
+        r = stop('tg16o', false);
+        record('stopCard: no key -> the card as before 0.2.11', 'block', stopVerdict(r), r.out);
+    });
 }

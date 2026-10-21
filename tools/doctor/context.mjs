@@ -82,6 +82,7 @@ export const CONFIG_READERS = {
     stopDocs: 'hooks/stop.mjs (file names that count as documents on the Stop card)',
     stopFromGit: "hooks/stop.mjs (true: the turn's changes are read from git; false: Edit and Write calls only)",
     stopBudgetSeconds: "hooks/stop.mjs (time budget in seconds, under the host's Stop timeout: past it no more repositories are read from git and the card names them)",
+    stopCard: 'hooks/stop.mjs ({ owner, writer }: false turns the Stop card off for sessions of that role, the role the router wrote in <session>.role; both default to true)',
     forbidScheduling: 'hooks/guard.mjs (rule 8, no-schedule: true refuses scheduled tasks, cron, Run keys, services, the Startup folder)',
     contentRules: 'hooks/guard.mjs (rule 9, content-rule: an edit in scope that adds a match of the pattern is refused)',
     loopBranchPrefix: 'hooks/guard.mjs (rules 11 and 12: a branch with this prefix is the loop branch; default harness/)',
@@ -124,6 +125,7 @@ export function defaultConfig() {
         stopDocs: [],
         stopFromGit: true,
         stopBudgetSeconds: 15,   // the hook's own default lives in hooks/lib/common.mjs (STOP_BUDGET_DEFAULT), its only reader
+        stopCard: { owner: true, writer: true },
         forbidScheduling: false,
         contentRules: [],
         loopBranchPrefix: 'harness/',
