@@ -31,6 +31,13 @@
 // change to card, an unread repository or a guard failure goes to the owner as a systemMessage;
 // none of the three is a silent pass.
 //
+// Off per role (0.2.11, CR-2026-10-21-COMMAND STOP-1, the owner's "ship the kit"): the brain config
+// key stopCard { owner, writer } turns the card off for a session role; the role is the one the
+// router wrote in <session>.role on the first prompt (writer = a brief with a line-start
+// "Reports to:", else owner; no file reads as owner). Off means no card and no block: the turn
+// ends, one INFO line goes to the hooks log, and the notices about a short count still reach the
+// owner as a systemMessage. Both default to on, so an adopter who never set the key sees no change.
+//
 // Honest limit: the hook can require the card, not grade the answer. A model's claim that the
 // cross-check passed is a claim (AUTO-06); no kit check grades the answer, and the Doctor proves
 // only that the hook starts (KIT-SMOKE-07). The Stop event is the main session's: the kit registers
@@ -63,6 +70,7 @@ try {
     const C = await import('./lib/common.mjs');
     const R = await import('./lib/guard-rules.mjs');   // getLedgerRepo, the default source extensions
     const T = await import('./lib/turn-changes.mjs');
+    const L = await import('./lib/law-rows.mjs');      // isWriterSession: the role the router wrote
 
     // A turn with nothing to card can still have a count that is short: say so to the owner, block nothing.
     const notice = (notes) => {
@@ -96,6 +104,14 @@ try {
         let cfg = C.defaultBrainConfig();
         cfg.readCeilingBytes = 0;
         try { cfg = C.readBrainConfig(ptr); } catch { /* defaults */ }
+        // stopCard (0.2.11): the card is off for this session's role. Nothing is read from git, so the
+        // short-count notices cannot be built either; the guard-error note still goes to the owner.
+        const role = L.isWriterSession(sessionId) ? 'writer' : 'owner';
+        if (cfg.stopCard && cfg.stopCard[role] === false) {
+            C.writeLog('INFO', 'stop', `card off for this ${role} session (stopCard.${role} false in ${ptr.brain ? path.join(ptr.brain, 'doctor.config.json') : 'the brain config'})`);
+            if (guardErrors > 0) notice([guardNote]);
+            break main;
+        }
         const exts = cfg.sourceExtensions.length > 0 ? cfg.sourceExtensions : R.DEFAULT_SOURCE_EXTENSIONS;
         const docs = cfg.stopDocs.length > 0 ? cfg.stopDocs : DEFAULT_STOP_DOCS;
         const since = T.turnStart(sessionId);
