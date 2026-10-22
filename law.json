@@ -123,7 +123,7 @@
       "id": "OWN-04",
       "group": "OWN",
       "verb": "ask",
-      "rule": "Ask the owner one question at a time, as multiple choice, with the recommended option first; every option carries a reason to pick it, the recommendation says why it wins, no two options are offered as equally fine, and where the asking surface has no room for a reason the reason goes in the text above it.",
+      "rule": "Ask the owner one question at a time, or at most the number of independent questions the brain allows in one call, as multiple choice, with the recommended option first; every option carries a reason to pick it, the recommendation says why it wins, no two options are offered as equally fine, and where the asking surface has no room for a reason the reason goes in the text above it.",
       "owner": "kit:instructions/working-with-the-owner.md",
       "grade": "HOOK",
       "since": "2026-09-22",

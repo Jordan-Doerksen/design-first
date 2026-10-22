@@ -339,6 +339,9 @@ export function askDefaults() {
             'equally good', 'equally valid', 'equally fine', 'no wrong answer', 'no wrong choice',
             'whichever you prefer'],
         recommendedMarker: '(?i)\\brecommended\\b',
+        // 0.2.12: how many questions one call may carry. 1 is the one-question rule as it stood; an owner who
+        // batches independent questions raises it (each question is still held to every rule above).
+        maxQuestions: 1,
     };
 }
 
@@ -449,6 +452,7 @@ export function readBrainConfig(ptr) {
         if (has(a, 'minReason')) { const v = parseIntStrict(a.minReason); if (v != null && v >= 0) out.ask.minReason = v; }
         if (has(a, 'equalPhrases')) out.ask.equalPhrases = asList(a.equalPhrases).filter((x) => x).map(String);
         if (has(a, 'recommendedMarker')) out.ask.recommendedMarker = str(a.recommendedMarker);
+        if (has(a, 'maxQuestions')) { const v = parseIntStrict(a.maxQuestions); if (v != null && v >= 1) out.ask.maxQuestions = v; }
     }
     for (const r of asList(cfg.contentRules)) {
         if (r == null) continue;
