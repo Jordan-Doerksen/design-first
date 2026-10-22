@@ -149,7 +149,7 @@ The hooks, as `hooks/hooks.json` registers them:
 |---|---|---|---|
 | `guard.mjs` | PreToolUse | Edit, Write, NotebookEdit, Bash, PowerShell | refuses the call that would stage a secret, rewrite git history, touch a frozen path, write source behind an open design gate, leave or push the loop branch, or pipe a heredoc into Python; advises on a write with no manifest or past one Read. |
 | `fence.mjs` | PreToolUse | Edit, Write, Bash, PowerShell | stops a deletion it can see, and an edit that removes or weakens an assertion in a measuring file, with the fence question to answer first. |
-| `ask.mjs` | PreToolUse | AskUserQuestion | refuses a question with more than one part, an option with no reason, an "either is fine", or a recommended option that is not first (OWN-04). |
+| `ask.mjs` | PreToolUse | AskUserQuestion | refuses a call with more questions than the owner allows, an option with no reason, an "either is fine", or a recommended option that is not first (OWN-04). |
 | `agent.mjs` | PreToolUse | Agent, mcp__ccd_session__start_session | holds a subagent spawn, or a session start, to its brief contract, routes a subagent's model from the brain's policy, and asks past the spawn cap (DES-11, CTRL-02). |
 | `route.mjs` | UserPromptSubmit | every | injects the law groups the prompt's words and the working folder name, once per session, plus the groups every session gets (DES-13). |
 | `stop.mjs` | Stop | every | ends a turn that changed source with its card, asked once: documents, the verify gate, the Change Request, the cross-check, the Definition of Done (DES-07, GATE-01, GATE-05/06/07, GAME-12). |

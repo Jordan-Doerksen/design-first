@@ -6,14 +6,17 @@ writes from the interview. This file holds only the method rules, which do not c
 
 ### OWN-04
 
-**Ask the owner one question at a time, as multiple choice, with the recommended option first;
-every option carries a reason to pick it, the recommendation says why it wins, no two options are
-offered as equally fine, and where the asking surface has no room for a reason the reason goes in
-the text above it.**
+**Ask the owner one question at a time, or at most the number of independent questions the brain
+allows in one call, as multiple choice, with the recommended option first; every option carries a
+reason to pick it, the recommendation says why it wins, no two options are offered as equally fine,
+and where the asking surface has no room for a reason the reason goes in the text above it.**
 
 A wall of questions is also overload. The owner reads one question, picks one option, and the next
 question is built on that answer. Each question offers three or four real options plus a custom
-one; the agent recommends one and says why in a clause, not a paragraph.
+one; the agent recommends one and says why in a clause, not a paragraph. An owner who would rather
+answer a few independent questions in one pass sets `ask.maxQuestions` in the brain config (0.2.12;
+the default is one): the test for independent is that no answer would change another question on
+the list, and a dependent question is still asked alone.
 
 This is the design-first interview (`DES-01`): the owner **chooses**, the agent **records**. The
 owner never has to read a document to make the decision; the manifest is the agent's record for
@@ -40,7 +43,8 @@ to keep its field short is not an instruction to drop the reasons; it says where
 not that they are not needed.
 
 *What the hook sees.* `hooks/ask.mjs` reads every multiple-choice call and refuses one that holds
-more than one question, an option whose description is shorter than the minimum length, a phrase
+more questions than `ask.maxQuestions` allows (one unless the brain says otherwise; every question in
+an allowed batch is checked, and a problem names its question), an option whose description is shorter than the minimum length, a phrase
 that offers options as equally fine, or a first option whose label does not hold the recommended
 marker. The marker is a word match, so a label such as "X (not recommended)" also passes. A negated
 phrase ("not equally good"), a quoted one, or one in a sentence that also holds a contrast word

@@ -1,7 +1,9 @@
-// ask.mjs - refuses a question with more than one part, an option with no reason, an "either is fine", or a recommended option that is not first (OWN-04).
+// ask.mjs - refuses a call with more questions than the owner allows, an option with no reason, an "either is fine", or a recommended option that is not first (OWN-04).
 //
 // The shape of a question to the owner. A call is refused, with the reason the model sees, when:
-//   - it carries more than one question (one at a time; ask the next after the answer);
+//   - it carries more questions than the brain's `ask.maxQuestions` (default 1: one at a time; ask the
+//     next after the answer). An owner who batches independent questions raises it (0.2.12), and every
+//     question in the batch is held to the rules below; a problem names its question by number;
 //   - an option's description is shorter than the minimum (a label is not a reason: each option
 //     says what it gives, what it costs and who would pick it);
 //   - the question, a label or a description offers the options as equally fine (a negated or
@@ -93,28 +95,34 @@ try {
         const ptr = C.readPointer();
 
         let title = null; let lines = [];
-        if (n > 1) {
-            title = `${n} questions in one call`;
-            lines = [`This call carries ${n} questions. Ask the first question alone now; ask the next one after the answer.`];
-        } else if (n === 1) {
-            // An unreadable brain config must not switch the checks off or lose the interview marker
-            // (failing open here would skip both): the defaults apply and the log says why.
-            let askCfg;
+        // An unreadable brain config must not switch the checks off or lose the interview marker
+        // (failing open here would skip both): the defaults apply and the log says why.
+        let askCfg = null;
+        if (n >= 1) {
             try { askCfg = C.readBrainConfig(ptr).ask; }
             catch (e) { C.writeLog('WARN', 'ask', `brain config unreadable, the ask defaults apply: ${e.message}`); askCfg = C.askDefaults(); }
             if (askCfg == null) askCfg = C.askDefaults();
-            lines = askProblems(C, qs[0], askCfg);
+        }
+        const max = Math.max(1, Number(askCfg && askCfg.maxQuestions) || 1);
+        if (n > max) {
+            title = `${n} questions in one call`;
+            lines = max === 1
+                ? [`This call carries ${n} questions. Ask the first question alone now; ask the next one after the answer.`]
+                : [`This call carries ${n} questions; the brain allows ${max} in one call (ask.maxQuestions). Ask the first ${max} now, and a question whose answer would change another on the list alone; ask the rest after the answers.`];
+        } else if (n >= 1) {
+            // Every question in the call is held to the shape; a problem names its question when there is more than one.
+            qs.forEach((q, i) => { for (const p of askProblems(C, q, askCfg)) lines.push(n > 1 ? `Question ${i + 1}: ${p}` : p); });
             if (lines.length > 0) title = `question shape: ${lines.length} problem(s)`;
         }
 
         if (!title) {
-            // Only a call that carries one question writes the interview marker. Workaround
+            // Only a call that carries a question writes the interview marker. Workaround
             // (CR-2026-10-15-GAPS D5): a call with no question was let through and wrote it too, so a call
             // that asked nothing cleared the GATE-01 line on the Stop card. It is still let through.
-            if (n === 1) C.addTextLine(C.sessionFile(j.session_id ? String(j.session_id) : 'unknown', '.asked'), C.isoNow());
+            if (n >= 1) C.addTextLine(C.sessionFile(j.session_id ? String(j.session_id) : 'unknown', '.asked'), C.isoNow());
         } else {
             const owner = ptr.brain ? C.getOwnerName(ptr.brain) : 'The owner';
-            const reason = `${owner} answers one question at a time, as multiple choice, with the recommended option first, and every option carries a reason to pick it (OWN-04). Fix this and ask again:\n- ${lines.join('\n- ')}`;
+            const reason = `${owner} answers ${max === 1 ? 'one question at a time' : `at most ${max} independent questions in one call, a dependent one alone`}, as multiple choice, with the recommended option first, and every option carries a reason to pick it (OWN-04). Fix this and ask again:\n- ${lines.join('\n- ')}`;
             C.addTextLine(C.getFenceLogPath(), `${C.stampNow()}  BLOCKED[ASK: ${title}]`);
             C.writeJson(C.newDeny('ask', title, reason));
         }

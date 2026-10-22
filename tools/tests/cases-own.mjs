@@ -52,4 +52,27 @@ export default function ownCases(t) {
     invokeHook('ask.mjs', hookJson({ session_id: 'st-ask-broken-ok', cwd: root, hook_event_name: 'PreToolUse', tool_name: 'AskUserQuestion', tool_input: { questions: [{ question: 'q', header: 'h', multiSelect: false, options: [{ label: 'a (Recommended)', description: 'Gives the thing the case needs; costs nothing worth a word.' }, { label: 'b', description: 'Gives a second path for a different owner; costs one more step.' }] }] } }));
     record('ask: with an unreadable config, an allowed question still writes the marker', 'written', exists(path.join(process.env.DF_MARKER_DIR, 'st-ask-broken-ok.asked')) ? 'written' : 'missing');
     put(cfgPath, cfgOrig);
+
+    // ask.maxQuestions (0.2.12): a batch of independent questions in one call, when the brain allows it.
+    const good = (q) => ({ question: q, header: 'h', multiSelect: false, options: [{ label: 'a (Recommended)', description: 'Gives the thing the case needs; costs nothing worth a word.' }, { label: 'b', description: 'Gives a second path for a different owner; costs one more step.' }] });
+    const askMany = (session, questions) => invokeHook('ask.mjs', hookJson({ session_id: session, cwd: root, hook_event_name: 'PreToolUse', tool_name: 'AskUserQuestion', tool_input: { questions } }));
+    r = askMany('st-ask-two-default', [good('q1'), good('q2')]);
+    record('ask: with no maxQuestions key, two questions in one call are refused (one at a time, as before)', 'deny', r.code === 0 ? classify(r.out) : `exit${r.code}`, r.out);
+    record('ask: the refusal says to ask the first alone', 'said', /Ask the first question alone now/.test(r.out) ? 'said' : 'missing', r.out);
+    const cfgFour = JSON.parse(cfgOrig); cfgFour.ask = { maxQuestions: 4 };
+    put(cfgPath, JSON.stringify(cfgFour, null, 2));
+    r = askMany('st-ask-four', [good('q1'), good('q2'), good('q3'), good('q4')]);
+    record('ask: maxQuestions 4 lets four well-shaped questions through in one call', 'allow', r.code === 0 ? classify(r.out) : `exit${r.code}`, r.out);
+    record('ask: an allowed batch writes the interview marker', 'written', exists(path.join(process.env.DF_MARKER_DIR, 'st-ask-four.asked')) ? 'written' : 'missing');
+    r = askMany('st-ask-five', [good('q1'), good('q2'), good('q3'), good('q4'), good('q5')]);
+    record('ask: five questions against maxQuestions 4 are refused, naming the limit', 'deny', r.code === 0 && /allows 4 in one call/.test(r.out) ? classify(r.out) : `wrong:${r.out.slice(0, 120)}`, r.out);
+    const bad = { question: 'q2', header: 'h', multiSelect: false, options: [{ label: 'a', description: 'a' }, { label: 'b', description: 'b' }] };
+    r = askMany('st-ask-batch-bad', [good('q1'), bad]);
+    record('ask: every question in a batch is checked, and a problem names its question', 'deny', r.code === 0 && /Question 2:/.test(r.out) ? classify(r.out) : `wrong:${r.out.slice(0, 160)}`, r.out);
+    record('ask: a refused batch writes no marker', 'none', exists(path.join(process.env.DF_MARKER_DIR, 'st-ask-batch-bad.asked')) ? 'written' : 'none');
+    const cfgZero = JSON.parse(cfgOrig); cfgZero.ask = { maxQuestions: 0 };
+    put(cfgPath, JSON.stringify(cfgZero, null, 2));
+    r = askMany('st-ask-zero', [good('q1'), good('q2')]);
+    record('ask: maxQuestions under 1 keeps the default of one', 'deny', r.code === 0 ? classify(r.out) : `exit${r.code}`, r.out);
+    put(cfgPath, cfgOrig);
 }
