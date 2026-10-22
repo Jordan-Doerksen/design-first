@@ -340,8 +340,16 @@ section('-- guard and fence cases');
             if (c.agent_id) payload.agent_id = String(c.agent_id);
             stdin = hookJson(payload);
         }
+        // A case may set the session's role marker, as route.mjs writes it on a first prompt ("role":
+        // "writer" or "owner"), and may lay keys over the fixture brain's config for itself alone ("brainSet").
+        if (c.role) put(path.join(process.env.DF_MARKER_DIR, `${session}.role`), String(c.role));
+        const brainCfgPath = path.join(brain, 'doctor.config.json');
+        const brainCfgKept = c.brainSet ? readText(brainCfgPath) : null;
+        if (c.brainSet) put(brainCfgPath, toJson({ ...JSON.parse(brainCfgKept), ...c.brainSet }));
         const logBefore = readText(process.env.DF_LOG_PATH);
-        const r = c.pointer === 'none' ? withoutPointer(() => invokeHook(script, stdin)) : invokeHook(script, stdin);
+        let r;
+        try { r = c.pointer === 'none' ? withoutPointer(() => invokeHook(script, stdin)) : invokeHook(script, stdin); }
+        finally { if (brainCfgKept != null) put(brainCfgPath, brainCfgKept); }
         let got = r.code !== 0 ? `exit${r.code}` : classify(r.out);
         if (got === c.expect && c.contains && !like(r.out, `*${c.contains}*`)) got = `missing-text:${c.contains}`;
         if (got === c.expect && c.logContains) {

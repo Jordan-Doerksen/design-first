@@ -84,6 +84,7 @@ export const CONFIG_READERS = {
     stopBudgetSeconds: "hooks/stop.mjs (time budget in seconds, under the host's Stop timeout: past it no more repositories are read from git and the card names them)",
     stopCard: 'hooks/stop.mjs ({ owner, writer }: false turns the Stop card off for sessions of that role, the role the router wrote in <session>.role; both default to true)',
     forbidScheduling: 'hooks/guard.mjs (rule 8, no-schedule: true refuses scheduled tasks, cron, Run keys, services, the Startup folder)',
+    blanketKill: 'hooks/guard.mjs (rule 14, no-blanket-kill: false turns off the refusal of a kill by image name in a writer session; default true)',
     contentRules: 'hooks/guard.mjs (rule 9, content-rule: an edit in scope that adds a match of the pattern is refused)',
     loopBranchPrefix: 'hooks/guard.mjs (rules 11 and 12: a branch with this prefix is the loop branch; default harness/)',
     loopLedgerGlobs: 'hooks/guard.mjs (rule 12, ledger: repository-relative globs of the story ledger refused on the loop branch)',
@@ -127,6 +128,7 @@ export function defaultConfig() {
         stopBudgetSeconds: 15,   // the hook's own default lives in hooks/lib/common.mjs (STOP_BUDGET_DEFAULT), its only reader
         stopCard: { owner: true, writer: true },
         forbidScheduling: false,
+        blanketKill: true,
         contentRules: [],
         loopBranchPrefix: 'harness/',
         loopLedgerGlobs: ['docs/specs/*.tasks.json', 'specs/*.tasks.json'],

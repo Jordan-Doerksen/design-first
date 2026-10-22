@@ -28,6 +28,7 @@
     "stopFromGit": "hooks/stop.mjs - true: the Stop card reads the turn's changes from git (commits made and files written since the prompt), so a file a command changed is counted; false: Edit and Write calls only",
     "stopBudgetSeconds": "hooks/stop.mjs - the Stop card's time budget in seconds, under the host's 20 s Stop timeout; past it no more repositories are read from git and the card names them; a value outside (0, 18] keeps the default 15",
     "stopCard": "hooks/stop.mjs - { owner, writer }: false turns the Stop card off for sessions of that role (the role the router wrote in <session>.role on the first prompt: writer = a brief with a line-start Reports to:, else owner); off means the turn ends with no card and one INFO line in the hooks log; both default to true",
+    "blanketKill": "hooks/guard.mjs rule 14 (no-blanket-kill) - default true: in a writer session (the role the router wrote in <session>.role) a kill by image name is refused (taskkill /IM, Stop-Process or spps -Name, pkill, killall) and a kill by PID passes; false turns the rule off; owner sessions are never judged by it",
     "ask": "hooks/ask.mjs (OWN-04) - the shape of a question: minReason (default 40), equalPhrases (a built-in list), recommendedMarker, and maxQuestions (default 1: one question per call; an owner who batches independent questions raises it, and every question in the batch is still checked)"
   },
   "surveyStrict": false,
@@ -103,6 +104,7 @@
     "owner": true,
     "writer": true
   },
+  "blanketKill": true,
   "sourceExtensions": [
     ".py",
     ".js",

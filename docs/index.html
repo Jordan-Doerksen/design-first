@@ -14,7 +14,7 @@
 
 <header class="top" data-chrome="identity_navigation">
   <a class="home" href="https://jordan-doerksen.github.io/">Home</a>
-  <span class="title"><b>design-first</b> <span class="ver">0.2.12</span></span>
+  <span class="title"><b>design-first</b> <span class="ver">0.2.13</span></span>
   <a class="repo" href="https://github.com/Jordan-Doerksen/design-first">Code</a>
 </header>
 
@@ -571,7 +571,7 @@ commands/control.md -----&gt; tools/control.mjs --&gt; &lt;brain&gt;/control/&lt
   <h3>Hooks</h3>
   <p>Registered in <code>hooks/hooks.json</code>. Each runs as one Node.js process, on Windows, macOS or Linux, before or around a tool call. A hook that errors allows the call, logs it, and says so: fail loud, not fail closed.</p>
   <ul class="ix">
-<li><span class="ix-id">PreToolUse</span><span class="ix-name"><code>guard.mjs</code></span><span class="ix-n">Edit|Write|NotebookEdit|Bash|PowerShell</span><span class="ix-grades">refuses the call that would stage a secret, rewrite git history, touch a frozen path, write source behind an open design gate, leave or push the loop branch, or pipe a heredoc into Python; advises on a write with no manifest or past one Read.</span></li>
+<li><span class="ix-id">PreToolUse</span><span class="ix-name"><code>guard.mjs</code></span><span class="ix-n">Edit|Write|NotebookEdit|Bash|PowerShell</span><span class="ix-grades">refuses the call that would stage a secret, rewrite git history, touch a frozen path, write source behind an open design gate, leave or push the loop branch, pipe a heredoc into Python, or kill a process by name in a writer session; advises on a write with no manifest or past one Read.</span></li>
 <li><span class="ix-id">PreToolUse</span><span class="ix-name"><code>fence.mjs</code></span><span class="ix-n">Edit|Write|Bash|PowerShell</span><span class="ix-grades">stops a deletion it can see, and an edit that removes or weakens an assertion in a measuring file, with the fence question to answer first.</span></li>
 <li><span class="ix-id">PreToolUse</span><span class="ix-name"><code>ask.mjs</code></span><span class="ix-n">AskUserQuestion</span><span class="ix-grades">refuses a call with more questions than the owner allows, an option with no reason, an &quot;either is fine&quot;, or a recommended option that is not first (OWN-04).</span></li>
 <li><span class="ix-id">PreToolUse</span><span class="ix-name"><code>agent.mjs</code></span><span class="ix-n">Agent|mcp__ccd_session__start_session</span><span class="ix-grades">holds a subagent spawn, or a session start, to its brief contract, routes a subagent&#39;s model from the brain&#39;s policy, and asks past the spawn cap (DES-11, CTRL-02).</span></li>
@@ -856,7 +856,7 @@ claude plugin install design-first@design-first
 
 <footer class="foot">
   <a href="https://jordan-doerksen.github.io/">Home</a>
-  <span>Generated from design-first 0.2.12 by <code>docs/build.mjs</code>. Recordings 2026-10-17 on 0.2.0.</span>
+  <span>Generated from design-first 0.2.13 by <code>docs/build.mjs</code>. Recordings 2026-10-17 on 0.2.0.</span>
 </footer>
 
 <script src="page.js"></script>

@@ -1934,5 +1934,274 @@
     "tool": "Bash",
     "cmd": "cat <<EOF ; python\nx\nEOF",
     "expect": "allow"
+  },
+  {
+    "_": "---- 0.2.13 (owner ruling 2026-10-22, the third exception to the 0.2.10 freeze): rule 14 no-blanket-kill, writer sessions only ----"
+  },
+  {
+    "name": "blanket-kill: writer, taskkill /IM python.exe /F -> denied",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "taskkill /IM python.exe /F",
+    "session": "kill-writer",
+    "role": "writer",
+    "expect": "deny",
+    "contains": "stops every process named python.exe (taskkill /IM python.exe)"
+  },
+  {
+    "name": "blanket-kill: writer, taskkill.exe -im node.exe (dash, lower case) -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "taskkill.exe -im node.exe",
+    "session": "kill-writer",
+    "role": "writer",
+    "expect": "deny",
+    "contains": "no-blanket-kill"
+  },
+  {
+    "name": "blanket-kill: writer, taskkill /F /PID 4242 /IM python.exe (PID and IM together) -> denied",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "taskkill /F /PID 4242 /IM python.exe",
+    "session": "kill-writer",
+    "role": "writer",
+    "expect": "deny",
+    "contains": "no-blanket-kill"
+  },
+  {
+    "name": "blanket-kill: writer, Stop-Process -Name python -> denied",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "Stop-Process -Name python",
+    "session": "kill-writer",
+    "role": "writer",
+    "expect": "deny",
+    "contains": "no-blanket-kill"
+  },
+  {
+    "name": "blanket-kill: writer, Stop-Process -N python -Force (prefix) -> denied",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "Stop-Process -N python -Force",
+    "session": "kill-writer",
+    "role": "writer",
+    "expect": "deny",
+    "contains": "no-blanket-kill"
+  },
+  {
+    "name": "blanket-kill: writer, spps -Name:python (joined value) -> denied",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "spps -Name:python",
+    "session": "kill-writer",
+    "role": "writer",
+    "expect": "deny",
+    "contains": "stops every process named python (spps -Name:python)"
+  },
+  {
+    "name": "blanket-kill: writer, Stop-Process -ProcessName node (alias) -> denied",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "Stop-Process -ProcessName node",
+    "session": "kill-writer",
+    "role": "writer",
+    "expect": "deny",
+    "contains": "no-blanket-kill"
+  },
+  {
+    "name": "blanket-kill: writer, kill -Name python in PowerShell (alias of Stop-Process) -> denied",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "kill -Name python",
+    "session": "kill-writer",
+    "role": "writer",
+    "expect": "deny",
+    "contains": "no-blanket-kill"
+  },
+  {
+    "name": "blanket-kill: writer, pkill -f python -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "pkill -f python",
+    "session": "kill-writer",
+    "role": "writer",
+    "expect": "deny",
+    "contains": "no-blanket-kill"
+  },
+  {
+    "name": "blanket-kill: writer, killall node -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "killall node",
+    "session": "kill-writer",
+    "role": "writer",
+    "expect": "deny",
+    "contains": "no-blanket-kill"
+  },
+  {
+    "name": "blanket-kill: writer, prefixes skipped: FOO=1 nohup pkill python -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "FOO=1 nohup pkill python",
+    "session": "kill-writer",
+    "role": "writer",
+    "expect": "deny",
+    "contains": "no-blanket-kill"
+  },
+  {
+    "name": "blanket-kill: writer, second sub-command: echo hi && taskkill /IM a.exe -> denied",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "echo hi && taskkill /IM a.exe",
+    "session": "kill-writer",
+    "role": "writer",
+    "expect": "deny",
+    "contains": "no-blanket-kill"
+  },
+  {
+    "name": "blanket-kill: writer, taskkill /PID 4242 /F -> allowed",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "taskkill /PID 4242 /F",
+    "session": "kill-writer",
+    "role": "writer",
+    "expect": "allow"
+  },
+  {
+    "name": "blanket-kill: writer, taskkill /PID 4242 -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "taskkill /PID 4242",
+    "session": "kill-writer",
+    "role": "writer",
+    "expect": "allow"
+  },
+  {
+    "name": "blanket-kill: writer, Stop-Process -Id 4242 -> allowed",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "Stop-Process -Id 4242",
+    "session": "kill-writer",
+    "role": "writer",
+    "expect": "allow"
+  },
+  {
+    "name": "blanket-kill: writer, kill 4242 -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "kill 4242",
+    "session": "kill-writer",
+    "role": "writer",
+    "expect": "allow"
+  },
+  {
+    "name": "blanket-kill: writer, kill -9 4242 -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "kill -9 4242",
+    "session": "kill-writer",
+    "role": "writer",
+    "expect": "allow"
+  },
+  {
+    "name": "blanket-kill: writer, quoted data: echo \"taskkill /IM python.exe\" -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "echo \"taskkill /IM python.exe\"",
+    "session": "kill-writer",
+    "role": "writer",
+    "expect": "allow"
+  },
+  {
+    "name": "blanket-kill: writer, quoted data: git commit -m \"pkill and killall are refused\" -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "git commit -m \"pkill and killall are refused\"",
+    "session": "kill-writer",
+    "role": "writer",
+    "expect": "allow"
+  },
+  {
+    "name": "blanket-kill: writer, Stop-Process -PassThru -Id 1 (no -Name) -> allowed",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "Stop-Process -PassThru -Id 1",
+    "session": "kill-writer",
+    "role": "writer",
+    "expect": "allow"
+  },
+  {
+    "name": "blanket-kill: writer, brain blanketKill false: taskkill /IM python.exe -> allowed",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "taskkill /IM python.exe",
+    "session": "kill-writer",
+    "role": "writer",
+    "expect": "allow",
+    "brainSet": {
+      "blanketKill": false
+    }
+  },
+  {
+    "name": "blanket-kill: owner, taskkill /IM python.exe /F -> allowed",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "taskkill /IM python.exe /F",
+    "session": "kill-owner",
+    "role": "owner",
+    "expect": "allow"
+  },
+  {
+    "name": "blanket-kill: owner, Stop-Process -Name python -> allowed",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "Stop-Process -Name python",
+    "session": "kill-owner",
+    "role": "owner",
+    "expect": "allow"
+  },
+  {
+    "name": "blanket-kill: owner, spps -N python -> allowed",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "spps -N python",
+    "session": "kill-owner",
+    "role": "owner",
+    "expect": "allow"
+  },
+  {
+    "name": "blanket-kill: owner, kill -Name python -> allowed",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "kill -Name python",
+    "session": "kill-owner",
+    "role": "owner",
+    "expect": "allow"
+  },
+  {
+    "name": "blanket-kill: owner, pkill python -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "pkill python",
+    "session": "kill-owner",
+    "role": "owner",
+    "expect": "allow"
+  },
+  {
+    "name": "blanket-kill: owner, killall node -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "killall node",
+    "session": "kill-owner",
+    "role": "owner",
+    "expect": "allow"
+  },
+  {
+    "name": "blanket-kill: no role marker (owner by default), taskkill /IM python.exe -> allowed",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "taskkill /IM python.exe",
+    "session": "kill-unmarked",
+    "expect": "allow"
   }
 ]
