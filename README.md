@@ -147,7 +147,7 @@ The hooks, as `hooks/hooks.json` registers them:
 
 | hook | event | on | what it does |
 |---|---|---|---|
-| `guard.mjs` | PreToolUse | Edit, Write, NotebookEdit, Bash, PowerShell | refuses the call that would stage a secret, rewrite git history, touch a frozen path, write source behind an open design gate, leave or push the loop branch, or pipe a heredoc into Python; advises on a write with no manifest or past one Read. |
+| `guard.mjs` | PreToolUse | Edit, Write, NotebookEdit, Bash, PowerShell | refuses the call that would stage a secret, rewrite git history, touch a frozen path, write source behind an open design gate, leave or push the loop branch, pipe a heredoc into Python, or kill a process by name in a writer session; advises on a write with no manifest or past one Read. |
 | `fence.mjs` | PreToolUse | Edit, Write, Bash, PowerShell | stops a deletion it can see, and an edit that removes or weakens an assertion in a measuring file, with the fence question to answer first. |
 | `ask.mjs` | PreToolUse | AskUserQuestion | refuses a call with more questions than the owner allows, an option with no reason, an "either is fine", or a recommended option that is not first (OWN-04). |
 | `agent.mjs` | PreToolUse | Agent, mcp__ccd_session__start_session | holds a subagent spawn, or a session start, to its brief contract, routes a subagent's model from the brain's policy, and asks past the spawn cap (DES-11, CTRL-02). |

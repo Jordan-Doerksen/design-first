@@ -1,8 +1,9 @@
-// guard-owner-rules.mjs - guard rules 7-9 and 13: the owner's standing prohibitions, as refusals.
+// guard-owner-rules.mjs - guard rules 7-9, 13 and 14: the owner's standing prohibitions, as refusals.
 // Imported by guard.mjs after guard-rules.mjs. Split from guard-rules.mjs by domain (DES-03): rules
-// 1-6 guard secrets, history, frozen paths and the build method; rules 7-9 and 13 guard the owner's
-// uncommitted work, their machine's start-up, the content bans their brain configures, and their
-// machine's processor (no Python heredoc).
+// 1-6 guard secrets, history, frozen paths and the build method; rules 7-9, 13 and 14 guard the
+// owner's uncommitted work, their machine's start-up, the content bans their brain configures, their
+// machine's processor (no Python heredoc) and the processes other sessions run (no kill by name from
+// a writer).
 // Each rule returns null (no opinion) or a deny object from newDeny.
 
 import { newDeny, toFullPath, isUnder, getLeaf, getExt, git, gitFirst, exists, isFile, iin, countMatches, ieq } from './common.mjs';
@@ -331,6 +332,73 @@ export function pythonHeredocRule(subs, k) {
         if (h) {
             const w = commandWordAt(up);
             return pyHeredocDeny(`${w >= 0 ? up[w] : ''} ${h} | ${src.words.join(' ')}`.trim());
+        }
+    }
+    return null;
+}
+
+// Rule 14, no-blanket-kill (owner ruling 2026-10-22, kit 0.2.13): in a WRITER session, a kill by
+// image name. A writer session killed a python process that was not its own with a kill by name; a
+// writer stops only a process it started, by its PID. guard.mjs runs this only when the brain's
+// blanketKill is not false and the session's <session>.role reads writer (isWriterSession); an owner
+// session is never judged by it. A subagent's call carries its parent's session_id, so it is judged
+// by the parent's role.
+// Refused, after the prefixes rule 13 skips (&, NAME=value, env, command, exec, nohup, time):
+// taskkill with /IM or -IM (any case; a call that also names /PID is still refused); Stop-Process,
+// spps or, in a PowerShell call, kill (PowerShell's alias for Stop-Process) with -Name by any
+// unambiguous prefix (-N, -Na, ...) or its alias -ProcessName (-Proc and longer), with or without a
+// joined :value; pkill and killall in any form. Allowed: taskkill /PID <n>, Stop-Process -Id <n>,
+// kill <n>, kill -9 <n>, and the same words as quoted data (echo "taskkill /IM").
+// Not matched (the written residual): Get-Process -Name x | Stop-Process; taskkill /FI "IMAGENAME eq
+// ..."; wmic process where name=... delete; Get-CimInstance Win32_Process ... | Invoke-CimMethod
+// Terminate; positional Stop-Process python (PowerShell binds the first position to -Id, so this one
+// fails to convert rather than kill, probed on pwsh 7.6.7); nested shells (pwsh -c, cmd /c, bash -c);
+// xargs; $(...); a script written to disk and then run.
+const KILL_HEADS = ['taskkill', 'stop-process', 'spps', 'pkill', 'killall'];
+
+// -Name by any prefix, or its alias -ProcessName from -Proc on (-P, -Pr and -Pro are ambiguous in
+// PowerShell: PassThru, ProgressAction, PipelineVariable). A joined :value is the name.
+function psNameParam(t) {
+    const m = /^-([A-Za-z]+)(?::(.*))?$/.exec(t);
+    if (!m) return null;
+    const p = m[1].toLowerCase();
+    if ('name'.startsWith(p) || (p.length >= 4 && 'processname'.startsWith(p))) return { joined: m[2] };
+    return null;
+}
+
+function blanketKillDeny(name, words) {
+    const reason = `BLOCKED - no-blanket-kill: this command stops every process named ${name} (${words}). ` +
+        'A writer stops only a process it started: use taskkill /PID <pid> or Stop-Process -Id <pid>, and read the PID from the process you started.';
+    return newDeny('guard', `no-blanket-kill (${words})`, reason);
+}
+
+// tokens: one sub-command from splitCommand; tool: 'Bash' or 'PowerShell'.
+export function blanketKillRule(tokens, tool) {
+    if (!tokens || tokens.length === 0) return null;
+    const i = commandWordAt(tokens);
+    if (i < 0) return null;
+    const leaf = getLeaf(tokens[i]);
+    if (!leaf || /\s/.test(leaf)) return null;
+    const head = leaf.toLowerCase().replace(/\.exe$/, '');
+    const isPsKill = tool === 'PowerShell' && head === 'kill';
+    if (!KILL_HEADS.includes(head) && !isPsKill) return null;
+    const args = tokens.slice(i + 1);
+    if (head === 'pkill' || head === 'killall') {
+        const operands = args.filter((t) => !t.startsWith('-'));
+        const name = operands.length > 0 ? operands[operands.length - 1] : 'that name';
+        return blanketKillDeny(name, [tokens[i], ...args].join(' '));
+    }
+    for (let k = 0; k < args.length; k++) {
+        const t = args[k];
+        let name = null;
+        if (head === 'taskkill') { if (ieq(t, '/IM') || ieq(t, '-IM')) name = args[k + 1] ?? 'that name'; }
+        else {
+            const p = psNameParam(t);
+            if (p) name = p.joined != null && p.joined !== '' ? p.joined : (args[k + 1] ?? 'that name');
+        }
+        if (name != null) {
+            const words = [tokens[i], ...args.slice(0, name === args[k + 1] ? k + 2 : k + 1)].join(' ');
+            return blanketKillDeny(name, words);
         }
     }
     return null;

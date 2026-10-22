@@ -381,7 +381,7 @@ function defaultBrainConfig() {
         protected: [], tombstoned: [], exceptions: [], present: false, reason: null,
         readCeilingBytes: READ_CEILING_DEFAULT, readCeilingExempt: [], sourceExtensions: [], stopDocs: [],
         stopFromGit: true, stopBudgetSeconds: STOP_BUDGET_DEFAULT, stopCard: { owner: true, writer: true },
-        forbidScheduling: false, contentRules: [], contentRuleProblems: [],
+        forbidScheduling: false, blanketKill: true, contentRules: [], contentRuleProblems: [],
         loopBranchPrefix: 'harness/', loopLedgerGlobs: ['docs/specs/*.tasks.json', 'specs/*.tasks.json'],
         ask: askDefaults(), keys: new Set(),
     };
@@ -442,6 +442,9 @@ export function readBrainConfig(ptr) {
     }
     // Guard rules 8 and 9 (guard-owner-rules.mjs). forbidScheduling is opt-in: off unless the brain says true.
     if (has(cfg, 'forbidScheduling')) out.forbidScheduling = cfg.forbidScheduling === true || str(cfg.forbidScheduling).toLowerCase() === 'true';
+    // Guard rule 14 (guard-owner-rules.mjs, 0.2.13): no kill by image name in a writer session. On by
+    // default; only an explicit false turns it off.
+    if (has(cfg, 'blanketKill')) out.blanketKill = !(cfg.blanketKill === false || str(cfg.blanketKill).toLowerCase() === 'false');
     // Guard rules 11 and 12 (guard-loop-rules.mjs): the loop branch name and the story ledger paths.
     if (has(cfg, 'loopBranchPrefix') && !isBlank(cfg.loopBranchPrefix)) out.loopBranchPrefix = String(cfg.loopBranchPrefix);
     if (has(cfg, 'loopLedgerGlobs')) { const g = asList(cfg.loopLedgerGlobs).filter((x) => x).map(String); if (g.length) out.loopLedgerGlobs = g; }
