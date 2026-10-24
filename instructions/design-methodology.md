@@ -38,6 +38,9 @@ architectural or behavioural change.
   **Date Locked** · **Affects** · **Change Rule** (what must be reviewed if this decision changes).
 - **Build Timeline** table — `| Phase | Chunk | Dependencies | Status | Review Date |`.
 - **Open Questions** table — `| Question | Why It Matters | Owner | Status |`.
+- **Not yet specified** list — the fog (`GATE-15`): decisions seen coming but not yet phrasable as
+  a question, one line each, coarse on purpose. A line graduates to Open Questions when it can be
+  phrased, or is struck; nothing is built from it.
 - **Change Log** table — `| Date | Change | Reason | Affected Areas |`.
 
 **Phase 3 — the architecture map** (`ARCHITECTURE.md`). One page, short enough to read before you

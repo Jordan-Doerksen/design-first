@@ -185,7 +185,62 @@ question comes next and when the asking is over.
 - **Done means empty.** The pass is complete when the frontier is empty, not when the owner looks
   tired of questions and not when a plan merely exists. Anything still assumed in silence is an
   open node. GATE-02 stands: full approval is said out loud.
+- **The fog.** Beyond the frontier are decisions the agent can see coming but cannot yet phrase,
+  because they hang on open nodes. The test: can the *question* be stated precisely now, not can
+  it be answered. A question that can be stated goes to the manifest's Open Questions table, with
+  an owner, even when it is blocked. One that cannot is written under the manifest's **Not yet
+  specified** list (`DES-01`), as coarse as the view allows, never pre-sliced into questions. Each
+  settled node clears fog ahead of it: a line graduates to the Open Questions table when it can be
+  phrased, or is struck when the settled node made it moot. Work ruled beyond the project's goal
+  is not fog; it is a non-goal under Non-Negotiable Constraints and never graduates. So "done
+  means empty" reads: the frontier is empty, the Open Questions table holds only blocked questions
+  with owners, and the fog is written, not silent. Added 2026-10-23 (CR-2026-10-23-LIBRARY), from
+  the `wayfinder` skill in the same repository, whose map keeps a "Not yet specified" section with
+  the same test.
 
 Grade ADVISE by `hooks/subagent.mjs#advise-by-role`: the Reviewer names the clause as holding or as
 a finding, with a frontier item that was asked before its prerequisite, a fact the owner was asked
-to supply, or a build that began with an open node.
+to supply, a build that began with an open node the manifest lists neither as a question nor as
+fog, or a fog line that was sharp enough to be a question.
+
+### GATE-16
+
+**An APPROVE or ADD verdict carries the observable that would show the element wrong, written beside the verdict and into the spec's failure modes; an element with no such observable is not approved, it is unfalsifiable, and it goes to the Open Questions table.**
+
+Added 2026-10-23 (CR-2026-10-23-LIBRARY), after the owner asked whether a prompt library should
+seed the interview. It should not; one pattern in `danielmiessler/fabric` (`check_falsifiability`,
+MIT) carried a move the pass lacked: for each claim, name the observation that would prove it
+wrong, and call a claim with none unfalsifiable.
+
+- **Where it sits.** GATE-10 says a failure the spec did not predict is a spec failure. AUTO-08
+  says a story with no probe covering its behaviour fails the gate. The spec list in GATE-08 asks
+  for named failure modes. All three act after the pass. This clause puts the same question inside
+  the pass, element by element: *what would show this is wrong?* The owner's own instruments
+  pre-register a hypothesis before the data is read; this is that move applied to the interview.
+- **What the line is.** One observable per APPROVE or ADD: a thing a person or a probe can see,
+  with the condition under which seeing it means the element failed. "A signal fires with a
+  timestamp inside the pause window on a recorded session." Not "it works well", not "it feels
+  right"; those are not observable. The line is written beside the verdict in the pass and copied
+  into `SPEC.md` failure modes, where it becomes the first probe for the story (AUTO-08).
+- **REDACT and FLAVOUR carry nothing.** One cuts the element, the other changes its presentation;
+  neither adds behaviour to disprove.
+- **No observable, no approval.** An element nobody can state a test for is a design problem, not
+  a feature. It goes to the Open Questions table with the owner named, and the pass continues on
+  the elements that have one (the "not a reason to stop" rule in GATE-01 holds).
+- **Cost.** One sentence per APPROVE or ADD. A small request's pass grows by one line per element
+  and no more.
+
+*Worked example.* "Add a midday pause to the desk." APPROVE; disprove: a signal fires with a
+timestamp inside the pause window on a recorded session. ADD: the window's bounds are a config
+value, not a literal; disprove: changing the value in the config file and restarting does not move
+the pause. Both lines go into `SPEC.md` failure modes before any code.
+
+Grade ADVISE by `hooks/route.mjs#route-law`: the row reaches the session with the GATE group when
+an interview word routes, which is where the pass runs, with the owner. It does not ride the
+subagent advise block. Workaround, recorded so nobody moves it there by reflex: at 0.2.13 the block
+plus the SAFE, DES, VCS and OBS rows sit within about 90 characters of the 9,500 cap at a
+29-character kit path; one more clause in the block deferred OBS for a general-purpose subagent in
+the suite's own case, and the shortest honest sentence could not buy the room back. A Reviewer that
+reads `SPEC.md` still has GATE-10 for a failure mode the spec did not name. The finding this clause
+asks for is an APPROVE or ADD that carries no observable, or one whose observable is not
+observable.

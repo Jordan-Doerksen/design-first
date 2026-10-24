@@ -425,6 +425,7 @@ const sub = (session, type) => invokeHook('subagent.mjs', hookJson({ session_id:
     r = route('interview me on this addition', 'r1g', root);
     record('route: an interview prompt injects the GATE group with GATE-14 (CR-2026-10-14-REVIEW)', 'gate-14', r.code === 0 && /group GATE/i.test(r.out) && /GATE-14 \[ADVISE\]/i.test(r.out) ? 'gate-14' : 'wrong', r.out);
     record('route: the GATE group carries GATE-15 frontier (CR-2026-10-15-FRONTIER)', 'gate-15', r.code === 0 && /GATE-15 \[ADVISE\]/i.test(r.out) ? 'gate-15' : 'wrong', r.out);
+    record('route: the GATE group carries GATE-16 disprove (CR-2026-10-23-LIBRARY)', 'gate-16', r.code === 0 && /GATE-16 \[ADVISE\]/i.test(r.out) ? 'gate-16' : 'wrong', r.out);
     // Each owning file is named relative to a folder the block names once (CR-2026-10-17-PATHS), and
     // joined to that folder it is a file on the disk; no full-text line repeats the kit folder.
     const ft = fullTextFiles(r.out);
