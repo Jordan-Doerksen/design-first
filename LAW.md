@@ -78,6 +78,7 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | GATE-13 | ADVISE | Before you remove, automate or simplify a thing, list its full function, not only its named one. | `kit:instructions/design-methodology.md` |
 | GATE-14 | ADVISE | A decision about appearance, motion or feel is asked only after more than one real option is rendered side by side on one page; the question that follows is one question, with the recommended option first. | `kit:instructions/interview-every-add-law.md` |
 | GATE-15 | ADVISE | The interview is a design tree worked by frontier: the next question is one whose prerequisites are settled, facts about the environment are the agent's job to find and never the owner's to supply, and the pass ends only when no branch is left silently assumed. | `kit:instructions/interview-every-add-law.md` |
+| GATE-16 | ADVISE | An APPROVE or ADD verdict carries the observable that would show the element wrong, written beside the verdict and into the spec's failure modes; an element with no such observable is not approved, it is unfalsifiable, and it goes to the Open Questions table. | `kit:instructions/interview-every-add-law.md` |
 
 ## AUTO - Autonomy
 
@@ -182,9 +183,9 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 |---|---|
 | DENY | 0 |
 | HOOK | 14 |
-| ADVISE | 37 |
+| ADVISE | 38 |
 | GATE | 15 |
 | BUILDABLE | 15 |
 | OWNER | 3 |
 | HONOUR | 5 |
-| total | 89 |
+| total | 90 |

@@ -558,6 +558,19 @@
       }
     },
     {
+      "id": "GATE-16",
+      "group": "GATE",
+      "verb": "disprove",
+      "rule": "An APPROVE or ADD verdict carries the observable that would show the element wrong, written beside the verdict and into the spec's failure modes; an element with no such observable is not approved, it is unfalsifiable, and it goes to the Open Questions table.",
+      "owner": "kit:instructions/interview-every-add-law.md",
+      "grade": "ADVISE",
+      "since": "2026-10-23",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/route.mjs#route-law"
+      }
+    },
+    {
       "id": "AUTO-01",
       "group": "AUTO",
       "verb": "decide-scope",

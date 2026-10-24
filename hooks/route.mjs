@@ -19,7 +19,7 @@
 // turn reset runs before the libraries load, so a failure after it cannot leave the last turn's
 // record and time for the Stop card.
 //
-// anchor: route-law  mode: advise  verbs: route-law
+// anchor: route-law  mode: advise  verbs: route-law,disprove
 //
 // always-route (OWN-10, CR-2026-10-14-OPTIONS): the groups the policy lists in alwaysForSessions
 // join the matches of every prompt, whatever its words and folder. They go first, so the size cap
