@@ -20,6 +20,11 @@ const extOf = (p) => { const b = path.basename(p); const i = b.lastIndexOf('.');
 // Case-insensitive whole-word match. `exclude` skips a file or a folder. `allow` is SPAN-BASED: a
 // permitted word's match span suppresses every sub-word hit inside that span, so allowing
 // "Alpha-Beta" in README.md covers "Alpha" and "Beta" inside "Alpha-Beta" there, and nowhere else.
+// A word in `words` may be written in letter codes (\x41\x6c\x70\x68\x61), so a public config can
+// refuse a word it must not spell. The scan matches the decoded word, and a hit reports the codes as
+// written, so neither the config nor the report spells it.
+
+const fromCodes = (w) => w.replace(/\\x([0-9a-f]{2})/gi, (_, h) => String.fromCharCode(Number.parseInt(h, 16)));
 
 // Longest word first so "Alpha-Beta" wins over "Alpha" at the same position. \b on both ends. Words
 // that start or end with a non-word character would get no boundary from \b, so those ends use
@@ -51,7 +56,8 @@ export function treeFreeOfClaim(c, ctx) {
         if (a == null || !a.path || !String(a.path).trim()) continue;
         allow.set(relKey(String(a.path)), wordRegex(asList(a.words).map(String)));
     }
-    const wordRx = wordRegex(words);
+    const coded = new Map(words.filter((w) => fromCodes(w) !== w).map((w) => [fromCodes(w).toLowerCase(), w]));
+    const wordRx = wordRegex(words.map(fromCodes));
     const hits = []; let scanned = 0;
     for (const full of walkFiles(root)) {
         if (!exts.includes(extOf(full))) continue;
@@ -68,7 +74,7 @@ export function treeFreeOfClaim(c, ctx) {
         for (const m of found) {
             if (spans.some(([s, e]) => m.index >= s && m.index + m[0].length <= e)) continue;
             const line = text.slice(0, m.index).split('\n').length;
-            hits.push(`${rel}:${line} "${m[0]}"`);
+            hits.push(`${rel}:${line} "${coded.get(m[0].toLowerCase()) ?? m[0]}"`);
         }
     }
     if (hits.length === 0) return claimResult(c, 'PASS', `no forbidden word in ${scanned} file(s) under ${root}`);

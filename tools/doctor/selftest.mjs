@@ -18,6 +18,7 @@ import { snapshotFixture, snapTrue, snapFalse, snapUnknown, assertSnapshotRuns }
 import { configCases } from './selftest-config.mjs';
 import { truthRuns } from './selftest-truth.mjs';
 import { lawRuns } from './selftest-law.mjs';
+import { codedWordRuns } from './selftest-words.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const kitRoot = path.resolve(here, '..', '..');           // the real kit
@@ -597,6 +598,7 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
 
     truthRuns(t);   // run X (a crash is could-not-look) and run K (every registered hook is smoked), CR-2026-10-15-GAPS D6
     lawRuns(t);     // run L (the law build: the ADVISE legend, an unregistered hook) and run M (the docs build accepts DENY)
+    codedWordRuns(t);   // run W (a word in letter codes, planted against the shipped leak claim)
 } catch (err) {
     bad('selftest ran to the end', err && err.stack ? err.stack : String(err));
 } finally {

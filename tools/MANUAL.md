@@ -123,7 +123,9 @@ one line either way. Where to keep the snapshot is the repository's call; the ki
 `tree_free_of` details: `exclude` entries are paths relative to `root` (a file or a folder); the `.git`
 folder is always skipped. `allow` is span-based: a permitted word's match span suppresses every
 sub-word hit inside that span and nothing else, so allowing `Alpha-Beta` in `README.md` covers
-`Alpha` and `Beta` inside `Alpha-Beta` there, while a bare `Alpha` in the same file still trips.
+`Alpha` and `Beta` inside `Alpha-Beta` there, while a bare `Alpha` in the same file still trips. A
+word in `words` may be written in letter codes (`\x41\x6c\x70\x68\x61`), so a public config can refuse
+a word it must not spell: the scan matches the decoded word, and a hit reports the codes as written.
 
 `json_keyed_match` details: for two files that each keep their own copy of a case table (golden
 vectors, fixtures, a rule list). Both files are parsed; `collection` is walked as a dotted path
