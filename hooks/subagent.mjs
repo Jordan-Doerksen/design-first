@@ -69,7 +69,11 @@ try {
     const C = await import('./lib/common.mjs');
     const L = await import('./lib/law-rows.mjs');
     let j = null;
-    if (raw.trim()) { try { j = JSON.parse(raw); } catch { j = null; } }
+    let notJson = null;   // a payload that does not parse: its first 80 characters, logged once this copy decides (below)
+    if (raw.trim()) { try { j = JSON.parse(raw); } catch { j = null; notJson = raw.trim().slice(0, 80); } }
+    C.setMarkerDir(j);                                                    // markers and logs under the host's scratchpad_dir when given (0.3.0)
+    if (C.yieldToPlugin('subagent', import.meta.url)) process.exit(0);    // the yield rule: a vendored copy steps aside for the plugin (0.3.0)
+    if (notJson != null) C.writeLog('ERROR', 'subagent', `payload is not JSON: ${notJson}`);   // read as no payload, never in silence
     const sessionId = j && j.session_id ? String(j.session_id) : 'unknown';
     const agentType = j && j.agent_type ? String(j.agent_type) : 'subagent';
     const isReviewer = /reviewer/i.test(agentType);

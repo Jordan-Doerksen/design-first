@@ -1,10 +1,11 @@
-// claims-tree.mjs - the claims that read a tree of files: tree_free_of, tree_equals, tree_each and
-// tree_rules (SPEC 5.2, findings 36, 60, 74). Imported by claims.mjs. READ-ONLY.
+// claims-tree.mjs - the claims that read a tree of files: tree_free_of, tree_equals, tree_each,
+// tree_rules (SPEC 5.2, findings 36, 60, 74) and tree_sha (0.3.0, KIT-01). Imported by claims.mjs. READ-ONLY.
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { readText, toRegex, parseIso, pathEq, relUnder } from '../../hooks/lib/common.mjs';
 import { claimResult, resolveClaimPath, isDir } from './claims-base.mjs';
+import { treeSha, readVersionFile } from '../../hooks/lib/kit-version.mjs';
 import { listDir, walkFiles, firstCommitDate, isoDay, byName } from './util.mjs';
 
 const asList = (v) => (v == null ? [] : Array.isArray(v) ? v : [v]);
@@ -386,4 +387,24 @@ export function treeRulesClaim(c, ctx) {
         });
         return out;
     }, 'pass every rule');
+}
+
+// ---------------------------------------------------------------- tree_sha (0.3.0, KIT-01)
+// Fields: path (a VERSION file as tools/vendor.mjs writes it: version, sha256, files, at). The sha is
+// recomputed over the listed files beside the VERSION file through the same hooks/lib/kit-version.mjs
+// the vendor tool and the arming line use (sorted paths, CRLF read as LF). PASS when it equals the
+// recorded sha; FAIL when it differs or a listed file is gone (the tree is not what its VERSION says);
+// UNKNOWN when the VERSION file is missing or not the shape, or lists no file (the sha of nothing
+// always matches; review finding 14): nothing to compare against is not a pass.
+export function treeShaClaim(c, ctx) {
+    const r = resolveClaimPath(c.path, ctx);
+    if (!r.path) return claimResult(c, 'UNKNOWN', r.detail);
+    const v = readVersionFile(r.path);
+    if (!v) return claimResult(c, 'UNKNOWN', `VERSION missing or unparseable: ${r.path}`);
+    if (v.files.length === 0) return claimResult(c, 'UNKNOWN', `VERSION names no file; nothing to prove (${r.path})`);
+    let sha;
+    try { sha = treeSha(path.dirname(r.path), v.files); }
+    catch (e) { return claimResult(c, 'FAIL', `${e.message}; ${v.files.length} files listed (${r.path})`); }
+    if (sha === v.sha256) return claimResult(c, 'PASS', `version ${v.version}, ${v.files.length} files`);
+    return claimResult(c, 'FAIL', `sha differs; ${v.files.length} files listed (${r.path})`);
 }

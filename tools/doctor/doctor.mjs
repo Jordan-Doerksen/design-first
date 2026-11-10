@@ -7,16 +7,25 @@
 // READ-ONLY with respect to the workspace. The only files written are <brain>/state/* (or the kit's
 // state/ under -Kit). NO TIMER, NO LOGIN TASK, ever.
 //
-// Three bands (SPEC 1.1):
+// Three bands (SPEC 1.1), and one more status since 0.3.0:
 //   CLAIMS          a false claim in claims.json      -> RED, exit 1
 //   SURVEY          repo and wiring findings           -> REPORTED, exit 0, unless surveyStrict
 //   COULD-NOT-LOOK  something could not be checked     -> exit 2, never a pass
 //                   (a crash of the Doctor itself included: the handler below)
+//   SKIPPED         a claim not run on this host       -> its own band, never a pass, outside the verdict
 //
 // Where it looks comes from the pointer ~/.claude/design-first.json (DF_POINTER_PATH overrides it,
 // for tests): root, brain, pluginRoot. Nothing in this folder names a real path.
 //   -Kit    check the KIT itself: its own claims (tools/doctor/claims.json), ${KIT} = this checkout,
 //           state under <kit>/state. Needs no brain.
+//   -Scope brain   (also --scope brain) a brain checkout with no pointer (a cloud session): root and
+//           brain are CLAUDE_PROJECT_DIR, or -Root <folder>; the kit is <brain>/.claude/kit when that
+//           vendored copy holds the Doctor, else the copy running; claims from <brain>/claims.json.
+//           The hook registrations are then read from <brain>/.claude/settings.json, the vendored
+//           form, by the survey and the hook_smoke claims (context.mjs registrationSource).
+//   -Host pc|cloud  which host this is. Explicit, never guessed: the shims pass it. Under cloud a
+//           claim whose path carries ${ROOT}, %USERPROFILE% or ${LOCALAPPDATA}, or typed host: pc,
+//           is SKIPPED (claims.mjs); under pc a claim typed host: cloud is. Without it nothing is.
 //   -Json   print one JSON document instead of the screen report.
 
 import path from 'node:path';
@@ -62,9 +71,16 @@ process.on('unhandledRejection', crashed);
 async function main() {
     const { parseArgs } = await import('../lib/args.mjs');
     let opts;
-    try { opts = parseArgs(process.argv.slice(2), { switches: ['Kit', 'Json', 'Quiet'], values: ['ConfigPath', 'ClaimsPath'] }); }
+    try { opts = parseArgs(process.argv.slice(2), { switches: ['Kit', 'Json', 'Quiet'], values: ['ConfigPath', 'ClaimsPath', 'Host', 'Scope', 'Root'] }); }
     catch (e) { stopCouldNotLook(e.message); }
     json = opts.Json; mode = opts.Kit ? 'kit' : 'brain';
+    // The host is explicit, never guessed (0.3.0): without -Host nothing is skipped by host.
+    const host = opts.Host ? String(opts.Host).trim().toLowerCase() : '';
+    if (host !== '' && host !== 'pc' && host !== 'cloud') stopCouldNotLook(`-Host must be pc or cloud (got '${opts.Host}')`);
+    const scope = opts.Scope ? String(opts.Scope).trim().toLowerCase() : opts.Kit ? 'kit' : 'pointer';
+    if (opts.Scope && scope !== 'brain') stopCouldNotLook(`-Scope must be brain (the pointer scope is the default, -Kit the kit's own; got '${opts.Scope}')`);
+    if (scope === 'brain' && opts.Kit) stopCouldNotLook('-Scope brain and -Kit name two different subjects; pass one of them');
+    if (opts.Root && scope !== 'brain') stopCouldNotLook('-Root is read only with -Scope brain');
 
     const C = await import('../../hooks/lib/common.mjs');
     const X = await import('./context.mjs');
@@ -90,6 +106,17 @@ async function main() {
         // The kit checks itself. Its root for the survey is the checkout; the pointer is only consulted
         // by the pointer_valid claim, so a fresh clone can run this with no adoption at all.
         ctx = { root: kitFromScript, brain: null, kit: kitFromScript, pluginRoot: kitFromScript, base: kitFromScript, mode };
+    } else if (scope === 'brain') {
+        // The brain scope (0.3.0). A cloud brain session has no pointer and holds one clone, so root and
+        // brain are that checkout (CLAUDE_PROJECT_DIR, or -Root), the kit is the vendored copy under it
+        // when that copy holds the Doctor (else the copy running), and no pointer is read.
+        const given = opts.Root ? String(opts.Root) : String(process.env.CLAUDE_PROJECT_DIR || '');
+        if (!given.trim()) stopCouldNotLook('-Scope brain needs CLAUDE_PROJECT_DIR or -Root <folder>: nothing names the brain checkout');
+        if (!fs.existsSync(given) || !fs.statSync(given).isDirectory()) stopCouldNotLook(`-Scope brain names a folder that does not exist: ${given}`);
+        const b = C.toFullPath(path.resolve(given));
+        const vendored = path.join(b, '.claude', 'kit');
+        const kitHere = fs.existsSync(path.join(vendored, 'tools', 'doctor', 'doctor.mjs')) ? C.toFullPath(vendored) : kitFromScript;
+        ctx = { root: b, brain: b, kit: kitHere, pluginRoot: kitHere, base: b, mode };
     } else {
         const ptr = X.readPointer();
         if (!ptr.ok) stopCouldNotLook(`${ptr.error}. Run /design-first:adopt in a session, or pass -Kit to check the kit itself.`);
@@ -99,6 +126,7 @@ async function main() {
         const full = (k) => C.toFullPath(String(ptr.data[k]));
         ctx = { root: full('root'), brain: full('brain'), kit: full('pluginRoot'), pluginRoot: full('pluginRoot'), base: full('brain'), mode };
     }
+    ctx.host = host; ctx.scope = scope;
     const derived = X.derivedPaths(ctx);
 
     if (!U.which('git')) stopCouldNotLook('git is not on PATH');
@@ -195,7 +223,7 @@ async function main() {
     // ---------------------------------------------------------------- verdict, state, report
     const verdict = R.getVerdict(claims, survey, couldNotLook, cfg.surveyStrict);
     try {
-        R.writeState({ stateDir: derived.stateDir, repos: repoRows, claims, survey, couldNotLook, verdict, stamp, mode });
+        R.writeState({ stateDir: derived.stateDir, repos: repoRows, claims, survey, couldNotLook, verdict, stamp, mode, scope: ctx.scope, host: ctx.host });
         saveRatchets(derived.stateDir, claims, stamp);   // ratchet records (claims-ratchet.mjs)
     } catch (e) {
         if (!json) R.say(`  WARNING: state could not be written to ${derived.stateDir}: ${e.message}`, 'Yellow');

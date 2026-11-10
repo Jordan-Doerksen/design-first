@@ -45,4 +45,4 @@ claude plugin install design-first@design-first
 /design-first:adopt
 ```
 
-`/design-first:remove` reverses what adopt wrote and leaves everything you edited.
+`/design-first:remove` reverses what adopt recorded and leaves what you edited, except the generated `LAW.md`; a settings file adopt merged its hooks block into keeps that block until you take it out.

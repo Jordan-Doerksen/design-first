@@ -1,11 +1,14 @@
 // enforcement.mjs - re-derive what is ACTUALLY wired, from the machine (SURVEY band). READ-ONLY.
-// Reads the kit's hooks/hooks.json (where the hooks are registered), the root settings files
-// (where the deny/ask rules live) and the fence log. It overrides whatever any document claims.
+// Reads the hook registrations (the kit's hooks/hooks.json in the plugin form; the root's
+// .claude/settings.json in the vendored form, under -Scope brain or when the kit carries no
+// hooks.json: context.mjs registrationSource), the root settings files (where the deny/ask rules
+// live) and the fence log. It overrides whatever any document claims.
 //
 // Config read here: enforcement.fenceLogStaleDays (SPEC 5.3). Everything else is derived.
 
 import fs from 'node:fs';
 import { getLeaf, readText, parseJson, parseIso } from '../../hooks/lib/common.mjs';
+import { registrationSource, expandHookCommand } from './context.mjs';
 import { roundEven, DAY, splitCommandLine, SCRIPT_EXT_RX } from './util.mjs';
 
 function readJsonFile(p) {
@@ -13,9 +16,14 @@ function readJsonFile(p) {
 }
 
 export function enforcementFacts(cfg, derived, ctx) {
+    // Where the registrations are read from (0.3.0): hooks.json in the plugin form, the root's
+    // .claude/settings.json in the vendored form; which one, and why neither when neither is there.
+    const source = registrationSource(ctx, derived);
     const result = {
         hooksJsonPath: derived.hooksJsonPath,
         hooksJsonExists: fs.existsSync(derived.hooksJsonPath),
+        registrationPath: source.path,
+        registrationForm: source.form,
         hooks: [],
         settingsPaths: derived.settingsPaths,
         settingsFound: [],
@@ -24,29 +32,42 @@ export function enforcementFacts(cfg, derived, ctx) {
         couldNotLook: [], findings: [],
     };
 
-    // --- hooks, as registered by the plugin
-    if (result.hooksJsonExists) {
-        const { doc, problem } = readJsonFile(derived.hooksJsonPath);
-        if (doc == null) result.couldNotLook.push(`hooks.json could not be parsed: ${problem}`);
-        else if (doc.hooks) {
-            for (const [event, entries] of Object.entries(doc.hooks)) {
+    // --- hooks, as registered: hooks.json (the plugin form) or the root settings file (the vendored form)
+    const record = source.form === 'plugin' ? 'hooks.json' : '.claude/settings.json';
+    if (source.exists) {
+        const { doc, problem } = readJsonFile(source.path);
+        if (doc == null) result.couldNotLook.push(`${record} could not be parsed: ${problem}`);
+        else {
+            for (const [event, entries] of Object.entries(doc.hooks && typeof doc.hooks === 'object' ? doc.hooks : {})) {
                 for (const entry of Array.isArray(entries) ? entries : [entries]) {
                     for (const h of Array.isArray(entry && entry.hooks) ? entry.hooks : []) {
-                        // The script a registered command runs: the first word that ends in a script extension.
+                        // The script a registered command runs: the first word that ends in a script extension,
+                        // its root variable expanded (${CLAUDE_PLUGIN_ROOT} as the kit, ${CLAUDE_PROJECT_DIR} as the root).
                         const words = Array.isArray(h.args) && h.args.length ? h.args.map(String) : splitCommandLine(String(h.command ?? ''));
-                        const word = words.map((w) => w.split('${CLAUDE_PLUGIN_ROOT}').join(ctx.pluginRoot)).find((w) => SCRIPT_EXT_RX.test(w));
+                        const word = words.map((w) => expandHookCommand(w, ctx)).find((w) => SCRIPT_EXT_RX.test(w));
                         const script = word || '';
                         const exists = script !== '' && fs.existsSync(script) && fs.statSync(script).isFile();
                         result.hooks.push({ event, matcher: String(entry.matcher ?? ''), script, exists, form: Array.isArray(h.args) && h.args.length ? 'args' : 'command' });
                         if (script !== '' && !exists) {
-                            result.findings.push({ severity: 'fail', kind: 'hookMissing', path: script, message: `hook REGISTERED BUT MISSING: ${script} (${event}) - hooks.json calls a file that is not there` });
+                            result.findings.push({ severity: 'fail', kind: 'hookMissing', path: script, message: `hook REGISTERED BUT MISSING: ${script} (${event}) - ${record} calls a file that is not there` });
                         }
                     }
                 }
             }
+            // A record that parses and registers nothing is the same silence as a missing one (SAFE-04):
+            // a settings file written with no hooks block (adopt -Vendor false, an attach that kept a
+            // 0.2.x file, a hand-written one) is there, so nothing else would say that no hook loads.
+            if (result.hooks.length === 0) {
+                const render = `node <kit>/tools/settings.mjs ${source.form === 'vendored' ? '-Vendored' : '-Plugin'} -Out ${source.path}`;
+                result.findings.push({ severity: 'fail', kind: 'hooksJsonMissing', path: source.path, message: `no hooks block in ${source.path} - no hook is registered; render the registrations into it (${render})` });
+            }
         }
     } else {
-        result.findings.push({ severity: 'fail', kind: 'hooksJsonMissing', path: derived.hooksJsonPath, message: `no hooks.json at ${derived.hooksJsonPath} - no hook is registered; the plugin root in the pointer may be wrong` });
+        // Neither record is there: the message names every file that could have been it. A vendored
+        // kit with no settings file never had its registrations rendered.
+        const render = `the vendored kit's registrations were never rendered (node <kit>/tools/settings.mjs -Vendored -Out ${derived.settingsPath || '<root>/.claude/settings.json'})`;
+        const fix = source.form === 'vendored' ? render : derived.settingsPath ? `the plugin root in the pointer may be wrong, or ${render}` : 'the plugin root in the pointer may be wrong';
+        result.findings.push({ severity: 'fail', kind: 'hooksJsonMissing', path: source.path, message: `${source.why} - no hook is registered; ${fix}` });
     }
 
     // --- root settings: deny / ask rules (SPEC 5.8) and soft_deny vs frozenPaths

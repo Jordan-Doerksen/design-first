@@ -1,14 +1,24 @@
-// entry.mjs - prints the brain's entry path on session start, refreshes the pointer, clears the session's routes on a compaction, and opens a repository that carries a hand-off with its state card.
+// entry.mjs - prints the kit's arming line first, then the brain's entry path on session start; refreshes the pointer, clears the session's routes on a compaction, and opens a repository that carries a hand-off with its state card.
 //
 // Puts the brain's entry path in front of the agent on turn one. Plain stdout becomes session
 // context. Read-mostly: it writes only the heartbeat, the pointer's pluginRoot, and housekeeping
 // of its own markers and log.
+//   0. The arming line (0.3.0, KIT-02): `kit: armed <version> <sha12>` from lib/kit-version.mjs over
+//      the kit root (lib/common.mjs getKitRoot) is the first plain line on every source, pushed
+//      before anything that can fail, so an internal error still prints it as partial output. With
+//      no kit root it is `kit: unarmed MISSING: kit (no .claude/kit, no plugin, no pointer)` with an
+//      ERROR log line naming where the search looked; a kit root with no VERSION and no plugin.json,
+//      or a VERSION that is not its shape, is `kit: unarmed ERROR: ...` with an ERROR log line; a
+//      vendored copy whose files are not the bytes its VERSION names, or whose VERSION lists no file,
+//      adds `DIFFERS: ...` with a WARN log line; never silence. A vendored copy yields first
+//      (lib/common.mjs yieldToPlugin): then the plugin prints it.
 //   1. Refresh pointer.pluginRoot from CLAUDE_PLUGIN_ROOT when the running plugin's kind matches
 //      pointer.pluginKind (checkout = not under a plugins/cache folder; cache = under one).
 //      A mismatch is a dual install: warn once per session, leave the pointer alone.
 //   2. Heartbeat <brain>/state/last-session.json.
 //   3. On a compaction or a clear, delete this session's route file. Delete the marker files of
 //      every other session none of whose files was written for a day; truncate the hooks log to 90 days.
+//      Nothing prunes under the hook input's scratchpad_dir (0.3.0): the host owns that folder.
 //   4. cwd under root: print <brain>/entry.json in order, MISSING: for absent files, never skip.
 //      "kit:" entries resolve under the running plugin root (the copy whose hooks run; the
 //      pointer's pluginRoot only when that copy has no law.json), "brain:" under the brain.
@@ -55,11 +65,72 @@ function expandEntryPath(C, p, ptr, kit) {
     return C.toFullPath(t);
 }
 
+// The arming line (0.3.0, KIT-02): the version and the tree sha of the kit root, computed by
+// lib/kit-version.mjs one way everywhere (a vendored copy reads its VERSION; a checkout or a plugin
+// install hashes the manifest's files). A kit root whose tree cannot be read is said so, never silence.
+// No kit root at all is a state (the MISSING line). A kit root with neither VERSION nor plugin.json, or
+// a VERSION that is not its shape, is a broken copy: unarmed ERROR and one ERROR line in the hooks log.
+// A vendored copy's VERSION is held to the bytes beside it: the sha is recomputed over the files it
+// lists (about ten milliseconds), and a mismatch or a listed file gone keeps the word armed, since the
+// hooks loaded, adds DIFFERS with the check to run, and writes one WARN line. A VERSION that lists no
+// file proves nothing (the sha of nothing matches any tree): DIFFERS too, with that reason. The check
+// named is vendor -Check of the repository for a <repo>/.claude/kit root; vendor -Check reads only
+// that VERSION, so for any other root (the DF_KIT_ROOT seam, a pointer's pluginRoot carrying a VERSION)
+// the line names the root and its VERSION instead of a command that would read another file. No kit
+// root at all is the MISSING line and one ERROR log line naming where the search looked.
+const UNARMED = 'kit: unarmed MISSING: kit (no .claude/kit, no plugin, no pointer)';
+const NOTHING_LISTED = 'VERSION names no file; nothing to prove';
+async function armingLine(C, kitRoot) {
+    if (!kitRoot) {
+        const looked = typeof C.kitRootLookedAt === 'function' ? C.kitRootLookedAt(HERE) : 'the running copy and CLAUDE_PROJECT_DIR/.claude/kit (this copy of lib/common.mjs cannot say more)';
+        C.writeLog('ERROR', 'entry', `no kit root, so the arming line is the MISSING line; looked at ${looked}`);
+        return UNARMED;
+    }
+    try {
+        const KV = await import('./lib/kit-version.mjs');   // inside the try: a copy missing the module still prints a kit line
+        const kv = KV.kitVersion(kitRoot);                   // throws on a VERSION that is not its shape (the catch below)
+        if (kv.source === 'none') {
+            const what = `${kv.why || 'no VERSION and no .claude-plugin/plugin.json'} at ${kitRoot}`;   // why: what the root lacks
+            C.writeLog('ERROR', 'entry', what);
+            return `kit: unarmed ERROR: ${what}`;
+        }
+        const line = `kit: armed ${kv.version || 'unknown'} ${KV.shortSha(kv.sha) || 'unknown'}`;
+        if (kv.source !== 'VERSION') return line;            // a checkout or a plugin install: the sha was computed from the tree
+        // Where the DIFFERS line points: the vendor check of the repository a <repo>/.claude/kit root sits in, else the
+        // root and its VERSION (vendor -Check of that folder would read <root>/.claude/kit/VERSION, another file).
+        const where = /[\\/]\.claude[\\/]kit$/i.test(kitRoot)
+            ? `check: node .claude/kit/tools/vendor.mjs -Target ${path.dirname(path.dirname(kitRoot))} -Check`
+            : `kit root ${kitRoot}, its VERSION ${path.join(kitRoot, 'VERSION')}`;
+        if (kv.files.length === 0) {
+            C.writeLog('WARN', 'entry', `kit tree at ${kitRoot} is not proved by its VERSION: ${NOTHING_LISTED}`);
+            return `${line} DIFFERS: ${NOTHING_LISTED} (${where})`;
+        }
+        let drift = '';
+        try {
+            const now = KV.treeSha(kitRoot, kv.files);
+            if (now !== kv.sha) drift = `sha ${KV.shortSha(now)} over the ${kv.files.length} listed files, VERSION says ${KV.shortSha(kv.sha)}`;
+        } catch (e) { drift = e && e.message ? e.message : String(e); }   // a listed file gone: tree file missing: <rel>
+        if (!drift) return line;
+        C.writeLog('WARN', 'entry', `kit tree at ${kitRoot} is not the bytes its VERSION names: ${drift}`);
+        return `${line} DIFFERS: the tree is not the bytes VERSION names (${where})`;
+    } catch (e) {
+        C.writeLog('ERROR', 'entry', `kit version unreadable at ${kitRoot}: ${e.message}`);
+        return `kit: unarmed ERROR: kit version unreadable at ${kitRoot} (${e.message})`;
+    }
+}
+
 try {
     const raw = readStdin();
     const C = await import('./lib/common.mjs');
     let j = null;
-    if (raw.trim()) { try { j = JSON.parse(raw); } catch { j = null; } }
+    let notJson = null;   // a payload that does not parse: its first 80 characters, logged once this copy decides (below)
+    if (raw.trim()) { try { j = JSON.parse(raw); } catch { j = null; notJson = raw.trim().slice(0, 80); } }
+    C.setMarkerDir(j);
+    if (C.yieldToPlugin('entry', HERE)) process.exit(0);
+    if (notJson != null) C.writeLog('ERROR', 'entry', `payload is not JSON: ${notJson}`);   // read as no payload, never in silence; the arming line still comes first
+    // 0. the arming line, first. The kit root is reused for the "kit:" entries below.
+    const kitRoot = C.getKitRoot(HERE);
+    lines.push(await armingLine(C, kitRoot));
     const sessionId = j && j.session_id ? String(j.session_id) : 'unknown';
     const source = j && j.source ? String(j.source) : 'unknown';
     const cwd = j && j.cwd ? C.toFullPath(String(j.cwd)) : process.cwd();
@@ -127,8 +198,9 @@ try {
         // before the first dot. Workaround (CR-2026-10-15-GAPS D5): every marker older than a day was
         // deleted, a live session's too, so a session resumed after a day lost its interview marker and
         // the Stop card said "no question was asked this session" when one was, and its routes came again.
+        // Under scratchpad_dir nothing prunes: the host owns that folder and it dies with the session.
         const markerDir = C.getMarkerDir();
-        if (C.isDir(markerDir)) {
+        if (C.isDir(markerDir) && !C.markerDirFromInput()) {
             const cut = Date.now() - 86400000;
             const own = (C.safeId(sessionId) + '.').toLowerCase();
             const bySession = new Map();
@@ -145,7 +217,7 @@ try {
             }
         }
         const logPath = C.getLogPath();
-        if (C.isFile(logPath)) {
+        if (C.isFile(logPath) && !C.logPathFromInput()) {
             const cut = Date.now() - 90 * 86400000;
             const all = C.readText(logPath).split(/\r?\n/);
             if (all.length && all[all.length - 1] === '') all.pop();
@@ -167,13 +239,13 @@ try {
                 else {
                     const entry = C.readJson(entryFile);
                     const items = entry && Object.prototype.hasOwnProperty.call(entry, 'entries') ? (Array.isArray(entry.entries) ? entry.entries : [entry.entries]) : [entry];
-                    // Kit root for "kit:" entries: the plugin this hook is running from (hooks/ is one
-                    // level under the plugin root), the pointer's pluginRoot only when that copy has no
-                    // law.json. Workaround (CR-2026-10-16-ONEWRITER chunk 0, ported in 0.2.3): the pointer
-                    // came first, so after a plugin update the entry path could name another version than
-                    // the hook code.
-                    let kit = C.toFullPath(path.dirname(HERE));
-                    if (!(kit && C.isFile(path.join(kit, 'law.json'))) && ptr.pointer.pluginRoot) kit = C.toFullPath(String(ptr.pointer.pluginRoot));
+                    // Kit root for "kit:" entries: the one the arming line reported (lib/common.mjs
+                    // getKitRoot: the copy this hook runs from first, the pointer's pluginRoot only when
+                    // that copy has no law.json), else the running copy as typed, so a missing entry is
+                    // still named. Workaround (CR-2026-10-16-ONEWRITER chunk 0, ported in 0.2.3): the
+                    // pointer came first, so after a plugin update the entry path could name another
+                    // version than the hook code.
+                    const kit = kitRoot || C.toFullPath(path.dirname(HERE));
                     let n = 0;
                     for (const it of items) {
                         if (it == null) continue;

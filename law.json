@@ -16,7 +16,8 @@
     "VOICE": "Voice",
     "MAP": "Canonical copies",
     "STACK": "Development stack",
-    "CTRL": "Control"
+    "CTRL": "Control",
+    "KIT": "The kit's own plumbing"
   },
   "clauses": [
     {
@@ -1155,6 +1156,45 @@
       "enforcedBy": {
         "kind": "doctor-claim",
         "ref": "KIT-CONTROL-01"
+      }
+    },
+    {
+      "id": "KIT-01",
+      "group": "KIT",
+      "verb": "vendor",
+      "rule": "A repository runs only the kit it carries: the vendored tree is the bytes its VERSION names.",
+      "owner": "kit:instructions/kit-law.md",
+      "grade": "GATE",
+      "since": "2026-11-10",
+      "enforcedBy": {
+        "kind": "tool",
+        "ref": "tools/vendor.mjs#vendor-sha"
+      }
+    },
+    {
+      "id": "KIT-02",
+      "group": "KIT",
+      "verb": "prove-armed",
+      "rule": "A session proves its hooks loaded before it edits: the arming line at start, the guard's ARMED refusal of the selfcheck command.",
+      "owner": "kit:instructions/kit-law.md",
+      "grade": "HOOK",
+      "since": "2026-11-10",
+      "enforcedBy": {
+        "kind": "hook",
+        "ref": "hooks/guard.mjs#selfcheck-armed"
+      }
+    },
+    {
+      "id": "KIT-03",
+      "group": "KIT",
+      "verb": "render-settings",
+      "rule": "Every hook registration is rendered from one registry; a hand-edited registration is RED.",
+      "owner": "kit:instructions/kit-law.md",
+      "grade": "GATE",
+      "since": "2026-11-10",
+      "enforcedBy": {
+        "kind": "tool",
+        "ref": "tools/settings.mjs#settings-registry"
       }
     }
   ]

@@ -21,20 +21,38 @@ export function codedWordRuns(t) {
     check('W: the shipped claims file does not spell the word', !shipped.toLowerCase().includes(word), 'tools/doctor/claims.json spells it');
     check('W: the shipped claims file holds the codes', JSON.parse(shipped).claims.some((c) => (c.words || []).includes(codes)), 'no claim lists the codes');
 
+    // The shipped claim's exclude (review finding 19): .claude/kit, the kit's own vendored copy, repeats this claims file
+    // and its word list, and .claude/worktrees holds other checkouts of the tree. Without both names the kit Doctor is RED
+    // the moment its vendored copy is committed, while every suite stays green. Read from the shipped file, never typed.
+    const EXCLUDED = ['.claude/kit', '.claude/worktrees'];
+    const norm = (x) => String(x).replace(/\\/g, '/').replace(/^\/+|\/+$/g, '').toLowerCase();
+    const leakOf = (doc) => (doc.claims || []).find((c) => c.id === 'KIT-LEAK-01');
+    const lacks = (claim) => { const ex = (claim && Array.isArray(claim.exclude) ? claim.exclude : []).map(norm); return EXCLUDED.filter((x) => !ex.includes(x)); };
+    const shippedLacks = lacks(leakOf(JSON.parse(shipped)));
+    check('W: the shipped KIT-LEAK-01 excludes .claude/kit and .claude/worktrees (each is this tree again, not a leak)', shippedLacks.length === 0, `the shipped exclude lacks: ${shippedLacks.join(', ')}`);
+
     // A scratch copy of the Doctor, so -Kit resolves ${KIT} to the copy. The claim is the shipped one;
     // only its root moves, to the folder the word is planted in.
     const kit = path.join(T, 'coded');
     const d = copyDoctorInto(kit);
-    const leak = JSON.parse(shipped).claims.find((c) => c.id === 'KIT-LEAK-01');
+    const leak = leakOf(JSON.parse(shipped));
     WJ(path.join(d, 'claims.json'), { schema: 1, claims: [{ ...leak, root: '${KIT}/planted' }] });
     const scan = () => {
         const r = run(process.execPath, [path.join(d, 'doctor.mjs'), '-Kit', '-Json'], childEnv(fakeHome, path.join(T, 'no-pointer-here.json')));
         return (JSON.parse(r.out).bands.claims || []).find((x) => x.id === 'KIT-LEAK-01') || { status: 'NO RESULT', detail: '' };
     };
 
+    // Both excluded folders carry the word: the shipped claim skips them (the clean-tree pass and the three hits below
+    // count no file under them), and a copy of it with .claude/kit dropped from its exclude is RED on the vendored copy.
+    W(path.join(kit, 'planted', '.claude', 'kit', 'tools', 'doctor', 'claims.json'), `{ "words": ["${word}"] }\n`);
+    W(path.join(kit, 'planted', '.claude', 'worktrees', 'wt1', 'notes.md'), `written by ${word}\n`);
     W(path.join(kit, 'planted', 'clean.md'), 'nothing to find here\n');
     let c = scan();
-    check('W: a clean tree passes the shipped claim', c.status === 'PASS', `${c.status}: ${c.detail}`);
+    check('W: a clean tree passes the shipped claim (the word under .claude/kit and .claude/worktrees is not read)', c.status === 'PASS', `${c.status}: ${c.detail}`);
+    WJ(path.join(d, 'claims.json'), { schema: 1, claims: [{ ...leak, root: '${KIT}/planted', exclude: ((leak && leak.exclude) || []).filter((x) => norm(x) !== '.claude/kit') }] });
+    c = scan();
+    check('W: red: with .claude/kit dropped from a copy of the shipped exclude, the vendored copy of the word list is a hit', c.status === 'FAIL' && c.detail.includes('.claude/kit/tools/doctor/claims.json'), `${c.status}: ${c.detail.toLowerCase().replaceAll(word, '<the word>')}`);
+    WJ(path.join(d, 'claims.json'), { schema: 1, claims: [{ ...leak, root: '${KIT}/planted' }] });
 
     W(path.join(kit, 'planted', 'lower.md'), `written by ${word}\n`);
     W(path.join(kit, 'planted', 'title.md'), `written by ${word[0].toUpperCase()}${word.slice(1)}\n`);

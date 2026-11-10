@@ -9,7 +9,7 @@
 
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { toFullPath, isFile, readText, readJson, ensureDir, getMarkerDir, safeId, relUnder, isBlank } from './common.mjs';
+import { toFullPath, isFile, readText, readJson, ensureDir, getMarkerDir, safeId, relUnder, isBlank, getKitRoot } from './common.mjs';
 
 const KIT_FROM_HERE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -21,16 +21,15 @@ export function lawPath(ptr, kitRoot) {
     return path.join(kitRoot, 'LAW.md');
 }
 
-// The kit root: the copy that is running first, the pointer's pluginRoot only when the running copy
-// has no law.json. This file lives in hooks/lib, so the plugin root is two folders up. Workaround
-// (CR-2026-10-16-ONEWRITER chunk 0, ported in 0.2.3): the pointer came first, so after a plugin
-// update the owning-file paths in the routed law rows could name another version than the hook
-// code until entry.mjs refreshed the pointer (CR-2026-10-19-REVIEW F2).
+// The kit root: common.mjs getKitRoot (0.3.0), asked from this file's own kit folder (two folders up
+// from hooks/lib), so the copy that is running comes first and the pointer's pluginRoot only when the
+// running copy has no law.json; case 50 holds that order. Workaround (CR-2026-10-16-ONEWRITER chunk 0,
+// ported in 0.2.3): the pointer came first, so after a plugin update the owning-file paths in the
+// routed law rows could name another version than the hook code until entry.mjs refreshed the
+// pointer (CR-2026-10-19-REVIEW F2). With no kit anywhere the running copy is returned as before, and
+// readRoutePolicy says what is missing.
 export function kitRoot(ptr) {
-    const running = toFullPath(KIT_FROM_HERE);
-    if (running && isFile(path.join(running, 'law.json'))) return running;
-    if (ptr.pointer && ptr.pointer.pluginRoot) return toFullPath(String(ptr.pointer.pluginRoot));
-    return running;
+    return getKitRoot(KIT_FROM_HERE, ptr) || toFullPath(KIT_FROM_HERE);
 }
 
 // A key of a parsed JSON object, found without case, as PowerShell's property lookup does.
@@ -190,8 +189,9 @@ export function withoutClauses(group, skip) {
     return { ...group, rows: group.rows.filter((r) => !skip.clauses.includes(r.id.toLowerCase())) };
 }
 
-// The per-session role mark: a file holding 'writer' or 'owner', written once by the router on a
-// session's first prompt. Writer = a brief, "Reports to:" at the start of a line.
+// The per-session role mark: a file holding 'writer' or 'owner', written by the router on a session's
+// first prompt (and again when the mark is gone, 0.3.0). Writer = a line-start "Role: writer", or a
+// line-start "Reports to:" (a brief) when the prompt has no "Role:" line; anything else is owner.
 export function roleFile(sessionId) {
     const dir = getMarkerDir();
     ensureDir(dir);

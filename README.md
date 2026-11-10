@@ -4,8 +4,12 @@ A working method for building software with coding agents, packaged as a Claude 
 Interview before code. Decisions locked in a manifest. Every rule has an id, one owning file,
 and an enforcement grade that says whether a machine will stop you or only ask.
 
-It runs as eight hooks around the agent's tool calls, a Doctor that checks what the documents
+It runs as nine hooks around the agent's tool calls, a Doctor that checks what the documents
 claim against the disk, and a generator that refuses to print a rule whose mechanism is missing.
+A repository can carry the kit itself: the hooks and tools are vendored into its `.claude/kit/`
+with a VERSION that names the bytes, the registrations are rendered into its `.claude/settings.json`
+from one registry, and a session that loads no plugin runs that copy and proves on its first turn
+that it loaded (the `kit: armed` line, then the guard's `ARMED` refusal of the selfcheck probe).
 
 Status: V1, installable. Windows, macOS and Linux, with Node.js 18 or newer and git on PATH.
 The version is in `.claude-plugin/plugin.json`.
@@ -48,7 +52,7 @@ The files it writes, from the plan `tools/adopt.mjs` writes from:
 | file | why |
 |---|---|
 | `<root>/CLAUDE.md` | entry point; prohibitions in full |
-| `<root>/.claude/settings.json` | kit deny/ask rules (SPEC 5.8) |
+| `<root>/.claude/settings.json` | kit deny/ask rules (SPEC 5.8); with the vendored kit, the hooks block rendered by tools/settings.mjs (0.3.0) |
 | `<brain>/me.md` | who the owner is; owner.name feeds the guard |
 | `<brain>/voice.md` | how the owner's copy reads |
 | `<brain>/prohibitions.md` | the owner's own hard rules (overlay owning file) |
@@ -57,7 +61,7 @@ The files it writes, from the plan `tools/adopt.mjs` writes from:
 | `<brain>/canonical.md` | one subject, one file |
 | `<brain>/DECISIONS.md` | the brain's own manifest (DES-01) |
 | `<brain>/ARCHITECTURE.md` | the brain's own map (DES-01) |
-| `<brain>/claims.json` | claims; BRAIN-POINTER-01 |
+| `<brain>/claims.json` | claims; BRAIN-POINTER-01, KIT-VENDOR-01, KIT-VENDOR-02, SETTINGS-BLOCK-01 |
 | `<brain>/doctor.config.json` | Doctor config; owners, frozen paths, snapshot pairs filled |
 | `<brain>/entry.json` | the entry path |
 | `<brain>/agent-policy.json` | subagent brief contract, model routes, spawn cap (DES-11) |
@@ -66,12 +70,16 @@ The files it writes, from the plan `tools/adopt.mjs` writes from:
 | `<brain>/doctor.sh` | Linux and macOS shim; resolves the kit through the pointer |
 | `<brain>/instructions/README.md` | owning files for overlay clauses |
 | `<brain>/.gitattributes` | the repo decides its bytes, not core.autocrlf; only when the brain is a git repo |
-| `<brain>/.gitignore` | state/ is generated (installed.json, heartbeat, Doctor output); only when the brain is a git repo |
+| `<brain>/.gitignore` | state/ is generated (installed.json, heartbeat, Doctor output), except the law build's installed input (state/law-installed.json holds hook names and two flags, no path), which a clone needs for BRAIN-LAW-01; only when the brain is a git repo |
 
 <!-- adopt:end -->
 
 It never overwrites. A file that already exists is kept and its diff printed, so adopting over
-a brain you already have changes nothing you wrote. It also writes the pointer
+a brain you already have changes nothing you wrote. The exception is a first adopt over a
+settings file with no `hooks` key: the kit's rows and hooks block are merged in, its own rows and
+keys kept. A settings file with a `hooks` key of its own is kept as it is, with its diff and the
+merge command printed, because the kit's block replaces the whole key.
+It also writes the pointer
 `~/.claude/design-first.json`, the brain's `LAW.md` and `state/`, byte snapshots of the root
 files when root is not a repo, and runs `git init` (no commit) for a repo brain. Then it runs
 the Doctor once: exit 0 is GREEN, 1 is RED, 2 is COULD-NOT-LOOK, which is not a pass. For
@@ -82,7 +90,9 @@ frozen paths it prints lines to paste into `~/.claude/settings.json`; it never w
 
 To see every step with nothing written, run the script yourself with `-DryRun`:
 `node <pluginRoot>/tools/adopt.mjs -Root <root> -OwnerName <name> -DryRun`.
-`/design-first:remove` reverses what `adopt` wrote and keeps, and lists, anything you changed.
+`/design-first:remove` reverses what `adopt` wrote and keeps, and lists, anything you changed,
+except the generated `LAW.md`, which it deletes because it can be rebuilt; a settings file `adopt`
+merged its block into is left as it is.
 
 ## Commands
 
@@ -96,7 +106,7 @@ To see every step with nothing written, run the script yourself with `-DryRun`:
 | `/design-first:council` | Run a pitch past every council seat in the project's agents folder, one question at a time, and record the verdicts. Writes the manifest only after the owner says yes. |
 | `/design-first:gut` | Stress-test an idea before committing to it. Blunt devil's advocate. |
 | `/design-first:move` | Get a recommendation (not a survey) on a decision. |
-| `/design-first:remove` | Reverse what /design-first:adopt wrote. Deletes only unedited kit-written files and generated ones, keeps and lists everything you changed, removes the pointer. |
+| `/design-first:remove` | Reverse what /design-first:adopt wrote. Deletes only unedited kit-written files and generated ones, keeps and lists every other file you changed, removes the pointer. |
 | `/design-first:scope` | Plan a feature before building. Approach, what to reuse, simplest version, the one decision needed. |
 | `/design-first:ship` | Build something in this codebase's style, then prove it actually works. |
 
@@ -137,8 +147,13 @@ loops and gates, drawn: [`LOOPS.md`](LOOPS.md). The map: [`ARCHITECTURE.md`](ARC
 | `tools/tests/` | hook self-test |
 | `commands/` | adopt, remove, control, council, gut, move, scope, ship |
 | `tools/adopt.mjs`, `tools/remove.mjs`, `tools/control.mjs` | the writers |
+| `tools/settings.mjs`, `tools/vendor.mjs`, `tools/vendor.json` | the registry renderer and the vendor tool |
+| `tools/selfcheck.mjs` | the arming probe |
+| `tools/extract.mjs` | the brain's values for a clone |
+| `tools/release.mjs`, `tools/tests/red-expected.json` | the release gate |
+| `.claude/kit/`, `.claude/settings.json` | the kit's own vendored copy and settings |
 | `agents/` | read-only reviewer |
-| `templates/` | root and brain files; the two control cards |
+| `templates/` | root and brain files; the two control cards; the three cloud permission sets |
 | `instructions/`, `workflows/`, `lessons/` | the rule text |
 | `LOOPS.md` | the loops and gates, drawn |
 | `docs/` | the public page |
@@ -147,14 +162,15 @@ The hooks, as `hooks/hooks.json` registers them:
 
 | hook | event | on | what it does |
 |---|---|---|---|
-| `guard.mjs` | PreToolUse | Edit, Write, NotebookEdit, Bash, PowerShell | refuses the call that would stage a secret, rewrite git history, touch a frozen path, write source behind an open design gate, leave or push the loop branch, pipe a heredoc into Python, or kill a process by name in a writer session; advises on a write with no manifest or past one Read. |
+| `guard.mjs` | PreToolUse | Edit, Write, NotebookEdit, Bash, PowerShell | refuses the call that would stage a secret, rewrite git history, touch a frozen path, write source behind an open design gate, leave or push the loop branch, pipe a heredoc into Python, or kill a process by name in a writer session, and refuses the arming probe (selfcheck) with the kit's version so a session can prove this guard loaded; advises on a write with no manifest or past one Read. |
 | `fence.mjs` | PreToolUse | Edit, Write, Bash, PowerShell | stops a deletion it can see, and an edit that removes or weakens an assertion in a measuring file, with the fence question to answer first. |
 | `ask.mjs` | PreToolUse | AskUserQuestion | refuses a call with more questions than the owner allows, an option with no reason, an "either is fine", or a recommended option that is not first (OWN-04). |
-| `agent.mjs` | PreToolUse | Agent, mcp__ccd_session__start_session | holds a subagent spawn, or a session start, to its brief contract, routes a subagent's model from the brain's policy, and asks past the spawn cap (DES-11, CTRL-02). |
+| `agent.mjs` | PreToolUse | Agent, mcp__ccd_session__start_session, mcp__claude-code-remote__create_session, mcp__claude-code-remote__send_message | holds a subagent spawn, or a session start, to its brief contract, routes a subagent's model from the brain's policy, asks past the spawn cap, and holds a cloud session start to the policy's permission mode and to one start per title per prompt (DES-11, CTRL-02). |
+| `card.mjs` | PreToolUse | Edit, Write, NotebookEdit | refuses a write to a bounded file that adds an id, grows it while it is over its size, grows its typed head past its line limit, or shrinks it when it is append-only. |
 | `route.mjs` | UserPromptSubmit | every | injects the law groups the prompt's words and the working folder name, once per session, plus the groups every session gets (DES-13). |
 | `stop.mjs` | Stop | every | ends a turn that changed source with its card, asked once: documents, the verify gate, the Change Request, the cross-check, the Definition of Done (DES-07, GATE-01, GATE-05/06/07, GAME-12). |
 | `subagent.mjs` | SubagentStart | every | gives a subagent the session's law groups and the ADVISE clauses its role answers for, the ADVISE block reserved first (DES-13). |
-| `entry.mjs` | SessionStart | startup, resume, clear, compact | prints the brain's entry path on session start, refreshes the pointer, clears the session's routes on a compaction, and opens a repository that carries a hand-off with its state card. |
+| `entry.mjs` | SessionStart | startup, resume, clear, compact | prints the kit's arming line first, then the brain's entry path on session start; refreshes the pointer, clears the session's routes on a compaction, and opens a repository that carries a hand-off with its state card. |
 
 <!-- inventory:end -->
 
@@ -190,7 +206,10 @@ this tree. The counts are the Summary table at the foot of `LAW.md`.
 
 ## Run the checks
 
-Run all of them before a version bump, on each system you ship for; nothing checks that they ran.
+Run all of them before a version bump, on each system you ship for. By hand nothing checks that
+they ran; `node tools/release.mjs -Bump patch` runs all four itself and refuses the bump until
+every suite is green, the kit Doctor is GREEN, every mechanism of the tree maps to a case that ran
+red (`tools/tests/red-expected.json`), the tree is clean and the page matches.
 
 ```
 node tools/tests/run.mjs

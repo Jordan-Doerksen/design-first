@@ -1,0 +1,52 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/*.key)",
+      "Read(**/credentials.json)"
+    ],
+    "ask": [
+      "Bash(npm install *)",
+      "Bash(npm i *)",
+      "Bash(pnpm add *)",
+      "Bash(yarn add *)",
+      "Bash(pip install *)",
+      "Bash(uv add *)",
+      "Bash(cargo add *)",
+      "Bash(gh repo delete *)",
+      "PowerShell(npm install *)",
+      "PowerShell(npm i *)",
+      "PowerShell(pnpm add *)",
+      "PowerShell(yarn add *)",
+      "PowerShell(pip install *)",
+      "PowerShell(uv add *)",
+      "PowerShell(cargo add *)",
+      "PowerShell(gh repo delete *)",
+      "Bash(npm install)",
+      "Bash(cargo install *)",
+      "Bash(uv sync)",
+      "PowerShell(npm install)",
+      "PowerShell(cargo install *)",
+      "PowerShell(uv sync)",
+      "Bash(npm add *)",
+      "Bash(pip3 install *)",
+      "Bash(python -m pip install *)",
+      "Bash(python3 -m pip install *)",
+      "Bash(py -m pip install *)",
+      "Bash(bun add *)",
+      "Bash(go get *)",
+      "Bash(poetry add *)",
+      "Bash(dotnet add package *)",
+      "PowerShell(npm add *)",
+      "PowerShell(pip3 install *)",
+      "PowerShell(python -m pip install *)",
+      "PowerShell(python3 -m pip install *)",
+      "PowerShell(py -m pip install *)",
+      "PowerShell(bun add *)",
+      "PowerShell(go get *)",
+      "PowerShell(poetry add *)",
+      "PowerShell(dotnet add package *)"
+    ]
+  }
+}

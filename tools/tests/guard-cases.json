@@ -688,7 +688,8 @@
     "path": "${T}/root/frozen/x.py",
     "pointer": "none",
     "session": "s-nobrain-3",
-    "expect": "advise"
+    "expect": "advise",
+    "contains": "path rules skipped"
   },
   {
     "_": "---- fence ----"
@@ -738,7 +739,8 @@
     "path": "${T}/root/tests/x_test.rs",
     "old": "assert_eq!(a, 1);\nassert_eq!(b, 2);",
     "new": "assert_eq!(a, 1);",
-    "expect": "advise"
+    "expect": "advise",
+    "contains": "GOODHART (advisory)"
   },
   {
     "name": "FENCE net deletion (3+ lines) -> advises",
@@ -757,7 +759,8 @@
     "path": "${T}/root/ordinary/x.gd",
     "old": "a\nb",
     "new": "",
-    "expect": "advise"
+    "expect": "advise",
+    "contains": "an entire block is being deleted"
   },
   {
     "name": "FENCE normal edit -> allowed",
@@ -801,7 +804,8 @@
     "hook": "fence",
     "tool": "Bash",
     "cmd": "git reset --hard HEAD~1",
-    "expect": "advise"
+    "expect": "advise",
+    "contains": "destructive command: git reset --hard"
   },
   {
     "name": "FENCE ordinary command -> allowed",
@@ -2202,6 +2206,96 @@
     "tool": "PowerShell",
     "cmd": "taskkill /IM python.exe",
     "session": "kill-unmarked",
+    "expect": "allow"
+  },
+  {
+    "_": "---- 0.3.0 (KIT-02): rule 15 selfcheck, the arming proof; always on, brain or no brain, every role ----"
+  },
+  {
+    "name": "selfcheck: node .claude/kit/tools/selfcheck.mjs -> denied ARMED",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "node .claude/kit/tools/selfcheck.mjs",
+    "expect": "deny",
+    "contains": "ARMED"
+  },
+  {
+    "name": "selfcheck: PowerShell, node .\\.claude\\kit\\tools\\selfcheck.mjs (backslashes) -> denied ARMED",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "node .\\.claude\\kit\\tools\\selfcheck.mjs",
+    "expect": "deny",
+    "contains": "ARMED"
+  },
+  {
+    "name": "selfcheck: an absolute path, node ${T}/root/repo-clean/.claude/kit/tools/selfcheck.mjs -> denied ARMED",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "node ${T}/root/repo-clean/.claude/kit/tools/selfcheck.mjs",
+    "expect": "deny",
+    "contains": "ARMED"
+  },
+  {
+    "name": "selfcheck: PowerShell, node.exe C:\\repo\\.claude\\kit\\tools\\selfcheck.mjs (an .exe and a drive path) -> denied ARMED",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "node.exe C:\\repo\\.claude\\kit\\tools\\selfcheck.mjs",
+    "expect": "deny",
+    "contains": "ARMED"
+  },
+  {
+    "name": "selfcheck: after cd and &&, node .claude/kit/tools/selfcheck.mjs -> denied ARMED",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "cd ${T}/root/repo-clean && node .claude/kit/tools/selfcheck.mjs",
+    "expect": "deny",
+    "contains": "ARMED"
+  },
+  {
+    "name": "selfcheck: no brain (every session), node .claude/kit/tools/selfcheck.mjs -> denied ARMED",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "node .claude/kit/tools/selfcheck.mjs",
+    "expect": "deny",
+    "contains": "ARMED",
+    "pointer": "none"
+  },
+  {
+    "name": "selfcheck: writer session, node .claude/kit/tools/selfcheck.mjs -> denied ARMED (every role)",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "node .claude/kit/tools/selfcheck.mjs",
+    "session": "sc-writer",
+    "role": "writer",
+    "expect": "deny",
+    "contains": "ARMED"
+  },
+  {
+    "name": "selfcheck: node .claude/kit/tools/vendor.mjs -Check, another kit tool -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "node .claude/kit/tools/vendor.mjs -Check",
+    "expect": "allow"
+  },
+  {
+    "name": "selfcheck: echo \"node selfcheck.mjs\", the words as quoted data -> allowed",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "echo \"node selfcheck.mjs\"",
+    "expect": "allow"
+  },
+  {
+    "name": "RESIDUAL selfcheck: bash -c \"node .claude/kit/tools/selfcheck.mjs\" is NOT denied (nested shell; the script runs and prints UNARMED, the safe side)",
+    "hook": "guard",
+    "tool": "Bash",
+    "cmd": "bash -c \"node .claude/kit/tools/selfcheck.mjs\"",
+    "expect": "allow"
+  },
+  {
+    "name": "RESIDUAL selfcheck: PowerShell, pwsh -c \"node .claude/kit/tools/selfcheck.mjs\" is NOT denied (nested shell)",
+    "hook": "guard",
+    "tool": "PowerShell",
+    "cmd": "pwsh -c \"node .claude/kit/tools/selfcheck.mjs\"",
     "expect": "allow"
   }
 ]

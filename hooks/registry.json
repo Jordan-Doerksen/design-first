@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "_comment": "One row per hook registration (0.3.0, KIT-03). tools/settings.mjs renders this file and nothing else does: -Plugin into hooks/hooks.json as node \"${CLAUDE_PLUGIN_ROOT}/<script>\", -Vendored into a repository's .claude/settings.json as node \"${CLAUDE_PROJECT_DIR}/.claude/kit/<script>\". Row order is render order. event: the Claude Code hook event. matcher: the tool or source pattern; a row without one fires on every call of its event. script: the path under the kit root. timeout: seconds. host: any, pc or cloud; -Host pc keeps the rows that name pc or any, -Host cloud likewise. mode: what the script does when it fires, deny, advise or gate; informational, the grade generator reads the script's anchor lines. vendor: true when tools/vendor.json carries the script into .claude/kit/. Never hand-edit hooks/hooks.json: run node tools/settings.mjs -Plugin -Out hooks/hooks.json and commit both files.",
+  "hooks": [
+    {"id": "guard", "event": "PreToolUse", "matcher": "Edit|Write|NotebookEdit|Bash|PowerShell", "script": "hooks/guard.mjs", "timeout": 10, "host": ["any"], "mode": "deny", "vendor": true},
+    {"id": "fence", "event": "PreToolUse", "matcher": "Edit|Write|Bash|PowerShell", "script": "hooks/fence.mjs", "timeout": 10, "host": ["any"], "mode": "deny", "vendor": true},
+    {"id": "ask", "event": "PreToolUse", "matcher": "AskUserQuestion", "script": "hooks/ask.mjs", "timeout": 10, "host": ["any"], "mode": "deny", "vendor": true},
+    {"id": "agent", "event": "PreToolUse", "matcher": "Agent|mcp__ccd_session__start_session|mcp__claude-code-remote__create_session|mcp__claude-code-remote__send_message", "script": "hooks/agent.mjs", "timeout": 10, "host": ["any"], "mode": "deny", "vendor": true},
+    {"id": "card", "event": "PreToolUse", "matcher": "Edit|Write|NotebookEdit", "script": "hooks/card.mjs", "timeout": 10, "host": ["any"], "mode": "deny", "vendor": true},
+    {"id": "route", "event": "UserPromptSubmit", "script": "hooks/route.mjs", "timeout": 10, "host": ["any"], "mode": "advise", "vendor": true},
+    {"id": "stop", "event": "Stop", "script": "hooks/stop.mjs", "timeout": 20, "host": ["any"], "mode": "advise", "vendor": true},
+    {"id": "subagent", "event": "SubagentStart", "script": "hooks/subagent.mjs", "timeout": 10, "host": ["any"], "mode": "advise", "vendor": true},
+    {"id": "entry-startup", "event": "SessionStart", "matcher": "startup", "script": "hooks/entry.mjs", "timeout": 10, "host": ["any"], "mode": "advise", "vendor": true},
+    {"id": "entry-resume", "event": "SessionStart", "matcher": "resume", "script": "hooks/entry.mjs", "timeout": 10, "host": ["any"], "mode": "advise", "vendor": true},
+    {"id": "entry-clear", "event": "SessionStart", "matcher": "clear", "script": "hooks/entry.mjs", "timeout": 10, "host": ["any"], "mode": "advise", "vendor": true},
+    {"id": "entry-compact", "event": "SessionStart", "matcher": "compact", "script": "hooks/entry.mjs", "timeout": 10, "host": ["any"], "mode": "advise", "vendor": true}
+  ]
+}

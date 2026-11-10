@@ -2,9 +2,10 @@
 // A claim is a checkable fact the prose depends on. A failing claim is a document announcing its
 // own rot. A claim that cannot be evaluated returns UNKNOWN, never PASS. Absent is not zero.
 //
-// Statuses: PASS | FAIL (CLAIMS band, RED) | UNKNOWN (COULD-NOT-LOOK band, exit 2).
-// The dispatcher and the simple types live here; tree_free_of, tree_equals, tree_each and
-// tree_rules are in claims-tree.mjs, the two process-spawning types (generated_matches, hook_smoke)
+// Statuses: PASS | FAIL (CLAIMS band, RED) | UNKNOWN (COULD-NOT-LOOK band, exit 2) | SKIPPED (0.3.0:
+// not run on this host, its own band, never a pass, outside the verdict; the host rule below).
+// The dispatcher and the simple types live here (line_count among them); tree_free_of, tree_equals,
+// tree_each, tree_rules and tree_sha are in claims-tree.mjs, the two process-spawning types (generated_matches, hook_smoke)
 // are in claims-exec.mjs, the two-file keyed compare (json_keyed_match) in claims-keyed.mjs,
 // file_fresh and config_paths_each in claims-fresh.mjs, the ratchet in claims-ratchet.mjs, and the
 // before/after compare (snapshot_diff) in claims-snapshot.mjs.
@@ -16,10 +17,52 @@ import { claimResult, resolveClaimPath, isFile, isDir, DATED_LINE_RX, positiveIn
 import { gitLines, DAY } from './util.mjs';
 import { jsonKeyedMatchClaim } from './claims-keyed.mjs';
 import { fileFreshClaim, configPathsEachClaim } from './claims-fresh.mjs';
-import { treeFreeOfClaim, treeEqualsClaim, treeEachClaim, treeRulesClaim } from './claims-tree.mjs';
+import { treeFreeOfClaim, treeEqualsClaim, treeEachClaim, treeRulesClaim, treeShaClaim } from './claims-tree.mjs';
 import { generatedMatchesClaim, hookSmokeClaim } from './claims-exec.mjs';
 import { ratchetClaim } from './claims-ratchet.mjs';
 import { snapshotDiffClaim } from './claims-snapshot.mjs';
+
+// ---------------------------------------------------------------- the host rule (0.3.0)
+// The Doctor never guesses where it runs: the host is -Host pc|cloud (ctx.host), written into the
+// shims by tools/settings.mjs, or absent, and then nothing is skipped by host. With a host, a claim is
+// SKIPPED (never run, never a pass): (a) when it is typed `host` (pc, cloud or any, one or a list) and
+// that names another host; (b) under -Host cloud when any path field carries a token only the PC can
+// stand behind: ${ROOT} is the PC's root tree of repositories (a cloud session holds one clone),
+// %USERPROFILE% and ${LOCALAPPDATA} are the Windows home (%LOCALAPPDATA% is the same place in the form
+// the expander reads). The RAW path is read, not the expanded one: %USERPROFILE% expands to a home
+// folder on every host, and under -Scope brain ${ROOT} expands to the checkout, so after expansion
+// neither says where the claim belongs. A typed host nothing knows is UNKNOWN on every run, with or
+// without -Host, so a typo never skips a claim in silence. Each token is read the way its expander
+// reads it: a %NAME% token in any letter case (expandEnvVars), a ${NAME} token only as typed
+// (expandDfPath; ${root} is not read and stays could-not-look).
+const HOSTS = ['pc', 'cloud'];
+const PC_TOKENS = [
+    { token: '${ROOT}', rx: /\$\{ROOT\}/ },
+    { token: '%USERPROFILE%', rx: /%USERPROFILE%/i },
+    { token: '${LOCALAPPDATA}', rx: /\$\{LOCALAPPDATA\}/ },
+    { token: '%LOCALAPPDATA%', rx: /%LOCALAPPDATA%/i },
+];
+const PATH_FIELDS = ['path', 'other', 'root', 'base', 'paths', 'source', 'output', 'overlay', 'installed', 'snapshot', 'generator'];
+const asList = (v) => (v == null ? [] : Array.isArray(v) ? v : [v]);
+
+// Returns null (run the claim) or { status, detail } to record instead of running it.
+export function hostSkip(c, ctx) {
+    const host = ctx && ctx.host ? String(ctx.host).trim().toLowerCase() : '';
+    const typed = asList(c.host).map((h) => String(h).trim().toLowerCase()).filter((h) => h !== '');
+    const unknown = typed.find((h) => h !== 'any' && !HOSTS.includes(h));
+    if (unknown !== undefined) return { status: 'UNKNOWN', detail: `'host' must be pc, cloud or any (got '${unknown}')` };
+    if (host === '') return null;
+    if (typed.length > 0 && !typed.includes('any') && !typed.includes(host)) return { status: 'SKIPPED', detail: `host ${typed.join(',')} claim, run with -Host ${host}` };
+    if (host === 'cloud') {
+        for (const f of PATH_FIELDS) {
+            for (const v of asList(c[f])) {
+                const hit = PC_TOKENS.find((tk) => tk.rx.test(String(v ?? '')));
+                if (hit) return { status: 'SKIPPED', detail: `path needs ${hit.token}; no pointer here` };
+            }
+        }
+    }
+    return null;
+}
 
 export function invokeClaims(claimsPath, ctx) {
     if (!fs.existsSync(claimsPath)) return [{ id: 'CLAIMS-FILE', type: 'file', status: 'UNKNOWN', detail: `claims.json not found at ${claimsPath}`, why: '' }];
@@ -35,6 +78,8 @@ export function invokeClaims(claimsPath, ctx) {
         if (c.id == null || !String(c.id).trim()) { out.push({ id: '(no id)', type: String(c.type ?? ''), status: 'UNKNOWN', detail: 'claim has no id', why: '' }); continue; }
         if (seen.has(c.id)) { out.push(claimResult(c, 'UNKNOWN', `duplicate claim id '${c.id}'`)); continue; }
         seen.add(c.id);
+        const skip = hostSkip(c, ctx);
+        if (skip) { out.push(claimResult(c, skip.status, skip.detail)); continue; }
         try { out.push(invokeOneClaim(c, ctx)); }
         catch (e) { out.push(claimResult(c, 'UNKNOWN', `error: ${e.message}`)); }
     }
@@ -47,6 +92,7 @@ function invokeOneClaim(c, ctx) {
         case 'path_absent': return pathClaim(c, ctx, false);
         case 'file_contains': return fileContainsClaim(c, ctx, true);
         case 'file_not_contains': return fileContainsClaim(c, ctx, false);
+        case 'line_count': return lineCountClaim(c, ctx);
         case 'file_fresh': return fileFreshClaim(c, ctx);
         case 'config_paths_each': return configPathsEachClaim(c, ctx);
         case 'log_window_free_of': return logWindowClaim(c, ctx);
@@ -58,6 +104,7 @@ function invokeOneClaim(c, ctx) {
         case 'tree_equals': return treeEqualsClaim(c, ctx);
         case 'tree_each': return treeEachClaim(c, ctx);
         case 'tree_rules': return treeRulesClaim(c, ctx);
+        case 'tree_sha': return treeShaClaim(c, ctx);   // claims-tree.mjs (0.3.0, KIT-01)
         case 'ratchet': return ratchetClaim(c, ctx);
         case 'hook_smoke': return hookSmokeClaim(c, ctx);
         case 'pointer_valid': return pointerValidClaim(c, ctx);
@@ -87,6 +134,24 @@ function fileContainsClaim(c, ctx, wantContains) {
     const has = readText(r.path).includes(String(c.needle));
     if (wantContains) return has ? claimResult(c, 'PASS', 'found') : claimResult(c, 'FAIL', `string absent: '${c.needle}' in ${r.path}`);
     return has ? claimResult(c, 'FAIL', `forbidden string present: '${c.needle}' in ${r.path}`) : claimResult(c, 'PASS', 'absent, as required');
+}
+
+// ---------------------------------------------------------------- line_count (0.3.0)
+
+// Fields: path, max. The file's lines are counted (LF or CRLF; a trailing newline ends the last line
+// and is not a line of its own; an empty file has none). More than `max` is FAIL. A missing file, or
+// a `max` that is not a positive integer, is UNKNOWN. Written for the entry files (a brain CLAUDE.md
+// under 60 lines, a root one under 40): tree_rules reads lines for a pattern and cannot count them.
+function lineCountClaim(c, ctx) {
+    const r = resolveClaimPath(c.path, ctx);
+    if (!r.path) return claimResult(c, 'UNKNOWN', r.detail);
+    const max = positiveInt(c.max);
+    if (max == null) return claimResult(c, 'UNKNOWN', "'max' must be a positive integer");
+    if (!isFile(r.path)) return claimResult(c, 'UNKNOWN', `file missing: ${r.path}`);
+    const text = readText(r.path).replace(/\r\n/g, '\n');
+    const n = text === '' ? 0 : text.replace(/\n$/, '').split('\n').length;
+    if (n > max) return claimResult(c, 'FAIL', `${n} lines, max ${max}: ${r.path}`);
+    return claimResult(c, 'PASS', `${n} lines (max ${max})`);
 }
 
 // ---------------------------------------------------------------- log_window_free_of

@@ -231,41 +231,67 @@ export function newValidator({ kitRoot, brainRoot }) {
         return node;
     }
 
-    // A hook acts only when hooks/hooks.json registers its script. An anchor in a script that nothing
-    // registers is a real line that never runs, and a clause graded on it printed HOOK or ADVISE in every
-    // LAW.md with no warning (render.mjs keeps the kit grade for a hook the installed state does not
-    // name). Found by the CR-2026-10-15-GAPS review. The registry is the script paths under hooks/ in
-    // each entry's command or args, read once per build. Workaround: a path, not a file name. Compared
-    // by file name alone, a clause on hooks/lib/guard.mjs passed because hooks/guard.mjs is registered,
-    // and a script registered in a subfolder of hooks/ was never found.
+    // A hook acts only when it is registered. An anchor in a script that nothing registers is a real
+    // line that never runs, and a clause graded on it printed HOOK or ADVISE in every LAW.md with no
+    // warning (render.mjs keeps the kit grade for a hook the installed state does not name). Found by
+    // the CR-2026-10-15-GAPS review. The record of a registration is hooks/hooks.json beside the law
+    // (the plugin form: the script paths under hooks/ in each entry's command or args) or, when no
+    // hooks.json is there, hooks/registry.json (0.3.0: one row per registration, field script). A
+    // vendored copy under .claude/kit/ carries the registry and never hooks.json, which
+    // tools/vendor.json leaves out because the plugin form never runs in a vendored copy, so the
+    // vendored law build proves its hook clauses from the registry. The registry stands in only where
+    // hooks.json never travels: a checkout or a plugin install carries .claude-plugin/plugin.json
+    // beside the law and registers through hooks.json alone, so there a missing hooks.json fails the
+    // clause and names plugin.json as the reason the registry is not read (a deleted hooks.json in a
+    // checkout registers nothing, whatever the registry says). With neither file nothing shows that
+    // any hook runs and the failure names both. A hooks.json that exists but cannot be read is a
+    // broken kit, not a case for the registry: the failure names it alone. Read once per build.
+    // Workaround: a path, not a file name. Compared by file name alone, a clause on hooks/lib/guard.mjs
+    // passed because hooks/guard.mjs is registered, and a script registered in a subfolder of hooks/
+    // was never found.
+    const SCRIPT_UNDER_HOOKS_RX = /(?<![\w.-])hooks[\\/]+((?:[\w.-]+[\\/]+)*[\w.-]+\.(?:mjs|cjs|js))/g;
+    const addScripts = (names, text) => { for (const m of String(text).matchAll(SCRIPT_UNDER_HOOKS_RX)) names.add(m[1].replace(/[\\/]+/g, '/').toLowerCase()); };
     let registry = null;
     function hookRegistry() {
         if (registry) return registry;
-        const p = path.join(kitRoot, 'hooks', 'hooks.json');
-        const reg = { path: p, why: '', names: new Set() };
-        if (!isFile(p)) reg.why = 'does not exist';
-        else {
+        const hooksJson = path.join(kitRoot, 'hooks', 'hooks.json');
+        const registryJson = path.join(kitRoot, 'hooks', 'registry.json');
+        const pluginJson = path.join(kitRoot, '.claude-plugin', 'plugin.json');
+        // source: the file that is the record; why: '' or what is wrong with it, its path included.
+        const reg = { source: 'hooks/hooks.json', path: hooksJson, why: '', names: new Set() };
+        if (isFile(hooksJson)) {
             let hj = null;
-            try { hj = readJsonFile(p); } catch { reg.why = 'is not JSON'; }
+            try { hj = readJsonFile(hooksJson); } catch { reg.why = `is not JSON (${hooksJson})`; }
             const events = getProp(hj, 'hooks');
-            if (!reg.why && events == null) reg.why = "has no 'hooks' object";
+            if (!reg.why && events == null) reg.why = `has no 'hooks' object (${hooksJson})`;
             if (!reg.why) {
                 for (const entries of Object.values(events)) {
                     for (const entry of Array.isArray(entries) ? entries : [entries]) {
                         for (const h of Array.isArray(getProp(entry, 'hooks')) ? getProp(entry, 'hooks') : []) {
                             const cmd = getProp(h, 'command'); const args = getProp(h, 'args');
-                            const text = [cmd, ...(Array.isArray(args) ? args : args != null ? [args] : [])].filter((x) => x != null).join(' ');
-                            for (const m of text.matchAll(/(?<![\w.-])hooks[\\/]+((?:[\w.-]+[\\/]+)*[\w.-]+\.(?:mjs|cjs|js))/g)) reg.names.add(m[1].replace(/[\\/]+/g, '/').toLowerCase());
+                            addScripts(reg.names, [cmd, ...(Array.isArray(args) ? args : args != null ? [args] : [])].filter((x) => x != null).join(' '));
                         }
                     }
                 }
             }
+        } else if (isFile(registryJson) && isFile(pluginJson)) {
+            reg.why = `does not exist (${hooksJson}); beside .claude-plugin/plugin.json the registry does not stand in for it (a checkout or plugin install registers through hooks.json: render it with node tools/settings.mjs -Plugin -Out hooks/hooks.json)`;
+        } else if (isFile(registryJson)) {
+            reg.source = 'hooks/registry.json'; reg.path = registryJson;
+            let rj = null;
+            try { rj = readJsonFile(registryJson); } catch { reg.why = `is not JSON (${registryJson})`; }
+            const rows = getProp(rj, 'hooks');
+            if (!reg.why && !Array.isArray(rows)) reg.why = `has no 'hooks' array (${registryJson})`;
+            if (!reg.why) for (const row of rows) addScripts(reg.names, getProp(row, 'script') ?? '');
+            else reg.why = `${reg.why} and hooks/hooks.json does not exist (${hooksJson})`;
+        } else {
+            reg.why = `does not exist (${hooksJson}) and hooks/registry.json does not exist (${registryJson})`;
         }
         registry = reg;
         return reg;
     }
     // Kit hook scripts only: a ref that resolved into the brain (an overlay clause) is not the kit's to
-    // register, and the kit's hooks.json says nothing about it.
+    // register, and the kit's registration record says nothing about it.
     function hookRegistered(c, p) {
         const id = c.id;
         const kitHooks = path.resolve(kitRoot, 'hooks') + path.sep;
@@ -274,11 +300,12 @@ export function newValidator({ kitRoot, brainRoot }) {
         const rel = full.slice(kitHooks.length).replace(/[\\/]+/g, '/');   // 'guard.mjs', 'lib/guard-rules.mjs'
         const reg = hookRegistry();
         if (reg.why) {
-            const msg = `hooks/hooks.json ${reg.why} (${reg.path}), so nothing shows that ${rel} is registered`;
+            const msg = `${reg.source} ${reg.why}, so nothing shows that ${rel} is registered`;
             if (skipHooks) addWarning(id, `${msg}, skipped`); else addProblem(id, msg);
             return;
         }
-        if (!reg.names.has(rel.toLowerCase())) addProblem(id, `hook script '${rel}' is not registered in hooks/hooks.json, so it never runs; register it, or grade the clause by what does run (a lib/ file runs through the script that loads it: name that script in the ref)`);
+        const record = reg.source === 'hooks/registry.json' ? 'hooks/registry.json (hooks/hooks.json is absent, so the registry is the record)' : 'hooks/hooks.json';
+        if (!reg.names.has(rel.toLowerCase())) addProblem(id, `hook script '${rel}' is not registered in ${record}, so it never runs; register it, or grade the clause by what does run (a lib/ file runs through the script that loads it: name that script in the ref)`);
     }
 
     function enforcement(c) {

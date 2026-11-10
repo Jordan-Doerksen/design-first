@@ -65,6 +65,16 @@ export function readInstalled(p) {
     return j.files.map((f) => ({ path: String(f.path), sha256: String(f.sha256), generated: Boolean(f.generated) }));
 }
 
+// The vendored kit (0.3.0): tools/vendor.mjs -Record writes { path: '.claude/kit/<rel>', sha256 } rows,
+// relative to the folder it vendored into, under the same file's `vendored` key. remove.mjs resolves
+// them against the pointer's root and brain.
+export function readVendored(p) {
+    if (!fs.existsSync(p)) return [];
+    const j = readJson(p);
+    if (j == null || !Array.isArray(j.vendored)) return [];
+    return j.vendored.filter((r) => r != null && r.path != null).map((r) => ({ path: String(r.path), sha256: String(r.sha256 ?? '') }));
+}
+
 // Merged by path, without case: a path written this run replaces its old record; every other
 // existing record is kept as it was.
 export function mergeInstalled(existing, written) {
@@ -74,12 +84,20 @@ export function mergeInstalled(existing, written) {
     return [...map.values()].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
 }
 
+// Rewrites schema, _comment and files. Every other top-level key of the file on disk is kept as it
+// is: vendor.mjs -Record keeps its vendored rows here (0.3.0), and a rewrite that dropped them would
+// leave remove.mjs blind to the vendored kit on the second adopt.
 export function writeInstalled(p, records) {
+    let onDisk = {};
+    if (fs.existsSync(p)) {
+        try { const j = readJson(p); if (j != null && typeof j === 'object' && !Array.isArray(j)) onDisk = j; } catch { /* unreadable: rewritten from the records */ }
+    }
     const doc = {
         schema: 1,
-        _comment: 'Every file adopt.mjs wrote, with sha256 over CRLF->LF-mapped bytes. remove.mjs deletes a file only when its hash still matches, or when generated is true (regenerable). Written by adopt.mjs; merged by path on every run.',
+        _comment: 'Every file adopt.mjs wrote, with sha256 over CRLF->LF-mapped bytes, under files; every file tools/vendor.mjs copied into .claude/kit/ as { path, sha256 } rows relative to the adopted folder, under vendored. remove.mjs deletes a file only when its hash still matches, or when generated is true (regenerable). Written by adopt.mjs and vendor.mjs; merged by path on every run.',
         files: records,
     };
+    for (const [k, v] of Object.entries(onDisk)) if (!(k in doc)) doc[k] = v;
     writeBytes(p, textBytes(JSON.stringify(doc, null, 2) + '\n', p));
 }
 
@@ -89,24 +107,29 @@ export function writeInstalled(p, records) {
 // the owner has that the template lacks (their edit), and a `-` line is template text they removed.
 // Nothing is changed. git diff --no-index when git is on PATH; a plain line diff otherwise. Line
 // endings are ignored because the hash rule treats CRLF and LF as the same bytes. `who` names the
-// writer in the header line: adopt (the default) or control.
+// writer in the header line: adopt (the default) or control. The proposed text goes into a temp folder
+// of this call's own (fs.mkdtempSync), removed after, also on a throw: the fixed
+// <os temp>/design-first-adopt it used before let two runs at once read each other's text, and a file
+// at that name stopped every run that printed a diff. A folder that cannot be removed is named.
 export function showDiff(existing, proposed, label, who = 'adopt') {
-    const tmpDir = path.join(os.tmpdir(), 'design-first-adopt');
-    fs.mkdirSync(tmpDir, { recursive: true });
-    const tmp = path.join(tmpDir, 'proposed-' + path.basename(existing));
-    fs.writeFileSync(tmp, proposed);
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'design-first-diff-'));
     const lines = [`  --- diff ${label}  (what ${who} would write -> what is on disk; + is yours; the file was NOT changed)`];
-    const r = spawnSync('git', ['diff', '--no-index', '--no-color', '--ignore-cr-at-eol', '--', tmp, existing], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true });
-    if (!r.error) {
-        // The four git header lines name the temp file; they carry nothing the reader needs.
-        for (const l of (r.stdout || '').replace(/\n$/, '').split('\n')) if (l !== '' && !/^(diff --git |index |--- |\+\+\+ )/.test(l)) lines.push('      ' + l);
-    } else {
-        const a = proposed.toString('utf8').replace(/\r\n/g, '\n').split('\n');
-        const b = readText(existing).replace(/\r\n/g, '\n').split('\n');
-        for (const l of a) if (!b.includes(l)) lines.push('      -' + l);
-        for (const l of b) if (!a.includes(l)) lines.push('      +' + l);
+    try {
+        const tmp = path.join(tmpDir, 'proposed-' + path.basename(existing));
+        fs.writeFileSync(tmp, proposed);
+        const r = spawnSync('git', ['diff', '--no-index', '--no-color', '--ignore-cr-at-eol', '--', tmp, existing], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true });
+        if (!r.error) {
+            // The four git header lines name the temp file; they carry nothing the reader needs.
+            for (const l of (r.stdout || '').replace(/\n$/, '').split('\n')) if (l !== '' && !/^(diff --git |index |--- |\+\+\+ )/.test(l)) lines.push('      ' + l);
+        } else {
+            const a = proposed.toString('utf8').replace(/\r\n/g, '\n').split('\n');
+            const b = readText(existing).replace(/\r\n/g, '\n').split('\n');
+            for (const l of a) if (!b.includes(l)) lines.push('      -' + l);
+            for (const l of b) if (!a.includes(l)) lines.push('      +' + l);
+        }
+    } finally {
+        try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (e) { lines.push(`      (the temp folder ${tmpDir} could not be removed: ${e.message})`); }
     }
-    try { fs.rmSync(tmp, { force: true }); } catch { /* best effort */ }
     return lines;
 }
 

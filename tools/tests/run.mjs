@@ -23,6 +23,10 @@ import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from '../lib/args.mjs';
+// The kit's internal-error reply has one recognizer, the one the Doctor's hook_smoke reads (review finding 27):
+// the smoke cases below and the verdict helpers of the case files (through ctx) never read a hook's failure
+// reply as an answer.
+import { internalErrorReply } from '../../hooks/lib/common.mjs';
 
 const opts = parseArgs(process.argv.slice(2), { switches: ['KeepTemp'], values: ['Filter'] });
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -211,6 +215,9 @@ process.env.DF_LOG_PATH = path.join(T, 'hooks.log');
 process.env.DF_FENCE_LOG_PATH = path.join(T, 'fence.log');
 process.env.DF_MARKER_DIR = path.join(T, 'markers');
 delete process.env.CLAUDE_PLUGIN_ROOT;
+// The kit root and the extract candidate (0.3.0) read these; a run must not depend on the folder the
+// host happens to name, and cases-parity.mjs sets them per call.
+for (const v of ['CLAUDE_PROJECT_DIR', 'DF_KIT_ROOT', 'DF_EXTRACT_PATH']) delete process.env[v];
 const NO_POINTER = path.join(T, 'no-such-pointer.json');
 // Runs fn with the pointer seam pointed at a file that does not exist, then puts it back.
 function withPointerAt(pointerFile, fn) {
@@ -256,8 +263,55 @@ function expand(s) {
     if (s == null) return s;
     return String(s).split('${T}').join(T).split('${TFWD}').join(TFWD).split('${TMSYS}').join(TMSYS).split('${KIT}').join(kit);
 }
+// The tool_input of a guard-cases.json row, built one way for the guard and fence cases below and for the
+// parity rows of cases-parity.mjs, so a row is the same call wherever it is sent.
+function caseToolInput(c) {
+    const ti = {};
+    switch (c.tool) {
+        case 'Bash': case 'PowerShell': ti.command = expand(c.cmd); break;
+        case 'NotebookEdit': ti.notebook_path = expand(c.path); ti.new_source = 'x'; break;
+        case 'Write': ti.file_path = expand(c.path); ti.content = c.content != null ? String(c.content) : 'x'; break;
+        case 'AskUserQuestion': {
+            // OWN-04: the default options are well formed (recommended first, each with a reason),
+            // so a case changes only the part it tests: options, question, or n.
+            const n = c.n ? Number(c.n) : 1;
+            const options = 'options' in c ? [].concat(c.options) : [
+                { label: 'a (Recommended)', description: 'Gives the thing the case needs; costs nothing worth a word.' },
+                { label: 'b', description: 'Gives a second path for a different owner; costs one more step.' }];
+            const multi = c.multiSelect === true;
+            ti.questions = Array.from({ length: n }, (_, i) => ({ question: c.question ? String(c.question) : `q${i + 1}`, header: 'h', options, multiSelect: multi }));
+            break;
+        }
+        case 'Agent':
+            ti.description = 'case'; ti.prompt = String(c.prompt ?? '');
+            if (c.type) ti.subagent_type = String(c.type);
+            if (c.model) ti.model = String(c.model);
+            break;
+        case 'mcp__ccd_session__start_session':
+            // CTRL-02: the host's session-start tool. A case with no prompt is an offer (a title
+            // alone) or a proposal started by its id, so the prompt is set only when the case has one.
+            ti.title = 'case'; ti.initiation = 'user_asked';
+            if ('prompt' in c) ti.prompt = String(c.prompt);
+            break;
+        default:
+            ti.file_path = expand(c.path); ti.old_string = c.old != null ? String(c.old) : 'a'; ti.new_string = c.new != null ? String(c.new) : 'b';
+    }
+    return ti;
+}
+// The hook a guard-cases.json row is sent to, read from its hook field one way for the guard and fence cases below
+// and for the parity rows of cases-parity.mjs: guard, fence, agent or ask, by name. Every row names its hook, so a
+// value that names none of the four (a misspelling, a hook this table does not know yet, or no hook field) sends the
+// row nowhere: caseScript gives null and the row is recorded as a failure that names the value, never run by the
+// guard in its place while its record says it went to its own hook.
+const CASE_SCRIPTS = { guard: 'guard.mjs', fence: 'fence.mjs', agent: 'agent.mjs', ask: 'ask.mjs' };
+const caseScript = (c) => (c && typeof c.hook === 'string' && Object.hasOwn(CASE_SCRIPTS, c.hook) ? CASE_SCRIPTS[c.hook] : null);
 
 // ------------------------------------------------------------------ 1. pre-body smoke (hooks.json as registered)
+// A hook that starts, exits 0 and answers with the kit's internal-error reply (internalErrorReply: a JSON
+// systemMessage that says 'internal error', an additionalContext or a plain line that says 'hook hit an
+// internal error') decided nothing: the smoke reads it as exit0+internal-error, never as a pass, for every
+// registered hook. Red first: with a throw planted after the stdin parse in every hook, all twelve smoke
+// rows passed.
 section('-- pre-body smoke: every hooks.json entry, ${CLAUDE_PLUGIN_ROOT} substituted');
 {
     const hj = JSON.parse(readText(path.join(hooks, 'hooks.json')));
@@ -279,6 +333,7 @@ section('-- pre-body smoke: every hooks.json entry, ${CLAUDE_PLUGIN_ROOT} substi
                 const expected = event === 'SessionStart' ? 'exit0+stdout' : event === 'UserPromptSubmit' ? 'exit0+any' : 'exit0+empty-or-json';
                 let got;
                 if (code !== 0) got = `exit${code}`;
+                else if (internalErrorReply(r.stdout || '')) got = 'exit0+internal-error';
                 else if (event === 'UserPromptSubmit') got = 'exit0+any';
                 else if (event === 'SessionStart') got = blank(out) ? 'exit0+EMPTY' : 'exit0+stdout';
                 else got = blank(out) || parseOut(out) != null ? 'exit0+empty-or-json' : 'exit0+NOT-JSON';
@@ -293,49 +348,24 @@ section('-- pre-body smoke: every hooks.json entry, ${CLAUDE_PLUGIN_ROOT} substi
 section('-- guard and fence cases');
 {
     const cases = JSON.parse(readText(casesFile));
-    const scripts = { fence: 'fence.mjs', agent: 'agent.mjs', ask: 'ask.mjs' };
+    // caseScript itself. Red first: with the guard as the fallback, a row planted in a scratch copy with hook 'fenc'
+    // and expect allow went to the guard and passed, and the parity record still read 'same'.
+    const strays = [{ hook: 'fenc' }, { hook: 'card' }, { hook: 'constructor' }, {}].filter((c) => caseScript(c) !== null);
+    record('guard-cases.json: a row whose hook names no hook is sent nowhere (caseScript gives null, never the guard)', 'nowhere',
+        strays.length === 0 ? 'nowhere' : `sent: ${strays.map((c) => `${JSON.stringify(c.hook ?? null)} to ${String(caseScript(c)).slice(0, 40)}`).join('; ')}`);
     for (const c of cases) {
         if ('_' in c) continue;
         if (opts.Filter && !like(c.name, `*${opts.Filter}*`)) continue;
         // A case that tests a spelling only one system has says so; elsewhere it is not run.
         if (c.platform && c.platform !== (IS_WIN ? 'win32' : 'posix')) continue;
-        const script = scripts[c.hook] || 'guard.mjs';
+        const script = caseScript(c);
+        if (!script) { record(c.name, c.expect, `no hook named ${JSON.stringify(c.hook ?? null)}`, 'a row goes only to guard, fence, agent or ask (caseScript)'); continue; }
         const cwd = c.cwd ? expand(c.cwd) : repoClean;
         const session = c.session || 's-default';
         let stdin;
         if ('stdin' in c) stdin = String(c.stdin);
         else {
-            const ti = {};
-            switch (c.tool) {
-                case 'Bash': case 'PowerShell': ti.command = expand(c.cmd); break;
-                case 'NotebookEdit': ti.notebook_path = expand(c.path); ti.new_source = 'x'; break;
-                case 'Write': ti.file_path = expand(c.path); ti.content = c.content != null ? String(c.content) : 'x'; break;
-                case 'AskUserQuestion': {
-                    // OWN-04: the default options are well formed (recommended first, each with a reason),
-                    // so a case changes only the part it tests: options, question, or n.
-                    const n = c.n ? Number(c.n) : 1;
-                    const options = 'options' in c ? [].concat(c.options) : [
-                        { label: 'a (Recommended)', description: 'Gives the thing the case needs; costs nothing worth a word.' },
-                        { label: 'b', description: 'Gives a second path for a different owner; costs one more step.' }];
-                    const multi = c.multiSelect === true;
-                    ti.questions = Array.from({ length: n }, (_, i) => ({ question: c.question ? String(c.question) : `q${i + 1}`, header: 'h', options, multiSelect: multi }));
-                    break;
-                }
-                case 'Agent':
-                    ti.description = 'case'; ti.prompt = String(c.prompt ?? '');
-                    if (c.type) ti.subagent_type = String(c.type);
-                    if (c.model) ti.model = String(c.model);
-                    break;
-                case 'mcp__ccd_session__start_session':
-                    // CTRL-02: the host's session-start tool. A case with no prompt is an offer (a title
-                    // alone) or a proposal started by its id, so the prompt is set only when the case has one.
-                    ti.title = 'case'; ti.initiation = 'user_asked';
-                    if ('prompt' in c) ti.prompt = String(c.prompt);
-                    break;
-                default:
-                    ti.file_path = expand(c.path); ti.old_string = c.old != null ? String(c.old) : 'a'; ti.new_string = c.new != null ? String(c.new) : 'b';
-            }
-            const payload = { session_id: session, cwd, hook_event_name: 'PreToolUse', tool_name: c.tool, tool_input: ti };
+            const payload = { session_id: session, cwd, hook_event_name: 'PreToolUse', tool_name: c.tool, tool_input: caseToolInput(c) };
             if (c.prompt_id) payload.prompt_id = String(c.prompt_id);
             if (c.agent_id) payload.agent_id = String(c.agent_id);
             stdin = hookJson(payload);
@@ -377,15 +407,18 @@ const entry = (cwd, session, source) => invokeHook('entry.mjs', hookJson({ sessi
     const kitHook = rxEscape(path.join(kit, 'hooks', 'entry.mjs'));
     const brainMe = rxEscape(path.join(brain, 'me.md'));
     const brainHook = rxEscape(path.join(brain, 'hooks', 'entry.mjs'));
+    // No unresolved prefix survives in the entry lines; the arming line (`kit: armed ...`, 0.3.0) is not one.
+    const afterArming = e.out.split('\n').filter((l) => !/^kit: /.test(l)).join('\n');
     record('entry: kit: resolves under the kit, brain: under the brain', 'prefixed',
-        new RegExp(`^ 4\\. ${kitHook}$`, 'mi').test(e.out) && new RegExp(`^ 5\\. ${brainMe}$`, 'mi').test(e.out) && new RegExp(`^ 6\\. MISSING: ${brainHook}$`, 'mi').test(e.out) && !/kit:|brain:/i.test(e.out) ? 'prefixed' : 'wrong', e.out);
+        new RegExp(`^ 4\\. ${kitHook}$`, 'mi').test(e.out) && new RegExp(`^ 5\\. ${brainMe}$`, 'mi').test(e.out) && new RegExp(`^ 6\\. MISSING: ${brainHook}$`, 'mi').test(e.out) && !/kit:|brain:/i.test(afterArming) ? 'prefixed' : 'wrong', e.out);
     record('entry: heartbeat written to <brain>/state/last-session.json', 'present', exists(jp(brain, 'state', 'last-session.json')) ? 'present' : 'absent');
     record('entry: marker older than 1 day deleted, fresh kept', 'old-gone', !exists(oldMarker) && exists(freshMarker) ? 'old-gone' : 'wrong');
     let logText = readText(process.env.DF_LOG_PATH);
     record('entry: hooks log truncated to 90 days', 'truncated', !like(logText, '*ancient line*') && like(logText, '*recent line to keep*') ? 'truncated' : 'not-truncated', logText);
 
     e = entry(path.join(T, 'outside'), 'e2', 'resume');
-    record('entry: cwd outside root prints one line', 'one-line', e.code === 0 && e.out.split('\n').filter((l) => l.trim()).length === 1 && like(e.out, '*outside root*') ? 'one-line' : 'wrong', e.out);
+    // The arming line (0.3.0, cases-parity.mjs) comes first on every start; the one line is the next.
+    record('entry: cwd outside root prints one line after the arming line', 'one-line', e.code === 0 && e.out.split('\n').filter((l) => l.trim() && !/^kit: /.test(l)).length === 1 && like(e.out, '*outside root*') ? 'one-line' : 'wrong', e.out);
 
     e = withoutPointer(() => entry(root, 'e3', 'startup'));
     record('entry: no pointer prints the /design-first:adopt line', 'adopt-line', e.code === 0 && like(e.out, '*/design-first:adopt*') ? 'adopt-line' : 'wrong', e.out);
@@ -603,18 +636,18 @@ const ledgerText = (session) => readText(ledger(session));
 // ------------------------------------------------------------------ 6 onwards: cases split by domain (DES-03)
 // 6: the commit-msg check (VCS-23). 7: the state card (GAME-13). 8: the Stop card reading the turn's
 // changes from git. Then OWN, the read check, LOOPS.md, the bypasses, the gate, the truth cases, the
-// grades, the card's wording, the head of a git call (case 49) and the running kit root (case 50,
+// grades, the card's wording, the head of a git call (case 49), the arming proof (selfcheck) and the running kit root (case 50,
 // which moves the pointer and puts it back, so it runs last). Each file uses the fixtures and
 // helpers above.
 const ctx = {
     T, TFWD, TMSYS, kit, hooks, root, brain, IS_WIN, NO_POINTER,
     repoPlain, repoIgnored, repoClean, repoNoManifest, repoGated, repoGatedOk, repoGatedBad, repoGatedOpen, repoLoop, repoTracked,
     record, section, say, like, clike, blank, rxEscape, jp, readText, exists, sleepMs, setOld, toJson,
-    gitTry, runGit, gitOut, put, newRepo, invokeHook, hookJson, parseOut, classify, expand, withoutPointer, writePointer, fullTextFiles,
+    gitTry, runGit, gitOut, put, newRepo, invokeHook, hookJson, parseOut, classify, internalErrorReply, expand, caseToolInput, caseScript, withoutPointer, writePointer, fullTextFiles,
     entry, route, sub, stop, ledger, guardEdit, ledgerText,
 };
 for (const f of ['cases-law-claim.mjs', 'cases-state-card.mjs', 'cases-stop-git.mjs', 'cases-own.mjs', 'cases-writer.mjs', 'cases-size.mjs', 'cases-loops.mjs',
-    'cases-bypass.mjs', 'cases-gate.mjs', 'cases-truth.mjs', 'cases-grades.mjs', 'cases-wording.mjs', 'cases-gitcall.mjs', 'cases-publish.mjs', 'cases-kitroot.mjs']) {
+    'cases-bypass.mjs', 'cases-gate.mjs', 'cases-truth.mjs', 'cases-grades.mjs', 'cases-wording.mjs', 'cases-gitcall.mjs', 'cases-publish.mjs', 'cases-selfcheck.mjs', 'cases-session.mjs', 'cases-card.mjs', 'cases-extract.mjs', 'cases-registry.mjs', 'cases-vendor.mjs', 'cases-release.mjs', 'cases-parity.mjs', 'cases-kitroot.mjs']) {
     const mod = await import(pathToFileURL(path.join(here, f)).href);
     try { await mod.default(ctx); }
     catch (e) { record(`${f}: ran to the end`, 'ran', `threw: ${e && e.message ? e.message : e}`, e && e.stack ? e.stack : ''); }
@@ -623,8 +656,15 @@ for (const f of ['cases-law-claim.mjs', 'cases-state-card.mjs', 'cases-stop-git.
 // ------------------------------------------------------------------ summary
 const passed = results.filter((x) => x.pass).length;
 const failed = results.length - passed;
+// The red-expected count (0.3.0, tools/release.mjs reads it): a case whose expected value is a refusal
+// word (deny, denied, refused, block, blocked, red, missing, unarmed, exit 1, exit 2, or the number 1
+// or 2 the tool cases give for an exit code) or whose name carries 'red:'. A count, not a gate: the
+// release tool proves each mechanism by the case red-expected.json names, not by this number.
+const RED_WORD_RX = /(^|[^a-z])(deny|denied|refused|blocked?|red|missing|unarmed|exit ?[12])([^a-z]|$)/i;
+const redExpected = results.filter((x) => /(^|[^a-z])red:/i.test(String(x.name)) || x.expected === 1 || x.expected === 2 || RED_WORD_RX.test(String(x.expected))).length;
 say();
 say(`  ${passed} passed, ${failed} failed, ${results.length} total`, failed === 0 ? 32 : 31);
+say(`  red-expected: ${redExpected}`);
 say();
 if (failed === 0 && !opts.KeepTemp) { try { fs.rmSync(T, { recursive: true, force: true }); } catch { /* best effort */ } }
 else say(`  fixtures kept at ${T}`);

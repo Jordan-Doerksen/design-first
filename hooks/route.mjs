@@ -41,8 +41,13 @@
 //
 // writer-skip (owner ruling 29, 2026-10-20; kit-next batch entry 1): a work session answers its master
 // tersely, so the law that is about talking to the owner must not reach it. The session's FIRST prompt
-// decides: "Reports to:" at the start of a line (a brief) marks the session a writer in <session>.role;
-// any other first prompt marks it an owner session, and a later "Reports to:" changes nothing. For a
+// decides, and is kept in <session>.role: a line-start "Role:" is read first, and only "Role: writer"
+// marks a writer (a planning brief that names its master is not one, 0.3.0); with no "Role:" line,
+// "Reports to:" at the start of a line (a brief) marks the writer; any other first prompt marks an owner
+// session, and a later "Reports to:" or "Role:" changes nothing while the mark exists. When the mark
+// is gone on a later prompt (a reclaimed VM empties the marker folder), that prompt decides again by
+// the same rule: "Role: writer" re-marks the writer, a prompt with neither line reads as owner (the
+// hook cannot tell a first prompt from a later one once the folder is empty). For a
 // writer, the policy's writerSkip { groups, clauses } is dropped: a group whole, a clause as one row
 // of its group (the rest of the group still prints). entry.mjs deletes the mark on a clear (a new
 // conversation) and keeps it through a compaction. No key, or an empty one: nothing is dropped.
@@ -97,7 +102,8 @@ function skillMatches(C, prompt, root, sessionId) {
 try {
     const raw = readStdin();
     let j = null;
-    if (raw.trim()) { try { j = JSON.parse(raw); } catch { j = null; } }
+    let notJson = null;   // a payload that does not parse: its first 80 characters, logged once this copy decides (below)
+    if (raw.trim()) { try { j = JSON.parse(raw); } catch { j = null; notJson = raw.trim().slice(0, 80); } }
     let prompt = j && typeof j.prompt === 'string' ? j.prompt : j && j.prompt != null ? String(j.prompt) : '';
     const sessionId = j && j.session_id ? String(j.session_id) : 'unknown';
 
@@ -111,9 +117,12 @@ try {
     // them. It runs first now, on inline paths with the names sessionFile gives.
     const isNotice = /<task-notification>[\s\S]*?<\/task-notification>/i.test(prompt);
     if (!isNotice) {
-        const markerDir = process.env.DF_MARKER_DIR || path.join(os.tmpdir(), 'design-first');
+        // The markers follow the hook input's scratchpad_dir when the host hands one over (0.3.0), the
+        // DF_MARKER_DIR seam first, as lib/common.mjs getMarkerDir answers once it is loaded below.
+        const scratch = j && typeof j.scratchpad_dir === 'string' && j.scratchpad_dir.trim() ? path.join(j.scratchpad_dir.trim(), 'design-first') : null;
+        const markerDir = process.env.DF_MARKER_DIR || scratch || path.join(os.tmpdir(), 'design-first');
         const safeId = sessionId.replace(/[^A-Za-z0-9_.-]/g, '_');
-        for (const ext of ['.edits', '.repos', '.guard-error']) {
+        for (const ext of ['.edits', '.repos', '.guard-error', '.started']) {   // .started: agent.mjs's record of the cloud sessions started this prompt
             try { fs.rmSync(path.join(markerDir, safeId + ext), { force: true }); } catch { /* gone already */ }
         }
         fs.mkdirSync(markerDir, { recursive: true });
@@ -122,6 +131,9 @@ try {
 
     const C = await import('./lib/common.mjs');
     const L = await import('./lib/law-rows.mjs');
+    C.setMarkerDir(j);                                                 // markers and logs under the host's scratchpad_dir when given (0.3.0)
+    if (C.yieldToPlugin('route', import.meta.url)) process.exit(0);    // the yield rule: a vendored copy steps aside for the plugin (0.3.0)
+    if (notJson != null) C.writeLog('ERROR', 'route', `payload is not JSON: ${notJson}`);   // read as no payload, never in silence
     const cwd = j && j.cwd ? C.toFullPath(String(j.cwd)) : process.cwd();
 
     if (!C.isBlank(prompt)) {
@@ -129,12 +141,23 @@ try {
         // Those carry words like page, review, log and gate that are not the owner's; match the typed
         // text only. Seen 2026-10-08: the first prompt after a restart routed four groups it never named.
         // A task notice carries the words of a command description; they are not the owner's either.
-        prompt = prompt.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/gi, ' ');
-        prompt = prompt.replace(/<task-notification>[\s\S]*?<\/task-notification>/gi, ' ');
+        // A stripped block leaves a line break, not a space: a block prepended with no newline before the
+        // typed text would otherwise push its first line off a line start, where "Role:" and "Reports to:"
+        // are read (0.3.0).
+        prompt = prompt.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/gi, '\n');
+        prompt = prompt.replace(/<task-notification>[\s\S]*?<\/task-notification>/gi, '\n');
 
-        // The role is decided once, on the session's first prompt, before any group is chosen.
+        // The role is decided once, on the session's first prompt, before any group is chosen. A line-start
+        // "Role:" is read before "Reports to:" (0.3.0): only "Role: writer" marks a writer, any other value
+        // (planning, master, reviewer, checker, owner) marks an owner session even when the same brief names a
+        // master. No marker on a later prompt (a reclaimed VM empties the marker folder) decides again by the
+        // same rule from that prompt: "Role: writer" re-marks the writer, a plain prompt reads as owner.
         const roleFile = L.roleFile(sessionId);
-        if (!C.isFile(roleFile)) C.addTextLine(roleFile, /^Reports to:/m.test(prompt) ? 'writer' : 'owner');
+        if (!C.isFile(roleFile)) {
+            const role = /^Role:[ \t]*([A-Za-z]*)/m.exec(prompt);
+            const writerNow = role ? role[1].toLowerCase() === 'writer' : /^Reports to:/m.test(prompt);
+            C.addTextLine(roleFile, writerNow ? 'writer' : 'owner');
+        }
         const writer = L.isWriterSession(sessionId);
 
         const ptr = C.readPointer();
