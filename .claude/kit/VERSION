@@ -1,5 +1,5 @@
 {
-  "version": "0.2.15",
+  "version": "0.3.0",
   "sha256": "08cb938f0079122c6dbbbbe6e4e4c4e632b4c7f0356dfd43562d2df98b4acb59",
   "files": [
     "LAW.md",
@@ -74,5 +74,5 @@
     "workflows/keep-current.md",
     "workflows/new-project.md"
   ],
-  "at": "2026-11-10T17:56:35.227Z"
+  "at": "2026-11-10T19:25:21.413Z"
 }
