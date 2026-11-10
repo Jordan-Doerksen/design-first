@@ -11,7 +11,8 @@
     {
       "id": "BRAIN-POINTER-01",
       "type": "pointer_valid",
-      "why": "The pointer is the one file outside root, brain and plugin. Without it every hook runs brain-less and the Doctor cannot find this brain. Written by adopt.mjs; checked here so a deleted or moved pointer is a RED run, not a silent downgrade."
+      "host": "pc",
+      "why": "The pointer is the one file outside root, brain and plugin. Without it every hook runs brain-less and the Doctor cannot find this brain. Written by adopt.mjs; checked here so a deleted or moved pointer is a RED run, not a silent downgrade. host pc: a cloud clone of this brain (doctor.mjs -Scope brain -Host cloud) has no pointer by design and skips this claim; without -Host it always runs."
     },
     {
       "id": "BRAIN-LAW-01",
@@ -21,7 +22,25 @@
       "overlay": "${BRAIN}/law.overlay.json",
       "installed": "${BRAIN}/state/law-installed.json",
       "output": "${BRAIN}/LAW.md",
-      "why": "PRIN-03, VCS-15: this brain's LAW.md is generated from the kit's law.json, this overlay and state/law-installed.json, which adopt writes. The route and subagent hooks hand sessions their law rows from this file. After a plugin update that changes the law, or a hand edit, it differs from a fresh build and this claim is RED until you rebuild it (the command is in the kit's tools/MANUAL.md). A missing state/law-installed.json is COULD-NOT-LOOK: run /design-first:adopt again, and attach mode writes it."
+      "why": "PRIN-03, VCS-15: this brain's LAW.md is generated from the kit's law.json, this overlay and state/law-installed.json, which adopt writes. The route and subagent hooks hand sessions their law rows from this file. After a plugin update that changes the law, or a hand edit, it differs from a fresh build and this claim is RED until you rebuild it (the command is in the kit's tools/MANUAL.md). A missing state/law-installed.json is COULD-NOT-LOOK: on the machine that adopted, run /design-first:adopt again, and attach mode writes it. A clone cannot run adopt: commit state/law-installed.json from the machine that adopted, then clone or pull again; a brain adopted before 0.3.0 first changes its .gitignore to the two lines 'state/*' and '!state/law-installed.json' by hand and commits both."
+    },
+    {
+      "id": "KIT-VENDOR-01",
+      "type": "tree_sha",
+      "path": "${ROOT}/.claude/kit/VERSION",
+      "why": "KIT-01: a repository runs only the kit it carries. adopt copied the kit's manifest (tools/vendor.json) into <root>/.claude/kit/ through tools/vendor.mjs and wrote VERSION with the sha256 over those files; this claim recomputes it through the same hooks/lib/kit-version.mjs the arming line reads. A vendored file edited, deleted or replaced by hand is a RED run until the copy is refreshed (node <kit>/tools/vendor.mjs -Target <root>). No VERSION at all is COULD-NOT-LOOK, never a pass: an adopt run with -Vendor false, or a copy taken away, stays visible until the kit is vendored. Under -Host cloud this ${ROOT} claim is SKIPPED: a cloud clone holds no root tree."
+    },
+    {
+      "id": "KIT-VENDOR-02",
+      "type": "tree_sha",
+      "path": "${BRAIN}/.claude/kit/VERSION",
+      "why": "KIT-01: this brain's own vendored copy is the bytes its VERSION names. adopt vendored the kit into <brain>/.claude/kit/ as well when the brain is a folder of its own (a separate clone, which a cloud session on it loads its hooks from); when the brain is the root, this is the root's copy. The claim recomputes the sha256 over the listed files through the same hooks/lib/kit-version.mjs the arming line reads. A ${BRAIN} path is not skipped under -Host cloud, so a cloud brain run (doctor.mjs -Scope brain -Host cloud) recomputes the copy, where KIT-VENDOR-01's ${ROOT} path is skipped. A vendored file edited, deleted or replaced by hand is a RED run until the copy is refreshed (node <kit>/tools/vendor.mjs -Target <brain>); no VERSION at all is COULD-NOT-LOOK, never a pass."
+    },
+    {
+      "id": "SETTINGS-BLOCK-01",
+      "type": "json_subset_equal",
+      "path": "${ROOT}/.claude/settings.json",
+      "why": "KIT-03: every hook registration is rendered from the kit's hooks/registry.json, never typed. adopt pointed this claim at the root settings file (settings.json, or settings.local.json under -SettingsScope personal) and filled `subset` with the hooks block tools/settings.mjs renders into that file (-Vendored -Host pc), so the file and the claim come from one render. A registration edited by hand, a settings file that lost the block, or one adopt kept as it was because it has a hooks key of its own, is a RED run: regenerate the file with node <kit>/tools/settings.mjs -Vendored -Host pc -Set <set> -Out <that file>, <set> being the one adopt rendered (pc unless -Settings named another; the merge keeps every other key and row of your own, and replaces the file's whole hooks key with the kit's, so move any hooks of your own to another settings file first). After a kit update that changes the registry, re-render the file the same way and refresh this subset from the render (a second adopt prints the diff). Copied without adopt it has no subset and is COULD-NOT-LOOK, never a pass. Under -Host cloud this ${ROOT} claim is SKIPPED."
     },
     {
       "id": "RATCHET-HONOUR-01",
@@ -36,11 +55,12 @@
       "path": "${BRAIN}/records/restore-drill.log",
       "maxDays": 90,
       "graceFromInstall": true,
-      "why": "VCS-06: a backup is not a backup until it is proven by a logged restore drill. Clone your brain's remote into a fresh folder, compare HEAD and the file count with the working copy, append one dated line to this log. No log, or a last line older than maxDays, is a RED run. graceFromInstall: the first drill is due maxDays after adopt, read from the write time of state/installed.json."
+      "why": "VCS-06: a backup is not a backup until it is proven by a logged restore drill. Clone your brain's remote into a fresh folder, compare HEAD and the file count with the working copy, append one dated line to this log. No log, or a last line older than maxDays, is a RED run. graceFromInstall: where adopt ran, the first drill is due maxDays after adopt, read from the write time of state/installed.json. A clone of this brain carries no state/installed.json (the .gitignore adopt writes keeps state/ out, except state/law-installed.json), so a clone gets no grace period: there this claim FAILs until a dated drill line is logged in records/restore-drill.log and committed."
     },
     {
       "id": "TOMBSTONE-01",
       "type": "config_paths_each",
+      "host": "pc",
       "configKey": "tombstonedPaths",
       "file": "TOMBSTONE.md",
       "contains": [
@@ -48,7 +68,7 @@
         "consumers:",
         "remove:"
       ],
-      "why": "VCS-12: every folder listed under tombstonedPaths in doctor.config.json holds a TOMBSTONE.md with status:, consumers: and remove: lines. A retired folder with no tombstone is a folder someone will delete while something still reads it. An empty list passes and says so."
+      "why": "VCS-12: every folder listed under tombstonedPaths in doctor.config.json holds a TOMBSTONE.md with status:, consumers: and remove: lines. A retired folder with no tombstone is a folder someone will delete while something still reads it. An empty list passes and says so. host pc: the listed paths are ${ROOT}-rooted, and a cloud clone (-Scope brain -Host cloud) has no root tree to read them in; without -Host it always runs."
     },
     {
       "id": "CTRL-CARD-01",

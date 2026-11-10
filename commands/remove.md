@@ -1,5 +1,5 @@
 ---
-description: Reverse what /design-first:adopt wrote. Deletes only unedited kit-written files and generated ones, keeps and lists everything you changed, removes the pointer.
+description: Reverse what /design-first:adopt wrote. Deletes only unedited kit-written files and generated ones, keeps and lists every other file you changed, removes the pointer.
 allowed-tools: AskUserQuestion, Bash(node *)
 ---
 

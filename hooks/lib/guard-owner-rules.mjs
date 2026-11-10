@@ -1,9 +1,9 @@
-// guard-owner-rules.mjs - guard rules 7-9, 13 and 14: the owner's standing prohibitions, as refusals.
+// guard-owner-rules.mjs - guard rules 7-9 and 13-15: the owner's standing prohibitions, and the kit's arming proof, as refusals.
 // Imported by guard.mjs after guard-rules.mjs. Split from guard-rules.mjs by domain (DES-03): rules
 // 1-6 guard secrets, history, frozen paths and the build method; rules 7-9, 13 and 14 guard the
 // owner's uncommitted work, their machine's start-up, the content bans their brain configures, their
 // machine's processor (no Python heredoc) and the processes other sessions run (no kill by name from
-// a writer).
+// a writer); rule 15 answers the arming probe (KIT-02), so a session can prove this guard loaded.
 // Each rule returns null (no opinion) or a deny object from newDeny.
 
 import { newDeny, toFullPath, isUnder, getLeaf, getExt, git, gitFirst, exists, isFile, iin, countMatches, ieq } from './common.mjs';
@@ -402,4 +402,47 @@ export function blanketKillRule(tokens, tool) {
         }
     }
     return null;
+}
+
+// ============================================================================ (15) selfcheck
+// anchor: selfcheck-armed  mode: deny  verbs: prove-armed
+// KIT-02 (0.3.0): the arming proof. A session's brief runs 'node .claude/kit/tools/selfcheck.mjs'
+// first. A loaded guard refuses that command with the reason 'ARMED <version> <sha>', the running
+// kit's version and the first twelve characters of its tree sha (hooks/lib/kit-version.mjs), so the
+// refusal itself proves the hooks loaded: a model can touch a marker file, it cannot produce a hook
+// decision (C2 gap 17). With no guard loaded the script runs, prints 'UNARMED: no guard saw this
+// call' and exits 2, and the brief says stop. Always on, brain or no brain, in every session role,
+// like rules 1-3 and 13. No marker is read and none is written: the answer comes from the tokens and
+// from the kit on disk alone.
+// Refused, after the prefixes rule 13 skips (&, NAME=value, env, command, exec, nohup, time): a
+// command word node or node.exe, by any path, whose next word ends in selfcheck.mjs by any path and
+// either slash. The reason is exactly 'ARMED <version> <sha>'; 'ARMED unknown unknown' when the kit
+// root or its version cannot be read (the refusal still proves the guard).
+// Not matched (the written residual): a node option between the two words (node --no-warnings
+// x/selfcheck.mjs), another runner (npx, deno, a package script), the words as quoted data (echo
+// "node selfcheck.mjs"), and the shell residual, a nested shell (bash -c "...", pwsh -c "...",
+// cmd /c "...") or a script on disk that runs it. In every unmatched form the script runs and prints
+// UNARMED, which is the safe side: a stop, never a false go.
+const SELFCHECK_RX = /(^|[\\/])selfcheck\.mjs$/i;
+
+function armedDeny(v) {
+    const version = v && v.version ? String(v.version) : 'unknown';
+    const sha = v && v.sha ? String(v.sha) : 'unknown';
+    return newDeny('guard', 'ARMED', `ARMED ${version} ${sha}`);
+}
+
+// tokens: one sub-command from splitCommand; versionOf: a function returning { version, sha } of the
+// running kit, the sha already shortened (guard.mjs builds it from lib/kit-version.mjs). It is called
+// only on a match, because it hashes the kit's tree. A null or a throw inside it reads as unknown
+// (guard.mjs logs the throw as an ERROR line before it returns null; the catch here is the lib's belt).
+export function selfcheckRule(tokens, versionOf) {
+    if (!tokens || tokens.length === 0) return null;
+    const i = commandWordAt(tokens);
+    if (i < 0 || i + 1 >= tokens.length) return null;
+    const leaf = getLeaf(tokens[i]);
+    if (!leaf || /\s/.test(leaf) || leaf.toLowerCase().replace(/\.exe$/, '') !== 'node') return null;
+    if (!SELFCHECK_RX.test(tokens[i + 1])) return null;
+    let v = null;
+    try { v = typeof versionOf === 'function' ? versionOf() : null; } catch { v = null; }
+    return armedDeny(v);
 }

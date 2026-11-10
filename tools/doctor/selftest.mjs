@@ -7,6 +7,7 @@
 // pointer location and the fence-log-absent case are all exercised without touching the real
 // machine), runs the Doctor several ways, deletes it all.
 //   node tools/doctor/selftest.mjs [-KeepTemp]
+// The host and scope runs (-Host pc|cloud, SKIPPED, -Scope brain) are in selftest-host.mjs, by subject.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -19,6 +20,8 @@ import { configCases } from './selftest-config.mjs';
 import { truthRuns } from './selftest-truth.mjs';
 import { lawRuns } from './selftest-law.mjs';
 import { codedWordRuns } from './selftest-words.mjs';
+import { hostRuns } from './selftest-host.mjs';
+import { treeSha } from '../../hooks/lib/kit-version.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const kitRoot = path.resolve(here, '..', '..');           // the real kit
@@ -30,11 +33,18 @@ let pass = 0; let fail = 0;
 
 const COLOR = process.stdout.isTTY && !process.env.NO_COLOR;
 const say = (s = '', code) => process.stdout.write((COLOR && code ? `\x1b[${code}m${s}\x1b[0m` : s) + '\n');
-const ok = (name) => { say(`  PASS  ${name}`, 32); pass++; };
-const bad = (name, why) => { say(`  FAIL  ${name}`, 31); say(`        ${why}`, 90); fail++; };
-const has = (name, out, needle) => (out.includes(needle) ? ok(name) : bad(name, `expected the output to contain: ${needle}`));
+// The red-expected count (0.3.0, tools/release.mjs reads it): a case whose expected value is a refusal
+// word (deny, denied, refused, block, blocked, red, missing, unarmed, exit 1, exit 2) or whose name
+// carries 'red:'. Here the expected value is an exit code (exitIs) or the needle the output must hold
+// (has); ok and bad read the name alone. A count, not a gate.
+let redExpected = 0;
+const RED_NAME_RX = /(^|[^a-z])red:/i;
+const RED_WORD_RX = /(^|[^a-z])(deny|denied|refused|blocked?|red|missing|unarmed|exit ?[12])([^a-z]|$)/i;
+const ok = (name) => { say(`  PASS  ${name}`, 32); pass++; if (RED_NAME_RX.test(name)) redExpected++; };
+const bad = (name, why) => { say(`  FAIL  ${name}`, 31); say(`        ${why}`, 90); fail++; if (RED_NAME_RX.test(name)) redExpected++; };
+const has = (name, out, needle) => { if (!RED_NAME_RX.test(name) && RED_WORD_RX.test(String(needle))) redExpected++; return out.includes(needle) ? ok(name) : bad(name, `expected the output to contain: ${needle}`); };
 const hasNot = (name, out, needle) => (out.includes(needle) ? bad(name, `output must NOT contain: ${needle}`) : ok(name));
-const exitIs = (name, actual, expected) => (actual === expected ? ok(`${name} (exit ${actual})`) : bad(name, `exit was ${actual}, expected ${expected}`));
+const exitIs = (name, actual, expected) => { if (!RED_NAME_RX.test(name) && (expected === 1 || expected === 2)) redExpected++; return actual === expected ? ok(`${name} (exit ${actual})`) : bad(name, `exit was ${actual}, expected ${expected}`); };
 const countIs = (name, out, needle, expected) => { const n = out.split(needle).length - 1; if (n === expected) ok(`${name} (${n}x)`); else bad(name, `expected '${needle}' ${expected} time(s), found ${n}`); };
 const W = (p, text) => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, text, 'utf8'); };
 const WJ = (p, obj) => W(p, JSON.stringify(obj, null, 2) + '\n');
@@ -85,7 +95,7 @@ const invokeDoctor = (args, home, pointer = '') => run(process.execPath, [doctor
 function copyDoctorInto(kitDir) {
     const d = newDir(jp(kitDir, 'tools', 'doctor'));
     for (const f of fs.readdirSync(here)) if (/\.mjs$/.test(f) && !/^selftest/.test(f)) fs.copyFileSync(path.join(here, f), path.join(d, f));
-    for (const rel of ['tools/lib/args.mjs', 'hooks/lib/common.mjs', 'hooks/lib/stdin.mjs', 'hooks/lib/json.mjs']) {
+    for (const rel of ['tools/lib/args.mjs', 'hooks/lib/common.mjs', 'hooks/lib/stdin.mjs', 'hooks/lib/json.mjs', 'hooks/lib/kit-version.mjs']) {
         const to = jp(kitDir, rel); newDir(path.dirname(to)); fs.copyFileSync(jp(kitRoot, rel), to);
     }
     return d;
@@ -104,6 +114,12 @@ try {
     newTestRepo(root, 'unbacked');
     const foreign = newTestRepo(root, 'foreign'); git(foreign, ['remote', 'add', 'origin', 'https://github.com/someone-else/thing.git']);
     const owned = newTestRepo(root, 'ownedrepo'); git(owned, ['remote', 'add', 'origin', 'https://github.com/test-owner/ownedrepo.git']);
+    // ownedrepo pushed once to a bare upstream under T (outside root, so it is not surveyed) and then
+    // committed again: one commit ahead of its upstream, which the survey reports as unpushed
+    // (survey-unpushed, 0.3.0 red-expected map). origin stays the owner's remote.
+    const upstream = newDir(jp(T, 'upstream', 'ownedrepo.git')); git(upstream, ['init', '-q', '--bare']);
+    git(owned, ['remote', 'add', 'upstream', upstream]); git(owned, ['push', '-q', '-u', 'upstream', 'HEAD']);
+    W(path.join(owned, 'later.txt'), 'one commit ahead of the upstream\n'); git(owned, ['add', '-A']); git(owned, ['commit', '-q', '-m', 'ahead']);
     const shallow = newTestRepo(root, 'shallowrepo'); W(jp(shallow, '.git', 'shallow'), '0000000000000000000000000000000000000000\n');
     const frozen = newTestRepo(root, 'frozenref'); W(path.join(frozen, 'drift.txt'), 'someone edited a frozen thing\n');
     const leaky = newTestRepo(root, 'leaky'); W(path.join(leaky, '.env'), 'TOKEN=abc123\n'); git(leaky, ['add', '-A', '-f']); git(leaky, ['commit', '-q', '-m', 'oops']);
@@ -190,6 +206,9 @@ try {
     W(jp(brain, 'records', 'restore-stale.log'), `${old} restore-drill PASS old\n`);
     W(jp(brain, 'records', 'restore-undated.log'), 'no date here\n');
     W(jp(brain, 'state', 'installed.json'), '{ "schema": 1, "files": [] }\n');   // adopt date for graceFromInstall
+    // line_count fixtures (0.3.0): 60 lines with CRLF endings and 61 with LF; the claim counts lines, not bytes.
+    W(path.join(brain, 'lines-60.md'), Array.from({ length: 60 }, (_, i) => `line ${i + 1}`).join('\r\n') + '\r\n');
+    W(path.join(brain, 'lines-61.md'), Array.from({ length: 61 }, (_, i) => `line ${i + 1}`).join('\n') + '\n');
     // config_paths_each fixtures (VCS-12): a tombstoned folder with a full tombstone, one with a thin one, one with none
     W(jp(root, 'tomb-ok', 'TOMBSTONE.md'), 'status: retired\nconsumers: the desk reads it\nremove: the owner, after the desk moves\n');
     W(jp(root, 'tomb-thin', 'TOMBSTONE.md'), 'status: retired\n');
@@ -263,6 +282,17 @@ const lines = ['# LAW (test)', ...(j.clauses || []).map((c) => '- ' + c.id)];
 if (opt.overlay) lines.push('- overlay: ' + path.basename(opt.overlay));
 fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
 `);
+    // A stand-in generator for the claim's args field (0.3.0, KIT-SETTINGS-01): it writes the words it got before
+    // -Source, then the source, so an output planted with the words a claim names matches only when the Doctor passed
+    // them, in order, before -Source. gen-args-none.txt is the render with no words at all.
+    W(jp(kit, 'tools', 'gen-args.mjs'), `import fs from 'node:fs';
+const a = process.argv.slice(2); const at = (f) => a.indexOf(f);
+const before = at('-Source') < 0 ? a : a.slice(0, at('-Source'));
+fs.writeFileSync(a[at('-Out') + 1], 'args before -Source: ' + before.join(' ') + '\\n' + fs.readFileSync(a[at('-Source') + 1], 'utf8'));
+`);
+    W(jp(kit, 'gen-args-src.txt'), 'the registry rows\n');
+    W(jp(kit, 'gen-args-out.txt'), 'args before -Source: -Vendored -Set cloud-brain\nthe registry rows\n');
+    W(jp(kit, 'gen-args-none.txt'), 'args before -Source: \nthe registry rows\n');
     WJ(path.join(kit, 'law.json'), { schema: 1, clauses: [{ id: 'A-01' }, { id: 'A-02' }] });
     WJ(path.join(kit, 'law-fail.json'), { fail: true });
     W(path.join(kit, 'LAW.md'), '# LAW (test)\r\n- A-01\r\n- A-02\r\n');       // CRLF copy of the LF output: must PASS
@@ -278,6 +308,12 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
     W(jp(kit, 'leak-bad', 'notes.md'), `written by ${first} alone\n`);
     W(jp(kit, 'leak-span', 'README.md'), `Author: ${slug}\n`);
     W(jp(kit, 'leak-span', 'other.md'), `also ${slug} here\n`);
+    // An exclude folder (0.3.0, KIT-LEAK-01): a vendored copy under .claude/kit/ repeats the claim's own
+    // word list, and a worktree under .claude/worktrees/ is another checkout; both are named in the
+    // claim's exclude and never scanned. A dot folder the exclude does not name IS scanned (F-TREE-DOT).
+    W(jp(kit, 'leak-excl', 'README.md'), 'clean\n');
+    W(jp(kit, 'leak-excl', '.claude', 'kit', 'tools', 'doctor', 'claims.json'), `{ "words": ["${first}"] }\n`);
+    W(jp(kit, 'leak-excl', '.claude', 'worktrees', 'wt1', 'notes.md'), `written by ${slug}\n`);
     // Equal trees. a and b: same files, one differing only by CRLF, one excluded file that differs.
     // c: one edited file and one extra file. d: a folder that does not exist.
     W(jp(kit, 'eq-a', 'notes.md'), 'line one\nline two\n');
@@ -289,6 +325,23 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
     W(jp(kit, 'eq-c', 'notes.md'), 'line one\nline two (edited)\n');
     W(jp(kit, 'eq-c', 'sub', 'x.json'), '{ "a": 1 }\n');
     W(jp(kit, 'eq-c', 'extra.md'), 'only here\n');
+    // tree_sha fixtures (0.3.0, KIT-VENDOR-01): a vendored-looking tree under the VERSION the vendor tool writes
+    // (sha over the listed files, CRLF read as LF, from the shared hooks/lib/kit-version.mjs). ok: as written,
+    // then one file rewritten with CRLF, which must still pass. bad: one byte flipped under the same VERSION.
+    // gone: a listed file deleted. none: no VERSION at all. broken: a VERSION that is not the shape.
+    const vendFiles = { 'hooks/a.mjs': 'export const a = 1;\n', 'law.json': '{ "schema": 1 }\n', 'sub/b.txt': 'b\n' };
+    const plantVend = (name) => { for (const [rel, text] of Object.entries(vendFiles)) W(jp(kit, name, rel), text); return path.join(kit, name); };
+    const vendOk = plantVend('vend-ok');
+    const vendVersion = { version: '0.3.0-test', sha256: treeSha(vendOk, Object.keys(vendFiles)), files: Object.keys(vendFiles).sort(), at: '2026-01-01T00:00:00Z' };
+    WJ(path.join(vendOk, 'VERSION'), vendVersion);
+    W(path.join(vendOk, 'law.json'), '{ "schema": 1 }\r\n');
+    const vendBad = plantVend('vend-bad'); W(jp(vendBad, 'hooks', 'a.mjs'), 'export const a = 2;\n'); WJ(path.join(vendBad, 'VERSION'), vendVersion);
+    const vendGone = plantVend('vend-gone'); fs.rmSync(jp(vendGone, 'sub', 'b.txt')); WJ(path.join(vendGone, 'VERSION'), vendVersion);
+    plantVend('vend-none');
+    const vendBroken = plantVend('vend-broken'); W(path.join(vendBroken, 'VERSION'), '{ "version": "0.3.0-test" }\n');
+    // empty: a VERSION whose files list is empty, its sha the sha of nothing: it proves nothing, so the claim
+    // is unknown, never a pass (review finding 14; red first: PASS 'version 0.3.0-test, 0 files').
+    const vendEmpty = plantVend('vend-empty'); WJ(path.join(vendEmpty, 'VERSION'), { ...vendVersion, sha256: treeSha(vendEmpty, []), files: [] });
     snapshotFixture(t);   // selftest-snapshot.mjs: the snap tree, its snapshot by the real writer, then the changes
     // The Doctor itself, copied in, so -Kit resolves ${KIT} to this sandbox and reads its claims.
     const kitDoctor = copyDoctorInto(kit);
@@ -326,7 +379,9 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
         { id: 'T-JSON', type: 'json_subset_equal', path: '${ROOT}/.claude/settings.json', subset: subsetOk, why: 't' },
         { id: 'T-KEYED', type: 'json_keyed_match', path: 'vectors-a.json', other: '${BRAIN}/vectors-b.json', collection: 'vectors.cases', key: 'id', why: 't' },
         { id: 'T-GEN', type: 'generated_matches', generator: 'tools/law/build-law.mjs', source: '${KIT}/law.json', output: '${KIT}/LAW.md', why: 't' },
+        { id: 'T-GEN-ARGS', type: 'generated_matches', generator: 'tools/gen-args.mjs', args: ['-Vendored', '-Set', 'cloud-brain'], source: '${KIT}/gen-args-src.txt', output: '${KIT}/gen-args-out.txt', why: 't' },
         { id: 'T-TREE', type: 'tree_free_of', root: '${KIT}/leak-ok', words: leakWords, extensions: leakExt, exclude: ['LICENSE'], allow: leakAllow, why: 't' },
+        { id: 'T-TREE-EXCL', type: 'tree_free_of', root: '${KIT}/leak-excl', words: leakWords, extensions: leakExt, exclude: ['LICENSE', '.claude/kit', '.claude/worktrees'], allow: leakAllow, why: 't' },
         { id: 'T-TREEEQ', type: 'tree_equals', path: '${KIT}/eq-a', other: '${KIT}/eq-b', exclude: ['skip.txt'], why: 't' },
         { id: 'T-TREEEQ-SAME', type: 'tree_equals', path: '${KIT}/eq-a', other: '${KIT}/eq-a', why: 't' },
         { id: 'T-SCAN', type: 'tree_each', root: '${ROOT}/scan', depth: 1, where: { anyOf: ['tool.marker'] }, require: [{ file: 'DECISIONS.md' }, { file: 'ARCHITECTURE.md' }], since: '2026-01-01', accepted: [{ path: 'scan/acc', reason: 'planted', since: '2026-01-01' }], why: 't' },
@@ -341,6 +396,8 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
         { id: 'T-SMOKE-START', type: 'hook_smoke', hook: 'good-entry', event: 'SessionStart', why: 't' },
         { id: 'T-POINTER', type: 'pointer_valid', why: 't' },
         { id: 'T-SCHEMA', type: 'config_schema', path: 'doctor.config.json', expected: 1, why: 't' },
+        { id: 'T-TREESHA', type: 'tree_sha', path: '${KIT}/vend-ok/VERSION', why: 't' },
+        { id: 'T-LINES', type: 'line_count', path: 'lines-60.md', max: 60, why: 't' },
         ...snapTrue];
     const falseClaims = [
         { id: 'F-PATH', type: 'path_exists', path: '${BRAIN}/nope.md', why: 'f' },
@@ -362,8 +419,10 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
         { id: 'F-KEYED', type: 'json_keyed_match', path: 'vectors-a.json', other: 'vectors-c.json', collection: 'vectors.cases', key: 'id', why: 'f' },
         { id: 'F-KEYED-ALL', type: 'json_keyed_match', path: 'vectors-a.json', other: 'vectors-b.json', collection: 'vectors.cases', key: 'id', requireAll: true, why: 'f' },
         { id: 'F-GEN', type: 'generated_matches', generator: 'tools/law/build-law.mjs', source: '${KIT}/law.json', output: '${KIT}/LAW-drift.md', why: 'f' },
+        { id: 'F-GEN-ARGS', type: 'generated_matches', generator: 'tools/gen-args.mjs', args: ['-Plugin'], source: '${KIT}/gen-args-src.txt', output: '${KIT}/gen-args-out.txt', why: 'f' },
         { id: 'F-TREE', type: 'tree_free_of', root: '${KIT}/leak-bad', words: leakWords, extensions: leakExt, exclude: ['LICENSE'], allow: leakAllow, why: 'f' },
         { id: 'F-TREE-SPAN', type: 'tree_free_of', root: '${KIT}/leak-span', words: leakWords, extensions: leakExt, exclude: ['LICENSE'], allow: leakAllow, why: 'f' },
+        { id: 'F-TREE-DOT', type: 'tree_free_of', root: '${KIT}/leak-excl', words: leakWords, extensions: leakExt, exclude: ['LICENSE', '.claude/kit'], allow: leakAllow, why: 'f' },
         { id: 'F-TREEEQ', type: 'tree_equals', path: '${KIT}/eq-a', other: '${KIT}/eq-c', exclude: ['skip.txt'], why: 'f' },
         { id: 'F-TREEEQ-SKIP', type: 'tree_equals', path: '${KIT}/eq-a', other: '${KIT}/eq-b', why: 'f' },
         { id: 'F-SCAN', type: 'tree_each', root: '${ROOT}/scan', depth: 1, require: [{ file: 'DECISIONS.md' }, { file: 'ARCHITECTURE.md' }], since: '2026-01-01', accepted: [{ path: 'scan/acc', reason: 'planted', since: '2026-01-01' }], why: 'f' },
@@ -378,9 +437,15 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
         { id: 'F-SMOKE-GONE', type: 'hook_smoke', hook: 'gone-guard', event: 'PreToolUse', why: 'f' },
         { id: 'F-SMOKE-START', type: 'hook_smoke', hook: 'bad-entry', event: 'SessionStart', why: 'f' },
         { id: 'F-SCHEMA', type: 'config_schema', path: 'config-old.json', expected: 1, why: 'f' },
+        { id: 'F-TREESHA', type: 'tree_sha', path: '${KIT}/vend-bad/VERSION', why: 'f' },
+        { id: 'F-TREESHA-GONE', type: 'tree_sha', path: '${KIT}/vend-gone/VERSION', why: 'f' },
+        { id: 'F-LINES', type: 'line_count', path: '${BRAIN}/lines-61.md', max: 60, why: 'f' },
         ...snapFalse];
     const unknownClaims = [
         { id: 'U-GEN', type: 'generated_matches', generator: 'tools/law/build-law.mjs', source: '${KIT}/law-fail.json', output: '${KIT}/LAW.md', why: 'u' },
+        // args that are not a list of strings: never dropped. Dropped, the generator renders with no words, which is the
+        // planted output, and the claim would PASS on a field it never read (red first: PASS).
+        { id: 'U-GEN-ARGS', type: 'generated_matches', generator: 'tools/gen-args.mjs', args: '-Vendored', source: '${KIT}/gen-args-src.txt', output: '${KIT}/gen-args-none.txt', why: 'u' },
         { id: 'U-CONTAINS', type: 'file_contains', path: '${BRAIN}/missing.md', needle: 'x', why: 'u' },
         { id: 'U-FRESH', type: 'file_fresh', path: '${BRAIN}/records/restore-fresh.log', maxDays: 0, why: 'u' },
         { id: 'U-TOMB', type: 'config_paths_each', configKey: 'noSuchKey', file: 'TOMBSTONE.md', contains: ['status:'], why: 'u' },
@@ -396,6 +461,11 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
         { id: 'U-RATCHET-HEAD', type: 'ratchet', path: 'law-count.md', row: 'HONOUR', heading: 'Missing', why: 'u' },
         { id: 'U-RATCHET-REASON', type: 'ratchet', path: 'law-count.md', row: 'HONOUR', accepted: { value: 26, since: '2026-10-01' }, why: 'u' },
         { id: 'U-TYPE', type: 'bogus_type', why: 'u' },
+        { id: 'U-TREESHA', type: 'tree_sha', path: '${KIT}/vend-none/VERSION', why: 'u' },
+        { id: 'U-TREESHA-BROKEN', type: 'tree_sha', path: '${KIT}/vend-broken/VERSION', why: 'u' },
+        { id: 'U-TREESHA-EMPTY', type: 'tree_sha', path: '${KIT}/vend-empty/VERSION', why: 'u' },
+        { id: 'U-LINES', type: 'line_count', path: 'no-such-lines.md', max: 60, why: 'u' },
+        { id: 'U-LINES-MAX', type: 'line_count', path: 'lines-60.md', max: 0, why: 'u' },
         ...snapUnknown];
     WJ(path.join(brain, 'claims.json'), { schema: 1, claims: trueClaims });
     WJ(path.join(brain, 'claims-false.json'), { schema: 1, claims: falseClaims });
@@ -410,6 +480,10 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
     has('A: foreign remote accepted, still shown', a.out, 'FOREIGN remote: foreign');
     has('A: accepted marker', a.out, '[accepted 2026-01-01: vendored, planted]');
     has('A: shallow clone', a.out, 'SHALLOW clone: shallowrepo');
+    // The two survey warns (0.3.0 red-expected map): ownedrepo is one commit ahead of the upstream it
+    // pushed to; unbacked has a commit and no .gitattributes. A warn is reported, never RED (DES-09).
+    has('A: commits ahead of the upstream are reported as unpushed', a.out, '1 commits unpushed: ownedrepo');
+    has('A: a repository with commits and no .gitattributes is reported', a.out, 'no .gitattributes: unbacked');
     has('A: frozen reference moved (${ROOT}-relative frozenPaths)', a.out, 'frozen reference has MOVED: frozenref');
     has('A: tracked .env', a.out, 'tracked .env: leaky');
     countIs('A: worktree parent secret reported ONCE, not once per worktree', a.out, 'tracked .env: wtmain/.env', 1);
@@ -437,7 +511,9 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
     has('A: soft_deny counted against frozenPaths', a.out, 'soft_deny: 2 rule(s), 1 naming a frozen path');
     has('A: registered-but-missing hook', a.out, 'hook REGISTERED BUT MISSING');
     has('A: deny/ask rules read from root settings', a.out, 'root settings: 1 deny, 1 ask');
-    has('A: every true claim holds (emptyOk: nothing selected is a pass that says so)', a.out, 'CLAIMS  33 pass  0 fail  0 could not look');
+    has('A: every true claim holds (emptyOk: nothing selected is a pass that says so)', a.out, 'CLAIMS  37 pass  0 fail  0 could not look');
+    hasNot('A: generated_matches passes its args to the generator before -Source, in order (no FAIL or could-not-look line names T-GEN-ARGS)', a.out, 'T-GEN-ARGS');
+    hasNot('A: tree_free_of never scans a planted exclude folder (.claude/kit, .claude/worktrees under leak-excl)', a.out, 'FAIL  T-TREE-EXCL');
     hasNot('A: no COULD-NOT-LOOK band', a.out, 'COULD-NOT-LOOK');
     has('A: ratchet with no record says the baseline was recorded', a.out, 'ratchet T-RATCHET-NEW: baseline recorded, HONOUR = 26');
     has('A: ratchet reads the row under its heading, and reports a fall', a.out, 'ratchet T-RATCHET-FALL: HONOUR fell from 30 to 26');
@@ -468,6 +544,7 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
     has('C: config_schema mismatch says MIGRATE', c.out, 'MIGRATE:');
     has('C: span rule - slug outside the allow table trips', c.out, `other.md:1 "${slug}"`);
     has('C: bare name trips', c.out, `notes.md:1 "${first}"`);
+    has('C: tree_free_of scans a dot folder the exclude does not name (.claude/worktrees beside an excluded .claude/kit)', c.out, `F-TREE-DOT  1 hit(s) in ${jp(kit, 'leak-excl')}: .claude/worktrees/wt1/notes.md:1 "${slug}"`);
     has('C: generated_matches names the first differing byte', c.out, 'first difference at byte');
     has('C: json_keyed_match names the differing key and field', c.out, "F-KEYED  key 'id' = '2' differs: $.out.legs[0] is '4' vs '5'");
     has('C: json_keyed_match requireAll names the missing key', c.out, 'F-KEYED-ALL  requireAll: 1 key(s) in');
@@ -483,6 +560,9 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
     has('C: tree_rules counts a bare except', c.out, 'bare-except: src/app.py:4');
     has('C: tree_rules without allowOnLine counts the commented exception', c.out, 'F-RULES-NOALLOW  1 of 1');
     hasNot('C: tree_rules does not touch the token file', c.out, 'tokens.css');
+    has('C: tree_sha names the mismatch and the file count (a flipped byte under VERSION)', c.out, 'F-TREESHA  sha differs; 3 files listed');
+    has('C: tree_sha names a listed file that is gone', c.out, 'F-TREESHA-GONE  tree file missing: sub/b.txt; 3 files listed');
+    has('C: line_count names the count and the ceiling (61 lines under max 60)', c.out, 'F-LINES  61 lines, max 60');
     has('C: file_fresh names a stale drill with its age', c.out, 'F-FRESH-STALE  last dated line');
     has('C: file_fresh with no log is a fail, not unknown (nothing proved)', c.out, 'F-FRESH-NONE  no file at');
     has('C: file_fresh with no dated line is a fail', c.out, 'F-FRESH-UNDATED  no dated line');
@@ -511,6 +591,7 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
     exitIs('D: could-not-look is exit 2', d.code, 2);
     has('D: band printed', d.out, 'COULD-NOT-LOOK');
     has('D: generator exit 1 is could-not-look, not RED', d.out, 'U-GEN  generator exited 1');
+    has('D: generated_matches args that are not a list of strings is unknown, never dropped', d.out, "????  U-GEN-ARGS  'args' must be a list of strings");
     has('D: missing file for file_contains is unknown', d.out, '????  U-CONTAINS');
     has('D: file_fresh with maxDays 0 is unknown', d.out, "????  U-FRESH  'maxDays' must be a positive integer");
     has('D: config_paths_each with an absent config key is unknown', d.out, "????  U-TOMB  config key 'noSuchKey'");
@@ -526,6 +607,11 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
     has('D: ratchet with no such heading is unknown', d.out, "????  U-RATCHET-HEAD  heading 'Missing' not found");
     has('D: ratchet with an unsigned accepted entry is unknown', d.out, '????  U-RATCHET-REASON  accepted has no reason');
     has('D: unknown type is unknown', d.out, "unknown claim type 'bogus_type'");
+    has('D: tree_sha with no VERSION is unknown, never a pass', d.out, '????  U-TREESHA  VERSION missing or unparseable');
+    has('D: tree_sha with a VERSION that is not the shape is unknown', d.out, '????  U-TREESHA-BROKEN  VERSION missing or unparseable');
+    has('D: tree_sha with a VERSION that lists no file is unknown, never a pass', d.out, '????  U-TREESHA-EMPTY  VERSION names no file; nothing to prove');
+    has('D: line_count with a missing file is unknown', d.out, '????  U-LINES  file missing');
+    has('D: line_count with max 0 is unknown', d.out, "????  U-LINES-MAX  'max' must be a positive integer");
     hasNot('D: never GREEN', d.out, 'GREEN');
     assertSnapshotRuns(t, a, c, d);   // selftest-snapshot.mjs
 
@@ -596,6 +682,7 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
     has('I: with no since, a 2019 stray is a fail like any other', i.out, 'outside a category folder: oldstray - a project lives at');
     hasNot('I: with no since there is no backlog line', i.out, 'predate the ratchet');
 
+    hostRuns(t);    // run S (-Host pc|cloud and the SKIPPED status) and run V (-Scope brain with no pointer), 0.3.0
     truthRuns(t);   // run X (a crash is could-not-look) and run K (every registered hook is smoked), CR-2026-10-15-GAPS D6
     lawRuns(t);     // run L (the law build: the ADVISE legend, an unregistered hook) and run M (the docs build accepts DENY)
     codedWordRuns(t);   // run W (a word in letter codes, planted against the shipped leak claim)
@@ -608,5 +695,6 @@ fs.writeFileSync(opt.out, lines.join('\\n') + '\\n');
 
 say();
 say(`  ${pass} passed, ${fail} failed`, fail === 0 ? 32 : 31);
+say(`  red-expected: ${redExpected}`);
 say();
 process.exitCode = fail > 0 ? 1 : 0;

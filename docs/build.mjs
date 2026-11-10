@@ -263,7 +263,9 @@ const clauseIds = new Set(clauses.map((c) => String(c.id)));
 const linkIds = (html) => html.replace(/\b([A-Z]+-\d{2})\b/g, (m) => (clauseIds.has(m) ? `<a href="#${m}">${m}</a>` : m));
 const method = linkIds(mdNumbered(section(readme, 'The method, on one page')));
 // The template's own drawings and prose may cite clause ids; one that has left the law fails the build.
-const typedIds = [...new Set([...template.matchAll(/\b(SAFE|PRIN|OWN|DES|GATE|AUTO|VCS|OBS|WEB|GAME|DISP|SKIN|VOICE|MAP)-\d{2}\b/g)].map((m) => m[0]))];
+// The group prefixes are enumerated, as in tools/tests/cases-loops.mjs: a prefix this pattern does not
+// name is never read, so a new group in law.json is added here (STACK, CTRL and KIT since 0.3.0).
+const typedIds = [...new Set([...template.matchAll(/\b(SAFE|PRIN|OWN|DES|GATE|AUTO|VCS|OBS|WEB|GAME|DISP|SKIN|VOICE|MAP|STACK|CTRL|KIT)-\d{2}\b/g)].map((m) => m[0]))];
 const unknownIds = typedIds.filter((x) => !clauseIds.has(x));
 if (unknownIds.length) fail(`template cites a clause id that is not in law.json: ${unknownIds.join(', ')}`);
 
@@ -302,7 +304,9 @@ function transcript(name) {
         let cls = 'ln';
         if (/^\s*(wrote|git|law)\s|\[ ok \]/i.test(l)) cls += ' ok';
         if (/FAIL\s|\[WARN\]|RED/i.test(l)) cls += ' bad';
-        if (/VERDICT: GREEN|every claim holds|nothing needs action/i.test(l)) cls += ' good';
+        // The Doctor's green line reads 'every claim holds', or since 0.3.0 'every claim that ran holds
+        // (N skipped, not counted)' when a claim was SKIPPED for the host (tools/doctor/report.mjs).
+        if (/VERDICT: GREEN|every claim (that ran )?holds|nothing needs action/i.test(l)) cls += ' good';
         if (/^\S/.test(l) && /^[a-z]+$/i.test(l)) cls += ' hd';
         return `<span class="${cls}">${esc(l)}</span>`;
     });

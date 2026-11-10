@@ -33,8 +33,9 @@
 //
 // Off per role (0.2.11, CR-2026-10-21-COMMAND STOP-1, the owner's "ship the kit"): the brain config
 // key stopCard { owner, writer } turns the card off for a session role; the role is the one the
-// router wrote in <session>.role on the first prompt (writer = a brief with a line-start
-// "Reports to:", else owner; no file reads as owner). Off means no card and no block: the turn
+// router wrote in <session>.role on the first prompt (writer = a line-start "Role: writer", or a
+// line-start "Reports to:" with no "Role:" line; else owner; no file reads as owner; the router
+// decides again when the mark is gone, 0.3.0). Off means no card and no block: the turn
 // ends, one INFO line goes to the hooks log, and the notices about a short count still reach the
 // owner as a systemMessage. Both default to on, so an adopter who never set the key sees no change.
 //
@@ -80,7 +81,11 @@ try {
     };
 
     let j = null;
-    if (raw.trim()) { try { j = JSON.parse(raw); } catch { j = null; } }
+    let notJson = null;   // a payload that does not parse: its first 80 characters, logged once this copy decides (below)
+    if (raw.trim()) { try { j = JSON.parse(raw); } catch { j = null; notJson = raw.trim().slice(0, 80); } }
+    C.setMarkerDir(j);                                                // markers and logs under the host's scratchpad_dir when given (0.3.0)
+    if (C.yieldToPlugin('stop', import.meta.url)) process.exit(0);    // the yield rule: a vendored copy steps aside for the plugin (0.3.0)
+    if (notJson != null) C.writeLog('ERROR', 'stop', `payload is not JSON: ${notJson}`);   // read as no payload, never in silence
     const sessionId = j && j.session_id ? String(j.session_id) : 'unknown';
     const active = Boolean(j && j.stop_hook_active);
 
@@ -103,7 +108,10 @@ try {
         const ptr = C.readPointer();
         let cfg = C.defaultBrainConfig();
         cfg.readCeilingBytes = 0;
-        try { cfg = C.readBrainConfig(ptr); } catch { /* defaults */ }
+        // A config that cannot be read (not JSON, not a JSON object, an extract with no values object) keeps the
+        // defaults, and the log says why: the card still comes, never silence over the brain's own keys.
+        try { cfg = C.readBrainConfig(ptr); }
+        catch (e) { C.writeLog('WARN', 'stop', `brain config unreadable, the defaults apply: ${e && e.source === 'extract' ? `extract unreadable: ${e.detail || e.message}` : e && e.message ? e.message : e}`); }
         // stopCard (0.2.11): the card is off for this session's role. Nothing is read from git, so the
         // short-count notices cannot be built either; the guard-error note still goes to the owner.
         const role = L.isWriterSession(sessionId) ? 'writer' : 'owner';

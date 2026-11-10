@@ -189,6 +189,8 @@ try {
     const raw = C.readStdin();
     if (C.isBlank(raw)) throw new Error('empty stdin (no tool call payload)');
     const j = JSON.parse(raw);
+    C.setMarkerDir(j);                                                 // markers and logs under the host's scratchpad_dir when given (0.3.0)
+    if (C.yieldToPlugin('fence', import.meta.url)) process.exit(0);    // the yield rule: a vendored copy steps aside for the plugin (0.3.0)
     const tool = C.str(j.tool_name);
     const ti = j.tool_input;
     if (ti == null) throw new Error(`payload has no tool_input (tool_name='${tool}')`);

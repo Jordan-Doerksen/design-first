@@ -72,9 +72,34 @@ function doctorConfig(templatePath, gitHubOwners, frozenPaths, snapshotPairs) {
     return JSON.stringify(cfg, null, 2) + '\n';
 }
 
+// The brain claims.json (0.3.0, KIT-03): the template as it is, except that SETTINGS-BLOCK-01 is
+// pointed at the settings file adopt writes (settings.json, or settings.local.json under
+// -SettingsScope personal) and, when the render is given, carries that render's hooks block as the
+// `subset` the Doctor compares with the file, so the claim and the file come from one render and
+// never from a typed copy. Without a render the claim ships as the template has it, with no subset:
+// the Doctor then says COULD-NOT-LOOK rather than pass a block it never saw.
+function claimsJson(templatePath, settingsTarget, settingsHooks) {
+    const doc = readJson(templatePath);
+    const list = Array.isArray(doc.claims) ? doc.claims : [];
+    const i = list.findIndex((c) => c != null && c.id === 'SETTINGS-BLOCK-01');
+    if (i >= 0) {
+        const filled = {};
+        for (const [k, v] of Object.entries(list[i])) {
+            if (k === 'subset') continue;
+            filled[k] = k === 'path' ? '${ROOT}/.claude/' + path.basename(settingsTarget) : v;
+            if (k === 'path' && settingsHooks != null) filled.subset = { hooks: settingsHooks };
+        }
+        list[i] = filled;
+    }
+    return JSON.stringify(doc, null, 2) + '\n';
+}
+
 // Every file adopt writes except LAW.md (generated afterwards), the snapshots (byte copies of live
-// files, taken after the writes) and the pointer (outside root and brain).
-export function newPlan({ kit, root, brain, ownerName, gitHubOwners, frozenPaths, settingsTarget, snapshotPairs, brainIsRepo, today }) {
+// files, taken after the writes), the vendored kit (tools/vendor.mjs) and the pointer (outside root
+// and brain). settingsText is the settings file as tools/settings.mjs renders it (the permissions set
+// and the vendored hooks block); without it the settings file is the pc template alone. settingsHooks
+// is that render's hooks object, the subset of SETTINGS-BLOCK-01.
+export function newPlan({ kit, root, brain, ownerName, gitHubOwners, frozenPaths, settingsTarget, snapshotPairs, brainIsRepo, today, settingsText, settingsHooks }) {
     const tpl = path.join(kit, 'templates');
     const tokens = {
         OWNER_NAME: ownerName, ROOT: root, BRAIN: brain,
@@ -89,7 +114,7 @@ export function newPlan({ kit, root, brain, ownerName, gitHubOwners, frozenPaths
 
     // root
     add(path.join(root, 'CLAUDE.md'), fill('root-CLAUDE.md'), 'entry point; prohibitions in full');
-    add(settingsTarget, copy('root-settings.json'), 'kit deny/ask rules (SPEC 5.8)');
+    add(settingsTarget, settingsText != null ? String(settingsText) : copy('root-settings.json'), 'kit deny/ask rules (SPEC 5.8); with the vendored kit, the hooks block rendered by tools/settings.mjs (0.3.0)');
 
     // brain, personal layer
     add(path.join(brain, 'me.md'), fill('me.md'), 'who the owner is; owner.name feeds the guard');
@@ -104,7 +129,7 @@ export function newPlan({ kit, root, brain, ownerName, gitHubOwners, frozenPaths
     add(path.join(brain, 'ARCHITECTURE.md'), fill('brain-ARCHITECTURE.md'), "the brain's own map (DES-01)");
 
     // brain, Doctor contract
-    add(path.join(brain, 'claims.json'), copy('claims.json'), 'claims; BRAIN-POINTER-01');
+    add(path.join(brain, 'claims.json'), claimsJson(path.join(tpl, 'claims.json'), settingsTarget, settingsHooks), 'claims; BRAIN-POINTER-01, KIT-VENDOR-01, KIT-VENDOR-02, SETTINGS-BLOCK-01');
     add(path.join(brain, 'doctor.config.json'), doctorConfig(path.join(tpl, 'doctor.config.json'), gitHubOwners, frozenPaths, snapshotPairs), 'Doctor config; owners, frozen paths, snapshot pairs filled');
     add(path.join(brain, 'entry.json'), copy('entry.json'), 'the entry path');
     add(path.join(brain, 'agent-policy.json'), copy('agent-policy.json'), 'subagent brief contract, model routes, spawn cap (DES-11)');
@@ -115,7 +140,9 @@ export function newPlan({ kit, root, brain, ownerName, gitHubOwners, frozenPaths
 
     if (brainIsRepo) {
         add(path.join(brain, '.gitattributes'), copy('gitattributes'), 'the repo decides its bytes, not core.autocrlf');
-        add(path.join(brain, '.gitignore'), 'state/\n', 'state/ is generated (installed.json, heartbeat, Doctor output)');
+        // state/* and a ! line, never state/: git cannot take a file back out of an ignored folder, and a clone
+        // of the brain needs the law build's installed input for BRAIN-LAW-01 (review finding 4).
+        add(path.join(brain, '.gitignore'), 'state/*\n!state/law-installed.json\n', "state/ is generated (installed.json, heartbeat, Doctor output), except the law build's installed input (state/law-installed.json holds hook names and two flags, no path), which a clone needs for BRAIN-LAW-01");
     }
     return plan;
 }

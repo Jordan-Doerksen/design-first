@@ -1,0 +1,277 @@
+{
+  "schema": 1,
+  "_comment": "The KIT's own claims, run by `doctor.mjs -Kit`. ${KIT} is this checkout; relative paths are kit-relative. These are facts about the kit tree, never about any adopter's disk. Type reference: SPEC 5.2 / tools/MANUAL.md.",
+  "claims": [
+    {
+      "id": "KIT-LAW-01",
+      "type": "generated_matches",
+      "generator": "tools/law/build-law.mjs",
+      "source": "law.json",
+      "output": "LAW.md",
+      "why": "Kit LAW.md is GENERATED from law.json (C5). A hand edit to LAW.md drifts the grades away from the mechanisms that justify them; this claim makes that drift a RED run instead of a quiet lie. Compared as bytes after CRLF->LF only."
+    },
+    {
+      "id": "KIT-DOCS-01",
+      "type": "generated_matches",
+      "generator": "docs/build.mjs",
+      "source": "docs/src/template.html",
+      "output": "docs/index.html",
+      "why": "DECISIONS 3.3: nothing on the public page is typed. docs/index.html is rendered from the template and the kit's own files (law.json, hooks.json, this file, the commands, the README sections, four recorded runs). A hand edit of index.html is a count or a sentence nobody generated; this claim makes it a RED run. Compared as bytes after CRLF->LF only."
+    },
+    {
+      "id": "KIT-README-01",
+      "type": "generated_matches",
+      "generator": "docs/build.mjs",
+      "source": "README.md",
+      "output": "README.md",
+      "why": "CR-2026-10-18-READ, CR-2026-10-19-START: three README blocks are rendered by docs/build.mjs, each between its markers: the inventory (what is in the box, the hooks) from ARCHITECTURE.md's Domains table and hooks/hooks.json; what adopt asks and writes from commands/adopt.md and tools/lib/adopt-plan.mjs; the commands from commands/*.md. The rest of the file is copied as written. A hand edit inside a block, or a change to its sources with no rebuild, is RED here. Before this claim a port that forgot the README passed every check (DES-07 is ADVISE and grades nothing)."
+    },
+    {
+      "id": "KIT-REG-01",
+      "type": "generated_matches",
+      "generator": "tools/settings.mjs",
+      "source": "hooks/registry.json",
+      "output": "hooks/hooks.json",
+      "why": "KIT-03 (0.3.0): hooks/hooks.json is GENERATED from hooks/registry.json by tools/settings.mjs, the one writer of every file that carries a hook registration. A registration typed into hooks.json by hand is one the registry does not know, so the plugin form and the vendored form of the same kit drift apart and a script runs under one and not the other; a registry change with no re-render is the same drift the other way. This claim renders the registry through settings.mjs (run as -Source <registry> -BrainRoot <brain> -Out <tmp> with no form flag, so -Plugin is the renderer's default) and compares the result with the committed file; either drift is a RED run instead of a quiet one. Regenerate with node tools/settings.mjs -Plugin -Out hooks/hooks.json and commit both files; never hand-edit. Compared as bytes after CRLF->LF only."
+    },
+    {
+      "id": "KIT-SETTINGS-01",
+      "type": "generated_matches",
+      "generator": "tools/settings.mjs",
+      "args": [
+        "-Vendored",
+        "-Set",
+        "cloud-brain"
+      ],
+      "source": "hooks/registry.json",
+      "output": ".claude/settings.json",
+      "why": "KIT-03: the kit's own registrations are rendered, never typed. The checkout's .claude/settings.json, which a cloud session on this checkout loads its hooks from, is the vendored render of hooks/registry.json with the cloud-brain permission set (node tools/settings.mjs -Vendored -Set cloud-brain -Out .claude/settings.json). This claim renders the registry the same way, the args passed before -Source (run as -Vendored -Set cloud-brain -Source <registry> -Out <tmp>, a fresh file, so nothing is merged), and compares the result with the committed file: a registration typed by hand (a timeout, a matcher, a command), a row added to the file by hand, or a registry change with no re-render is a RED run instead of a quiet one. KIT-REG-01 holds hooks/hooks.json, the plugin form, the same way. Regenerate with the command above and commit both files; never hand-edit. Compared as bytes after CRLF->LF only."
+    },
+    {
+      "id": "KIT-VENDOR-01",
+      "type": "tree_sha",
+      "path": "${KIT}/.claude/kit/VERSION",
+      "why": "KIT-01: the kit's own session runs the same bytes an adopter gets. The checkout carries its own vendored copy under .claude/kit/ (node tools/vendor.mjs -Target . -Kit .) and a .claude/settings.json rendered in the vendored form (node tools/settings.mjs -Vendored -Set cloud-brain -Out .claude/settings.json), so a cloud session on this checkout loads the hooks from that copy the way an adopted repository does. This claim recomputes the sha256 VERSION names over the copied files through the same hooks/lib/kit-version.mjs the arming line reads: a copy that drifts from its VERSION (a hook edited in the checkout and not vendored again, a file edited in the copy) is a RED run until the copy is refreshed with the same vendor command (the release tool vendors it again on every bump). No VERSION is COULD-NOT-LOOK, never a pass."
+    },
+    {
+      "id": "KIT-RESTORE-01",
+      "type": "file_fresh",
+      "path": "${KIT}/records/restore-drill.log",
+      "maxDays": 90,
+      "why": "VCS-06: a backup is not a backup until it is proven by a logged restore drill. The drill clones the remote into a fresh folder, compares HEAD and the tracked file count with the working copy, and appends one dated line here. A missing log, or a last line older than maxDays, is a RED run: the kit's remote is then a hope, not a backup."
+    },
+    {
+      "id": "KIT-TOMBSTONE-01",
+      "type": "config_paths_each",
+      "configKey": "tombstonedPaths",
+      "file": "TOMBSTONE.md",
+      "contains": [
+        "status:",
+        "consumers:",
+        "remove:"
+      ],
+      "why": "VCS-12: a retired but load-bearing folder gets a tombstone naming its status, its remaining consumers, and who may remove it. Every path under tombstonedPaths must hold TOMBSTONE.md with those three lines; a listed folder with no tombstone is a folder someone will delete. The kit lists none, so this passes with that said out loud; the brain template carries the same claim for the adopter's own list."
+    },
+    {
+      "id": "KIT-LEAK-01",
+      "type": "tree_free_of",
+      "root": "${KIT}",
+      "words": [
+        "Jordan",
+        "Doerksen",
+        "Doerk",
+        "Riley",
+        "Sentinel",
+        "CROR",
+        "\\x6b\\x6f\\x75\\x72\\x74\\x6e\\x65\\x79",
+        "trading-desk",
+        "Jordan-Doerksen",
+        "PROFILE.md"
+      ],
+      "extensions": [
+        ".md",
+        ".json",
+        ".mjs",
+        ".sh",
+        ".bat",
+        ".txt",
+        ".html",
+        ".css",
+        ".js"
+      ],
+      "exclude": [
+        "LICENSE",
+        "tools/doctor/claims.json",
+        "state",
+        ".claude/kit",
+        ".claude/worktrees"
+      ],
+      "allow": [
+        {
+          "path": "README.md",
+          "words": [
+            "Jordan-Doerksen"
+          ]
+        },
+        {
+          "path": ".claude-plugin/plugin.json",
+          "words": [
+            "Jordan-Doerksen"
+          ]
+        },
+        {
+          "path": ".claude-plugin/marketplace.json",
+          "words": [
+            "Jordan-Doerksen"
+          ]
+        },
+        {
+          "path": "tools/doctor/selftest.mjs",
+          "words": [
+            "Jordan-Doerksen"
+          ]
+        },
+        {
+          "path": "docs/build.mjs",
+          "words": [
+            "Jordan-Doerksen"
+          ]
+        },
+        {
+          "path": "docs/publish.mjs",
+          "words": [
+            "Jordan-Doerksen",
+            "jordan-doerksen"
+          ]
+        },
+        {
+          "path": "docs/src/template.html",
+          "words": [
+            "jordan-doerksen"
+          ]
+        },
+        {
+          "path": "docs/index.html",
+          "words": [
+            "Jordan-Doerksen",
+            "jordan-doerksen"
+          ]
+        }
+      ],
+      "why": "C6, F2: the personal layer never enters the kit. Whole-word, case-insensitive, scoped to text files. The allow table is span-based: the author slug is permitted in exactly the files that must carry it, and nowhere else; a bare first or last name is a leak everywhere. This file is excluded because it is the word list itself; the self-test file may carry the slug only, because it is the fixture that proves the span rule. The state folder is generated by the Doctor itself, gitignored, and records remote URLs, so it is excluded: a scan that trips on its own output is noise. The kit's own vendored copy (.claude/kit/, what an adopter gets, KIT-VENDOR-01) repeats this file and its word list, and .claude/worktrees/ holds other checkouts of the same tree, so both folders are excluded: each is this tree again, not a leak. One word is in letter codes, so this public file does not spell it; tools/doctor/selftest-words.mjs plants it against this claim."
+    },
+    {
+      "id": "KIT-SMOKE-01",
+      "type": "hook_smoke",
+      "hook": "guard",
+      "event": "PreToolUse",
+      "why": "F15, C4: a hook that never reaches its first line (node missing, a syntax error, a library that fails to load) is invisible to every in-body check. Runs the guard exactly as hooks.json registers it with a harmless synthetic tool call; it must exit 0 and reply with nothing or JSON."
+    },
+    {
+      "id": "KIT-SMOKE-02",
+      "type": "hook_smoke",
+      "hook": "fence",
+      "event": "PreToolUse",
+      "why": "Same observation for the fence: the only pre-body check there is. Exit 0 and an empty or JSON reply on a harmless call."
+    },
+    {
+      "id": "KIT-SMOKE-03",
+      "type": "hook_smoke",
+      "hook": "entry",
+      "event": "SessionStart",
+      "why": "F4: the entry path must never load silently empty. SessionStart passes only with exit 0 AND non-empty stdout, because stdout is the carrier for the entry path."
+    },
+    {
+      "id": "KIT-SMOKE-04",
+      "type": "hook_smoke",
+      "hook": "agent",
+      "event": "PreToolUse",
+      "why": "The subagent hook (DES-11) is registered for the Agent tool and must start: run as hooks.json registers it with a harmless synthetic call, exit 0, reply with nothing or JSON. A non-Agent payload must pass through silently."
+    },
+    {
+      "id": "KIT-SMOKE-05",
+      "type": "hook_smoke",
+      "hook": "route",
+      "event": "UserPromptSubmit",
+      "why": "DES-13: the router is registered for every prompt and starts. Run as registered with a synthetic prompt; exit 0. Empty stdout is legal (nothing new to route), so this proves it runs, not what it routes; the hook self-test proves the routing."
+    },
+    {
+      "id": "KIT-SMOKE-06",
+      "type": "hook_smoke",
+      "hook": "subagent",
+      "event": "SubagentStart",
+      "why": "DES-13: the subagent hook is registered for every spawn and starts. Exit 0 and an empty or JSON reply."
+    },
+    {
+      "id": "KIT-SMOKE-07",
+      "type": "hook_smoke",
+      "hook": "stop",
+      "event": "Stop",
+      "why": "DES-07, GATE-01, GATE-05/06/07, GAME-12: the Stop hook is registered and starts. With no ledger for the smoke session it must exit 0 and print nothing."
+    },
+    {
+      "id": "KIT-SMOKE-08",
+      "type": "hook_smoke",
+      "hook": "ask",
+      "event": "PreToolUse",
+      "why": "OWN-04, GATE-01: the question hook is registered for AskUserQuestion and must start. A hook that cannot start drops the OWN-04 deny and the interview marker silently, and until this claim the Doctor smoked every registered hook but this one. Run as hooks.json registers it with a harmless synthetic call (not a question, so it passes through): exit 0, reply with nothing or JSON. The Doctor self-test requires one hook_smoke claim here for every hook hooks.json registers."
+    },
+    {
+      "id": "KIT-SMOKE-09",
+      "type": "hook_smoke",
+      "hook": "card",
+      "event": "PreToolUse",
+      "why": "The bounded-file hook (0.3.0) is registered for Edit, Write and NotebookEdit and must start: a hook that cannot start drops every CARD refusal silently (an added id, growth over maxBytes, a head past headLines, a shrink of an append-only file). Run as hooks.json registers it with a harmless synthetic call (a shell command, not a file write, so it passes through): exit 0, reply with nothing or JSON. Run K of the Doctor self-test fails any registration with no hook_smoke claim here."
+    },
+    {
+      "id": "KIT-REVIEWER-01",
+      "type": "file_contains",
+      "path": "${KIT}/agents/reviewer.md",
+      "needle": "tools: Read, Grep, Glob\n---",
+      "why": "AUTO-05: the Reviewer has no edit access, and that is a permission, not a sentence. The tool list in this file is what makes it real. If the line changes, a Reviewer can write to the thing it is grading. The needle is the whole line and the line that closes the front matter: without the line end, a list with one more tool on it (Glob, Edit) still held the needle."
+    },
+    {
+      "id": "KIT-REVIEWER-02",
+      "type": "file_not_contains",
+      "path": "${KIT}/agents/reviewer.md",
+      "needle": "PASS WITH",
+      "why": "The law gives the Reviewer three verdicts: PASS, FAIL, BLOCKED (instructions/autonomy-law.md). Until 0.1.16 this file returned a fourth, PASS WITH FINDINGS, and had no BLOCKED, so the kit's own agent broke the kit's own law. A softened pass must not come back."
+    },
+    {
+      "id": "KIT-REVIEWER-03",
+      "type": "file_contains",
+      "path": "${KIT}/agents/reviewer.md",
+      "needle": "7. **Each of these is a `FAIL`, even when every criterion has evidence.**",
+      "why": "AUTO-05, GATE-11, AUTO-04: rule 7 makes a weakened assertion, a ledger edit, work beyond the story, a hardcoded tunable and a new silent failure path a FAIL even when every acceptance line has evidence. A loop runner that builds its Reviewer from this file has no FAIL list of its own (CR-2026-10-15-GAPS review), so without the rule a Builder that weakens a test to pass it gets a PASS. The needle is the rule's own line: take the rule out and the kit Doctor goes RED."
+    },
+    {
+      "id": "KIT-RATCHET-01",
+      "type": "ratchet",
+      "path": "${KIT}/LAW.md",
+      "row": "HONOUR",
+      "why": "PRIN-04: the next misbehaviour produces a mechanism, not a paragraph. The HONOUR count in the generated LAW.md may only fall. A rise means a rule arrived with nothing to enforce it: give it a mechanism, give it the grade it really has, or sign the raise here (accepted: value, since, reason; it works once). The record is local state (state/ratchets.json), so a fresh checkout records its own baseline on the first run.",
+      "accepted": {
+        "value": 5,
+        "since": "2026-10-15",
+        "reason": "CR-2026-10-15-GAPS D7, owner approved: VCS-01, VCS-02, VCS-04, VCS-22 and DES-09 go from GATE to HONOUR. Their survey findings change the verdict only with surveyStrict on, which the template ships off (VCS-04 and DES-09 are warn and never change it), so GATE said a machine stops you and none did. A brain that runs strict re-grades VCS-01, VCS-02 and VCS-22 to GATE in its overlay. No rule lost a mechanism; the grade now says what the shipped config does."
+      }
+    },
+    {
+      "id": "KIT-STACK-01",
+      "type": "file_contains",
+      "path": "${KIT}/ARCHITECTURE.md",
+      "needle": "## Stack",
+      "why": "STACK-01: the kit's own architecture map carries a Stack section that names each runtime the kit needs, its version pin, its lockfile and its install verb. The kit runs on Node.js with no packages, so the section says what is pinned (nothing but the README's version line) and what is not; a map without the section is a RED run. The brain template ships SCAN-STACK-01, the same check over an adopter's repositories. The section's rows are prose, and nothing compares them with a pin file."
+    },
+    {
+      "id": "KIT-CONTROL-01",
+      "type": "config_paths_each",
+      "configKey": "controlCards",
+      "base": "${BRAIN}/control",
+      "contains": [
+        "Master Control|Intake"
+      ],
+      "why": "CTRL-03: every control card the brain lists under controlCards in doctor.config.json exists under <brain>/control/ and names its master (the words Master Control, or Intake for the card above the masters). No `file` field: each listed path is itself the card. The kit lists none, so this passes with that said out loud; templates/claims.json ships CTRL-CARD-01, the same claim for the adopter's own list, and the brain Doctor runs it. The claim sees the file and the words, never whether the master's chat is alive."
+    }
+  ]
+}

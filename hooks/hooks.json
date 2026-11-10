@@ -32,11 +32,21 @@
         ]
       },
       {
-        "matcher": "Agent|mcp__ccd_session__start_session",
+        "matcher": "Agent|mcp__ccd_session__start_session|mcp__claude-code-remote__create_session|mcp__claude-code-remote__send_message",
         "hooks": [
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/agent.mjs\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/card.mjs\"",
             "timeout": 10
           }
         ]

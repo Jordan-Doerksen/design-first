@@ -6,7 +6,11 @@
 //   hooks log   ~/.claude/design-first-hooks.log    DF_LOG_PATH
 //   fence log   ~/.claude/fence-log.txt             DF_FENCE_LOG_PATH
 //   markers     <os temp>/design-first/             DF_MARKER_DIR
+//   kit root    getKitRoot(), below                 DF_KIT_ROOT
+//   extract     <project>/.claude/kit/extract.json  DF_EXTRACT_PATH
 // "~" is the profile folder: %USERPROFILE% on Windows, $HOME on Linux and macOS (os.homedir()).
+// The markers and both logs move under the hook input's scratchpad_dir when the host hands one over
+// (setMarkerDir, 0.3.0): the DF_* seam first, then scratchpad_dir, then the fixed location above.
 //
 // Paths. Every path a rule compares goes through toFullPath, which resolves it against the call's
 // folder and then resolves the symbolic links of the nearest folder that exists (the leaf keeps its
@@ -19,6 +23,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 import { readStdin, isoNow } from './stdin.mjs';
 import { parseJson } from './json.mjs';
 
@@ -37,9 +42,23 @@ export const FOLD_CASE = IS_WIN || process.platform === 'darwin';
 
 export function homeDir() { return os.homedir(); }
 export function getPointerPath() { return process.env.DF_POINTER_PATH || path.join(homeDir(), '.claude', 'design-first.json'); }
-export function getLogPath() { return process.env.DF_LOG_PATH || path.join(homeDir(), '.claude', 'design-first-hooks.log'); }
-export function getFenceLogPath() { return process.env.DF_FENCE_LOG_PATH || path.join(homeDir(), '.claude', 'fence-log.txt'); }
-export function getMarkerDir() { return process.env.DF_MARKER_DIR || path.join(os.tmpdir(), 'design-first'); }
+
+// The hook input's scratchpad_dir, set once per hook run by setMarkerDir right after stdin is parsed
+// (0.3.0, design 10 "Markers and logs"): a folder the host owns and that dies with the session, so
+// the markers and the logs of a cloud session land where the host keeps them. Precedence in each
+// getter: the DF_* seam first (the self-tests keep their seam), then scratchpad_dir, then the fixed
+// location. Nothing of the kit prunes under scratchpad_dir (markerDirFromInput, logPathFromInput).
+let scratchDir = null;
+export function setMarkerDir(input) {
+    const s = input != null && typeof input === 'object' ? input.scratchpad_dir : null;
+    scratchDir = typeof s === 'string' && s.trim() !== '' ? toFullPath(s) : null;
+    return scratchDir;
+}
+export function getLogPath() { return process.env.DF_LOG_PATH || (scratchDir ? path.join(scratchDir, 'design-first-hooks.log') : path.join(homeDir(), '.claude', 'design-first-hooks.log')); }
+export function getFenceLogPath() { return process.env.DF_FENCE_LOG_PATH || (scratchDir ? path.join(scratchDir, 'fence-log.txt') : path.join(homeDir(), '.claude', 'fence-log.txt')); }
+export function getMarkerDir() { return process.env.DF_MARKER_DIR || (scratchDir ? path.join(scratchDir, 'design-first') : path.join(os.tmpdir(), 'design-first')); }
+export function markerDirFromInput() { return scratchDir != null && isBlank(process.env.DF_MARKER_DIR); }
+export function logPathFromInput() { return scratchDir != null && isBlank(process.env.DF_LOG_PATH); }
 
 // ---------------------------------------------------------------- small helpers
 
@@ -49,6 +68,8 @@ export const str = (v) => (v == null ? '' : String(v));
 export const ieq = (a, b) => a != null && b != null && String(a).toLowerCase() === String(b).toLowerCase();
 export const iin = (x, list) => (list || []).some((v) => ieq(x, v));
 export function has(obj, key) { return obj != null && typeof obj === 'object' && Object.prototype.hasOwnProperty.call(obj, key); }
+// A JSON value that is an object and not a list: the shape doctor.config.json and an extract's values must have.
+export function isPlainObject(v) { return v != null && typeof v === 'object' && !Array.isArray(v); }
 
 // 'yyyy-MM-dd HH:mm:ss', local time: the fence log's stamp.
 export function stampNow(d = new Date()) {
@@ -147,6 +168,45 @@ export function errorOutput(hook, msg, event = 'PreToolUse') {
         systemMessage: `${hook.toUpperCase()}: internal error, call allowed (${msg})`,
         hookSpecificOutput: { hookEventName: event, additionalContext: `${hook} hook hit an internal error and ALLOWED this call without inspecting it: ${msg}. Logged to the design-first hooks log.` },
     };
+}
+
+// The kit's internal-error reply, recognised in one place: the Doctor's hook_smoke
+// (tools/doctor/claims-exec.mjs) and the hook suite's smoke and verdict helpers (tools/tests/run.mjs)
+// read a hook's stdout through this one function, so the two can never disagree on whether a hook
+// failed. Every hook's last catch answers in one of three forms, each read here:
+//   1. JSON whose systemMessage says 'internal error' (errorOutput above and the inline catches of
+//      guard, fence, ask, agent and card: '<HOOK>: internal error, call allowed (...)'; stop.mjs:
+//      'STOP: internal error, turn allowed to end (...)'; entry.mjs: 'ENTRY: internal error (...)');
+//   2. JSON whose hookSpecificOutput.additionalContext says 'hook hit an internal error' (subagent.mjs,
+//      which answers on the agent's channel alone);
+//   3. plain text that says 'hook hit an internal error' (route.mjs, whose stdout is context text).
+// The JSON is read from the whole stdout, or, when the whole is not JSON, from any one line of it (a
+// hook may print partial output first); a line that is not JSON is read as plain text. Returns the
+// matched text (the systemMessage, the additionalContext or the plain line), or null.
+// What it cannot see: a failure a hook reports in other words. What it can misread, on the loud side:
+// a green reply that quotes the phrase itself (a skill description or an entry note carrying it) reads
+// as a failure; the kit's own law text (law.json, LAW.md, instructions/) carries neither phrase.
+const ERROR_PHRASE = 'hook hit an internal error';
+export function internalErrorReply(stdout) {
+    const fromJson = (j) => {
+        if (j == null || typeof j !== 'object') return null;
+        if (typeof j.systemMessage === 'string' && /internal error/i.test(j.systemMessage)) return j.systemMessage;
+        const h = j.hookSpecificOutput;
+        if (h != null && typeof h === 'object' && typeof h.additionalContext === 'string' && h.additionalContext.includes(ERROR_PHRASE)) return h.additionalContext;
+        return null;
+    };
+    const parsed = (text) => { try { return { ok: true, value: JSON.parse(text) }; } catch { return { ok: false, value: null }; } };
+    const text = str(stdout);
+    const whole = parsed(text.trim());
+    if (whole.ok) return fromJson(whole.value);
+    for (const raw of text.split(/\r?\n/)) {
+        const line = raw.trim();
+        if (!line) continue;
+        const one = parsed(line);
+        const hit = one.ok ? fromJson(one.value) : line.includes(ERROR_PHRASE) ? line : null;
+        if (hit) return hit;
+    }
+    return null;
 }
 
 // ---------------------------------------------------------------- paths
@@ -301,6 +361,93 @@ export function readPointer() {
     return r;
 }
 
+// ---------------------------------------------------------------- the kit root and the yield rule (0.3.0)
+
+// The folder of the file that asks: a hook's folder (<kit>/hooks), a library's (<kit>/hooks/lib), the
+// kit root itself (law-rows.mjs passes its KIT_FROM_HERE), or that file's import.meta.url.
+function callerDir(hereDir) {
+    let s = str(hereDir);
+    if (/^file:/i.test(s)) { try { s = path.dirname(fileURLToPath(s)); } catch { return null; } }
+    return isBlank(s) ? null : toFullPath(s);
+}
+// The running copy's root: the kit above the calling folder.
+function runningRootOf(hereDir) {
+    const d = callerDir(hereDir);
+    if (!d) return null;
+    if (/[\\/]hooks[\\/]lib$/i.test(d)) return toFullPath(path.resolve(d, '..', '..'));
+    if (/[\\/]hooks$/i.test(d)) return toFullPath(path.resolve(d, '..'));
+    return d;
+}
+// The repository a cloud session runs in; the host sets it, the self-tests set it per call.
+function projectDir() { return isBlank(process.env.CLAUDE_PROJECT_DIR) ? null : toFullPath(process.env.CLAUDE_PROJECT_DIR); }
+const holdsFiles = (d, rels) => Boolean(d) && rels.every((f) => isFile(path.join(d, ...f.split('/'))));
+
+// The kit root the hooks read (law.json, LAW.md, the policy templates, VERSION), in this order:
+//   1. DF_KIT_ROOT (a test seam) when it holds law.json;
+//   2. the running copy, the kit above the calling file, when it holds law.json: the law rows and the
+//      entry path never name another version than the hook code (case 50; CR-2026-10-19-REVIEW F2);
+//   3. ${CLAUDE_PROJECT_DIR}/.claude/kit, the vendored kit of a lone clone, when it holds law.json and
+//      both policy templates (agent.mjs throws and allows without its policy, so a copy missing one is
+//      no kit); in a vendored run this is the running copy already;
+//   4. the pointer's pluginRoot when it holds law.json (the PC until chunk 10);
+//   5. null: no kit, which entry.mjs prints as the unarmed line.
+// ptr is a readPointer() result when the caller has one; else the pointer is read at step 4 only.
+// One search serves both exports: getKitRoot returns the root it found, kitRootLookedAt says, place by
+// place in the same order, why none was taken, so a hook with no kit root logs where it looked (the
+// arming line's MISSING form and guard rule 15's ARMED unknown unknown are never silent in the log).
+function searchKitRoot(hereDir, ptr) {
+    const looked = [];
+    const seam = process.env.DF_KIT_ROOT;
+    if (!isBlank(seam)) {
+        const d = toFullPath(seam);
+        if (holdsFiles(d, ['law.json'])) return { root: d, looked };
+        looked.push(`DF_KIT_ROOT ${d} (no law.json)`);
+    } else looked.push('DF_KIT_ROOT (unset)');
+    const running = runningRootOf(hereDir);
+    if (holdsFiles(running, ['law.json'])) return { root: running, looked };
+    looked.push(running ? `the running copy ${running} (no law.json)` : 'the running copy (no folder named)');
+    const project = projectDir();
+    if (project) {
+        const d = toFullPath(path.join(project, '.claude', 'kit'));
+        if (holdsFiles(d, ['law.json', 'templates/agent-policy.json', 'templates/route-policy.json'])) return { root: d, looked };
+        looked.push(`${d} (needs law.json and both policy templates)`);
+    } else looked.push('CLAUDE_PROJECT_DIR/.claude/kit (CLAUDE_PROJECT_DIR unset)');
+    const p = ptr || readPointer();
+    if (p.pointer && !isBlank(p.pointer.pluginRoot)) {
+        const d = toFullPath(String(p.pointer.pluginRoot));
+        if (holdsFiles(d, ['law.json'])) return { root: d, looked };
+        looked.push(`the pointer's pluginRoot ${d} (no law.json)`);
+    } else if (p.warning) looked.push(`the pointer (${p.warning})`);
+    else looked.push(p.pointer ? `the pointer at ${p.path} (no pluginRoot)` : `the pointer (none at ${p.path})`);
+    return { root: null, looked };
+}
+export function getKitRoot(hereDir, ptr) { return searchKitRoot(hereDir, ptr).root; }
+// Where getKitRoot looked, in its order, each place with why it was not taken; '' when it found a root.
+export function kitRootLookedAt(hereDir, ptr) { const s = searchKitRoot(hereDir, ptr); return s.root ? '' : s.looked.join('; '); }
+
+// A vendored run: the hook runs from <repository>/.claude/kit/hooks.
+export function isVendoredRun(hereDir) {
+    const d = callerDir(hereDir);
+    return Boolean(d) && /[\\/]\.claude[\\/]kit[\\/]hooks$/i.test(d);
+}
+
+// The yield rule (0.3.0, design section 2): a vendored hook steps aside when the PC pointer exists and
+// its pluginRoot holds law.json, because the plugin registered on that profile runs on the same event
+// and no two copies may decide one call. One INFO line in the hooks log, nothing on stdout; the caller
+// exits 0 at once. The pointer is a PC file never in a repository, so in the cloud the vendored copy
+// always runs. A pointer naming this very copy is no second copy: then this one decides. No test seam
+// turns the rule off; cases-parity.mjs proves it with a planted pointer and a copy under .claude/kit/hooks.
+export function yieldToPlugin(hook, hereDir) {
+    if (!isVendoredRun(hereDir)) return false;
+    const ptr = readPointer();
+    if (!ptr.pointer || isBlank(ptr.pointer.pluginRoot)) return false;
+    const plugin = toFullPath(String(ptr.pointer.pluginRoot));
+    if (!holdsFiles(plugin, ['law.json'])) return false;
+    if (pathEq(plugin, runningRootOf(hereDir))) return false;
+    writeLog('INFO', hook, `yield: plugin present at ${plugin}`);
+    return true;
+}
+
 // %NAME% from the environment; %USERPROFILE% is the profile folder on every system.
 export function expandEnvVars(s) {
     return str(s).replace(/%([A-Za-z_][A-Za-z0-9_]*)%/g, (all, name) => {
@@ -378,7 +525,7 @@ export function countMatches(rx, s) {
 
 function defaultBrainConfig() {
     return {
-        protected: [], tombstoned: [], exceptions: [], present: false, reason: null,
+        protected: [], tombstoned: [], exceptions: [], present: false, reason: null, source: null, path: null,
         readCeilingBytes: READ_CEILING_DEFAULT, readCeilingExempt: [], sourceExtensions: [], stopDocs: [],
         stopFromGit: true, stopBudgetSeconds: STOP_BUDGET_DEFAULT, stopCard: { owner: true, writer: true },
         forbidScheduling: false, blanketKill: true, contentRules: [], contentRuleProblems: [],
@@ -397,18 +544,91 @@ function parseIntStrict(v) {
 }
 export { parseIntStrict };
 
-// Brain config, with present false when there is no brain (no pointer, no folder, or no config file).
-// Throws when the file exists and is not JSON: the caller decides what that costs.
+// The hooks' values (0.3.0, design section 2): the brain's doctor.config.json through the pointer when
+// there is one (the PC until chunk 10), else the extract tools/extract.mjs wrote into the clone, found
+// through DF_EXTRACT_PATH (a test seam) and then <CLAUDE_PROJECT_DIR>/.claude/kit/extract.json. present
+// is false, with reason set, when neither exists. out.source says which answered ('brain' or
+// 'extract') and out.path which file, so a hook can say where its values came from. Throws when the
+// file exists and is not a JSON object (text that is not JSON, or JSON that is a number, a list or
+// null), or the extract carries no values object: the caller decides what that costs, and none reads
+// it as a present, empty config with the path rules off in silence. Both sources go through
+// applyConfigValues, one parser for the hook-read keys.
 export function readBrainConfig(ptr) {
     const out = defaultBrainConfig();
-    if (ptr.pointer == null) { out.reason = `no pointer at ${ptr.path}`; return out; }
-    if (!ptr.brain || !isDir(ptr.brain)) { out.reason = `brain folder missing: ${ptr.brain}`; return out; }
-    const cfgPath = path.join(ptr.brain, 'doctor.config.json');
-    if (!isFile(cfgPath)) { out.reason = `no doctor.config.json in ${ptr.brain}`; return out; }
-    const cfg = readJson(cfgPath) || {};
-    out.present = true;
-    out.keys = new Set(Object.keys(cfg));
-    const exp = (p) => expandConfigPath(str(p), ptr.root, ptr.brain);
+    if (ptr.pointer == null) out.reason = `no pointer at ${ptr.path}`;
+    else if (!ptr.brain || !isDir(ptr.brain)) out.reason = `brain folder missing: ${ptr.brain}`;
+    else {
+        const cfgPath = path.join(ptr.brain, 'doctor.config.json');
+        if (isFile(cfgPath)) {
+            const cfg = readJson(cfgPath);
+            if (!isPlainObject(cfg)) throw new Error(`doctor.config.json at ${cfgPath} is not a JSON object`);
+            out.present = true; out.source = 'brain'; out.path = cfgPath;
+            out.keys = new Set(Object.keys(cfg));
+            applyConfigValues(out, cfg, ptr.root, ptr.brain, (p) => expandConfigPath(str(p), ptr.root, ptr.brain));
+            return out;
+        }
+        out.reason = `no doctor.config.json in ${ptr.brain}`;
+    }
+    const ex = extractPath();
+    if (ex == null) return out;
+    // An error of the extract is tagged (source 'extract', detail '<path>: what is wrong') so a hook can
+    // name the file it could not read instead of calling it the brain's doctor.config.json.
+    let j;
+    try { j = readJson(ex); } catch (e) { e.source = 'extract'; e.detail = `${ex}: ${e.message}`; throw e; }
+    if (!isPlainObject(j) || !isPlainObject(j.values)) { const e = new Error(`extract at ${ex} has no values object`); e.source = 'extract'; e.detail = `${ex} has no values object`; throw e; }
+    out.present = true; out.source = 'extract'; out.path = ex; out.reason = null;
+    out.keys = new Set(Object.keys(j.values));
+    applyConfigValues(out, j.values, null, null, expandExtractPath);
+    return out;
+}
+
+// The extract a clone carries, by the one candidate rule every reader of it calls (readBrainConfig
+// above, the card hook's lib/bounded.mjs), so two readers of one input never disagree: DF_EXTRACT_PATH
+// (a test seam) when it names a file, then <CLAUDE_PROJECT_DIR>/.claude/kit/extract.json when it is a
+// file, else null. A seam that names no file is passed over, never read as an extract with no rows.
+export function extractPath() {
+    const seam = process.env.DF_EXTRACT_PATH;
+    if (!isBlank(seam) && isFile(seam)) return seam;
+    const project = projectDir();
+    if (project) { const p = path.join(project, '.claude', 'kit', 'extract.json'); if (isFile(p)) return p; }
+    return null;
+}
+
+// A path row of the extract. A {repo, path} object names a repository by its folder name, host-neutral
+// (tools/extract.mjs writes `${ROOT}/trading/beacon` as {repo: "beacon", path: "."}): it resolves
+// under CLAUDE_PROJECT_DIR only when that clone's folder name is the repo, compared without case, else it
+// names another repository and resolves nowhere (dropped). A repo of "*" (a row that named the whole
+// root on the PC, lead decision M25) resolves under CLAUDE_PROJECT_DIR in every clone, no name asked: a
+// rule under the whole root applies to every repository. A plain string row is expanded with no root
+// and no brain, so a ${ROOT} or ${BRAIN} form from the PC resolves nowhere too; an absolute or a
+// %USERPROFILE% path (a `full` extract keeps them) resolves as it does in the brain config.
+function expandExtractPath(row) {
+    if (row != null && typeof row === 'object') return resolveRepoRow(row);
+    return expandConfigPath(str(row), null, null);
+}
+
+// One {repo, path} row as a full path under the clone, or null when it names another repository: the
+// one resolver every reader of the extract calls (expandExtractPath above, the card hook's
+// lib/bounded.mjs), so the guard and the card hook never disagree on a row. typed is CLAUDE_PROJECT_DIR
+// as the host typed it. The clone's folder name is read as typed and as it resolves (a link or a
+// junction can give the folder another name on disk); a row's repo matches either, without case, and a
+// repo of "*" matches every clone.
+export function resolveRepoRow(row, typed = process.env.CLAUDE_PROJECT_DIR) {
+    const t = str(typed).trim();
+    const project = isBlank(t) ? null : toFullPath(t);
+    const repo = str(row && row.repo).trim();
+    const names = [getLeaf(t), project ? path.basename(project) : ''].filter((n) => n);
+    if (!project || !repo) return null;
+    if (repo !== '*' && !names.some((n) => ieq(n, repo))) return null;   // "*": every repository's row (M25), the clone whatever its name
+    const rel = str(row.path).trim().replace(/^[\\/]+/, '');
+    return toFullPath(rel === '' || rel === '.' ? project : path.join(project, rel));
+}
+
+// The hook-read keys, parsed one way for both sources. exp turns one path row into a full path or
+// null (dropped); root and brain stand for ${ROOT} and ${BRAIN} in the glob keys, nothing when the
+// source is the extract. boundedFiles is not parsed here: hooks/lib/bounded.mjs is its only reader
+// (the card hook).
+function applyConfigValues(out, cfg, root, brain, exp) {
     for (const k of ['frozenPaths', 'tombstonedPaths']) {
         for (const p of asList(cfg[k])) { const f = exp(p); if (f) out.protected.push(f); }
     }
@@ -420,7 +640,18 @@ export function readBrainConfig(ptr) {
     // readCeilingBytes 0 (or less) turns the read check off; the old splitLines key is not read (CR-2026-10-15-SPLIT).
     if (has(cfg, 'readCeilingBytes')) { const v = parseIntStrict(cfg.readCeilingBytes); if (v != null) out.readCeilingBytes = Math.max(0, v); }
     if (has(cfg, 'readCeilingExempt')) {
-        out.readCeilingExempt = asList(cfg.readCeilingExempt).filter((x) => x).map((x) => expandEnvVars(String(x).split('${ROOT}').join(str(ptr.root)).split('${BRAIN}').join(str(ptr.brain))));
+        // A glob row is a string with ${ROOT}, ${BRAIN} and %NAME% expanded, or a {repo, path} row of the
+        // extract resolved through exp like a path row (tools/extract.mjs writes `${ROOT}/x/**` that way). A
+        // token with nothing to stand for leaves no glob, as expandConfigPath has it for a path: '${ROOT}/**'
+        // with no root is not '/**', which would exempt every file.
+        out.readCeilingExempt = [];
+        for (const x of asList(cfg.readCeilingExempt)) {
+            if (!x) continue;
+            if (typeof x === 'object') { const f = exp(x); if (f) out.readCeilingExempt.push(f); continue; }
+            const s = String(x);
+            if ((s.includes('${ROOT}') && isBlank(root)) || (s.includes('${BRAIN}') && isBlank(brain))) continue;
+            out.readCeilingExempt.push(expandEnvVars(s.split('${ROOT}').join(str(root)).split('${BRAIN}').join(str(brain))));
+        }
     }
     if (has(cfg, 'sourceExtensions')) out.sourceExtensions = asList(cfg.sourceExtensions).filter((x) => x).map((x) => String(x).toLowerCase());
     if (has(cfg, 'stopDocs')) out.stopDocs = asList(cfg.stopDocs).filter((x) => x).map(String);
@@ -476,7 +707,6 @@ export function readBrainConfig(ptr) {
             });
         } catch (e) { out.contentRuleProblems.push(`contentRules: ${e.message}`); }
     }
-    return out;
 }
 
 // ASCII fold for names the console might mangle (SPEC 5.4: ASCII fallback for non-ASCII names).

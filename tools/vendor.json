@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "_comment": "What tools/vendor.mjs copies into an adopted repository's .claude/kit/ (0.3.0, KIT-01). include: files and folders that must exist (a missing one refuses the run). optional: taken when present. exclude: exact paths, folder prefixes ending in '/', or '*.<ext>' suffixes. The list of files that travelled, in sorted order, is written to .claude/kit/VERSION with the sha256 that hooks/lib/kit-version.mjs computes over them; the Doctor's tree_sha claim recomputes it in the repository. Every file the kit's law.json cites travels (the owning files under instructions/, workflows/ and lessons/; the hook scripts; the tool anchors in tools/vendor.mjs and tools/settings.mjs; the permission rules in templates/root-settings.json) and so does hooks/registry.json, the registration record a vendored tools/law/build-law.mjs reads, so a vendored copy builds the brain's LAW.md: BRAIN-LAW-01 holds in a committed clone of an adopted brain whose commit carries state/law-installed.json (the law build's installed input, the one file of state/ that the .gitignore adopt writes, state/* and !state/law-installed.json, lets through; a brain adopted before 0.3.0 ignores all of state/ until that file is changed by hand). hooks/hooks.json stays out: it is the plugin form, rendered from the registry, and never runs in a vendored copy, whose registrations tools/settings.mjs -Vendored renders into the repository's .claude/settings.json.",
+  "include": [
+    "hooks/",
+    "hooks/registry.json",
+    "law.json",
+    "LAW.md",
+    "instructions/",
+    "workflows/",
+    "lessons/",
+    "templates/agent-policy.json",
+    "templates/route-policy.json",
+    "templates/root-settings.json",
+    "tools/doctor/",
+    "tools/lib/",
+    "tools/law/",
+    "tools/settings.mjs",
+    "tools/vendor.mjs"
+  ],
+  "optional": [
+    "tools/selfcheck.mjs",
+    "tools/gate.mjs",
+    "tools/extract.mjs"
+  ],
+  "exclude": [
+    "hooks/hooks.json",
+    "tools/doctor/selftest.mjs",
+    "tools/doctor/selftest-config.mjs",
+    "tools/doctor/selftest-host.mjs",
+    "tools/doctor/selftest-law.mjs",
+    "tools/doctor/selftest-snapshot.mjs",
+    "tools/doctor/selftest-truth.mjs",
+    "tools/doctor/selftest-words.mjs"
+  ]
+}

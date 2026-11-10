@@ -13,7 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 export function truthRuns(t) {
-    const { T, here, kitRoot, ok, bad, has, hasNot, exitIs, W, WJ, run, childEnv, copyDoctorInto, fakeHome, say } = t;
+    const { T, here, kitRoot, ok, bad, has, hasNot, exitIs, W, WJ, jp, run, childEnv, copyDoctorInto, fakeHome, say } = t;
 
     // A scratch copy of the Doctor under <T>/<name>/tools/doctor, so -Kit resolves the kit to the
     // copy and nothing planted here can reach the real Doctor or the sandbox kit.
@@ -72,4 +72,40 @@ export function truthRuns(t) {
     const unsmoked = registered.filter((p) => !smoked.includes(p));
     if (registered.length > 0 && unsmoked.length === 0) ok(`K: every hook hooks.json registers has a hook_smoke claim in the kit's claims (${registered.length} hook/event pairs)`);
     else bad("K: every hook hooks.json registers has a hook_smoke claim in the kit's claims", `registered with no hook_smoke claim: ${registered.length === 0 ? 'no registration read from hooks.json' : unsmoked.join(', ')}`);
+
+    // The kit's own settings file (0.3.0, KIT-03, review finding 20): the checkout's .claude/settings.json, which a cloud
+    // session on this checkout loads its hooks from, is the vendored render of hooks/registry.json with the cloud-brain
+    // set, and KIT-SETTINGS-01 renders it again (generated_matches with args). The claim is read from the shipped file
+    // and run as shipped against a scratch copy of the renderer, the registry, the template, the registered scripts and
+    // the committed settings file: it passes there, and a registration typed by hand (the card hook's timeout 10 -> 11)
+    // is FAIL. Red first: with no such claim the kit Doctor was GREEN on that edit.
+    const KS = "K: the kit's claims hold .claude/settings.json to the registry render (KIT-SETTINGS-01: settings.mjs -Vendored -Set cloud-brain over hooks/registry.json)";
+    const ks = kc.claims.find((c) => c.id === 'KIT-SETTINGS-01');
+    if (ks && ks.type === 'generated_matches' && ks.generator === 'tools/settings.mjs' && JSON.stringify(ks.args) === JSON.stringify(['-Vendored', '-Set', 'cloud-brain']) && ks.source === 'hooks/registry.json' && ks.output === '.claude/settings.json') ok(KS);
+    else bad(KS, ks ? JSON.stringify(ks).slice(0, 300) : 'no KIT-SETTINGS-01 in tools/doctor/claims.json');
+    const reg = JSON.parse(fs.readFileSync(path.join(kitRoot, 'hooks', 'registry.json'), 'utf8'));
+    const rels = ['tools/settings.mjs', 'hooks/registry.json', 'templates/settings.cloud-brain.json', 'templates/root-settings.json', '.claude/settings.json', ...new Set((reg.hooks || []).map((h) => String(h.script)))];
+    const absent = rels.filter((rel) => !fs.existsSync(jp(kitRoot, rel)));
+    if (ks && absent.length > 0) bad('K: KIT-SETTINGS-01 as shipped passes on the committed .claude/settings.json', `the kit lacks what the claim renders from: ${absent.join(', ')}`);
+    if (ks && absent.length === 0) {
+        const sk = path.join(T, 'kit-settings');
+        const sd = copyDoctorInto(sk);
+        for (const rel of rels) { const to = jp(sk, rel); fs.mkdirSync(path.dirname(to), { recursive: true }); fs.copyFileSync(jp(kitRoot, rel), to); }
+        WJ(path.join(sd, 'claims.json'), { schema: 1, claims: [ks] });
+        const runKs = () => {
+            const rk = invoke(sd, ['-Kit', '-Json']);
+            try { return (JSON.parse(rk.out).bands.claims || []).find((x) => x.id === 'KIT-SETTINGS-01') || { status: 'NO RESULT', detail: '' }; }
+            catch { return { status: 'NOT JSON', detail: rk.out.slice(0, 200) }; }
+        };
+        let st = runKs();
+        if (st.status === 'PASS') ok('K: KIT-SETTINGS-01 as shipped passes on the committed .claude/settings.json'); else bad('K: KIT-SETTINGS-01 as shipped passes on the committed .claude/settings.json', `${st.status}: ${st.detail}`);
+        const sp = jp(sk, '.claude', 'settings.json');
+        const text = fs.readFileSync(sp, 'utf8');
+        const edited = text.replace(/(hooks\/card\.mjs[^\n]*\n\s*"timeout": )10\b/, (m, head) => `${head}11`);
+        W(sp, edited);
+        st = runKs();
+        const KR = 'K: red: a registration typed by hand in .claude/settings.json (the card timeout 10 -> 11) is FAIL on KIT-SETTINGS-01';
+        if (edited !== text && st.status === 'FAIL' && st.detail.includes('first difference at byte')) ok(KR);
+        else bad(KR, `${edited === text ? 'the edit was not planted; ' : ''}${st.status}: ${st.detail}`);
+    }
 }

@@ -281,15 +281,18 @@ function protectedHit(full, prot) {
     return null;
 }
 
-function frozenDeny(what, root, owner) {
+// source is where the protected list came from (readBrainConfig's out.source): 'brain', the brain's
+// doctor.config.json through the pointer, or 'extract', the .claude/kit/extract.json a clone carries.
+function frozenDeny(what, root, owner, source) {
+    const where = source === 'extract' ? 'the extract this repository carries (.claude/kit/extract.json)' : "the brain's doctor.config.json";
     const reason = `BLOCKED - ${what} is inside ${root}, which the brain lists as FROZEN or TOMBSTONED.\n\n` +
         'Frozen means read, never edit. Tombstoned means retired but still read by a live consumer; ' +
         `moving or deleting it breaks that consumer silently. Changing this is ${owner}'s decision: the ` +
-        "path comes out of frozenPaths / tombstonedPaths in the brain's doctor.config.json first, as a recorded change.";
+        `path comes out of frozenPaths / tombstonedPaths in ${where} first, as a recorded change.`;
     return newDeny('guard', `protected path (${what})`, reason);
 }
 
-export function pathRuleFile(full, prot, owner, tombstoned = []) {
+export function pathRuleFile(full, prot, owner, tombstoned = [], source = 'brain') {
     if (!full || prot.length === 0) return null;
     const hit = protectedHit(full, prot);
     if (!hit) return null;
@@ -299,10 +302,10 @@ export function pathRuleFile(full, prot, owner, tombstoned = []) {
         const parent = path.dirname(full);
         if (tombstoned.some((t) => t && pathEq(parent, t))) return null;
     }
-    return frozenDeny(full, hit, owner);
+    return frozenDeny(full, hit, owner, source);
 }
 
-export function pathRuleShell(tokens, gitCall, cwd, prot, owner) {
+export function pathRuleShell(tokens, gitCall, cwd, prot, owner, source = 'brain') {
     if (prot.length === 0 || !tokens || tokens.length === 0) return null;
     let destructive = DESTRUCTIVE_HEADS.includes(tokens[0].toLowerCase());
     if (gitCall && ['clean', 'restore', 'rm', 'checkout'].includes(gitCall.sub)) destructive = true;
@@ -311,7 +314,7 @@ export function pathRuleShell(tokens, gitCall, cwd, prot, owner) {
         if (t.startsWith('-')) continue;
         const full = toFullPath(t, cwd);
         const hit = full ? protectedHit(full, prot) : null;
-        if (hit) return frozenDeny(t, hit, owner);
+        if (hit) return frozenDeny(t, hit, owner, source);
     }
     return null;
 }

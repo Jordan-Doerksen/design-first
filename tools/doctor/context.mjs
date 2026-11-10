@@ -89,6 +89,8 @@ export const CONFIG_READERS = {
     loopBranchPrefix: 'hooks/guard.mjs (rules 11 and 12: a branch with this prefix is the loop branch; default harness/)',
     loopLedgerGlobs: 'hooks/guard.mjs (rule 12, ledger: repository-relative globs of the story ledger refused on the loop branch)',
     ask: 'hooks/ask.mjs (OWN-04, the shape of a question: minReason, equalPhrases, recommendedMarker, maxQuestions)',
+    boundedFiles: 'hooks/card.mjs (0.3.0, a bounded file: rows of { glob, maxBytes, headLines, idPatterns, appendOnly }; an Edit or Write that adds an id, grows the file while over maxBytes, grows the head past headLines, or shrinks an append-only file is refused)',
+    leakWords: 'tools/extract.mjs (words a non-full extract may not carry; a hit refuses the write)',
     commitMessage: 'tools/vcs/law-claim.mjs (the message check: maxSubject, pastTenseWords, placeholders)',
 };
 
@@ -133,6 +135,8 @@ export function defaultConfig() {
         loopBranchPrefix: 'harness/',
         loopLedgerGlobs: ['docs/specs/*.tasks.json', 'specs/*.tasks.json'],
         ask: { minReason: 40, equalPhrases: [], recommendedMarker: '(?i)\\brecommended\\b', maxQuestions: 1 },   // the phrase list's default lives in hooks/lib/common.mjs (askDefaults), its only reader
+        boundedFiles: [],   // the row defaults (maxBytes 30000, headLines 15) live in hooks/lib/bounded.mjs, its only reader
+        leakWords: [],   // read by tools/extract.mjs only (never by the Doctor or a hook); listed so the dead-key check knows it is live
         commitMessage: { maxSubject: 72, pastTenseWords: [], placeholders: [] },
     };
 }
@@ -198,6 +202,8 @@ export function readDoctorConfig(p, ctx, readers = CONFIG_READERS) {
 // ---------------------------------------------------------------- derived values (SPEC 5.3)
 
 // No longer config keys: they follow from the pointer. The fence log path is fixed by the fence hook.
+// settingsPath (0.3.0) is the root's shared settings file, the one a vendored kit registers its
+// hooks in; '' under -Kit, where there is no adopter.
 export function derivedPaths(ctx) {
     const brainOrKit = ctx.brain || ctx.kit;
     // Root settings are an adopter's files; under -Kit there is no adopter, so none are expected.
@@ -206,7 +212,50 @@ export function derivedPaths(ctx) {
         stateDir: path.join(brainOrKit, 'state'),
         recordsDir: path.join(brainOrKit, 'records'),
         settingsPaths: settings,
+        settingsPath: settings.length > 0 ? settings[0] : '',
         fenceLogPath: getFenceLogPath(),
         hooksJsonPath: path.join(ctx.pluginRoot, 'hooks', 'hooks.json'),
     };
+}
+
+// ---------------------------------------------------------------- hook registrations (0.3.0)
+
+// Where the hook registrations are read from, by the enforcement survey and the hook_smoke runner.
+// The plugin form registers in <kit>/hooks/hooks.json. A vendored copy (.claude/kit/) carries no
+// hooks.json (tools/vendor.json leaves it out) and its registrations live in <root>/.claude/settings.json,
+// rendered by tools/settings.mjs -Vendored with ${CLAUDE_PROJECT_DIR} in every command. So the
+// settings file is the record under -Scope brain, there or not: the kit that scope resolves may be
+// the running copy, whose hooks/hooks.json registers that checkout's hooks and never the brain's, so
+// a brain with no settings file registers nothing and the finding says so (listing another tree's
+// registrations as its own would be a pass it never earned). Under the pointer scope hooks.json is
+// the record, and the settings file stands in only where the kit has no hooks.json while the
+// settings file is there (a pointer whose pluginRoot is a vendored copy). Returns { form, path,
+// exists, why }: form 'plugin' or 'vendored', path the file read, exists whether it is there, why
+// one line naming what is missing when it is not (both files, when both could have been the record).
+// settings.local.json is not read: it is a personal file a clone never carries, and the
+// registrations a repository commits are in settings.json.
+const isFileHere = (p) => { try { return fs.statSync(p).isFile(); } catch { return false; } };
+export function registrationSource(ctx, derived = derivedPaths(ctx)) {
+    const hooksJson = derived.hooksJsonPath;
+    const settings = derived.settingsPath || '';
+    const hasHooksJson = isFileHere(hooksJson);
+    const hasSettings = settings !== '' && isFileHere(settings);
+    if (ctx.scope === 'brain' && settings !== '') {
+        const why = hasSettings ? '' : hasHooksJson
+            ? `no settings file at ${settings} (the kit's hooks.json at ${hooksJson} registers that checkout's hooks, not this brain's)`
+            : `no hooks.json at ${hooksJson} and no settings file at ${settings}`;
+        return { form: 'vendored', path: settings, exists: hasSettings, why };
+    }
+    if (hasSettings && !hasHooksJson) return { form: 'vendored', path: settings, exists: true, why: '' };
+    const why = hasHooksJson ? '' : settings ? `no hooks.json at ${hooksJson} and no settings file at ${settings}` : `no hooks.json at ${hooksJson}`;
+    return { form: 'plugin', path: hooksJson, exists: hasHooksJson, why };
+}
+
+// A word of a registered command with its root variable expanded: ${CLAUDE_PLUGIN_ROOT} (the plugin
+// form) as the kit the context resolved, ${CLAUDE_PROJECT_DIR} (the vendored form) as the root.
+export function expandHookCommand(word, ctx) {
+    const root = ctx.root || ''; const plugin = ctx.pluginRoot || '';
+    return String(word)
+        .split('${CLAUDE_PLUGIN_ROOT}').join(plugin).split('$CLAUDE_PLUGIN_ROOT').join(plugin)
+        .split('${CLAUDE_PROJECT_DIR}').join(root).split('$CLAUDE_PROJECT_DIR').join(root);
 }

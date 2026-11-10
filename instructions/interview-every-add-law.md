@@ -105,8 +105,8 @@ prompts even when a more specific `allow` rule matches, and it matches inside su
 substitutions and loop bodies. The list was widened on 2026-10-15 (CR-2026-10-15-GAPS D1): `npm
 add`, `pip3`, `python -m pip` and the other forms above were not asked before. An adopter that
 installed the template earlier copies the new lines from `templates/root-settings.json` into its
-root settings by hand: adopt never overwrites a settings file that exists, it shows the difference
-and keeps the file.
+root settings by hand: adopt, run again (attach mode), never overwrites a settings file that exists,
+it shows the difference and keeps the file.
 **Residual:** an install performed by a script the agent writes and then executes is not a tool
 call on this pattern and is not asked. A verb or form not on the list is not asked either: for
 example `npx <package>`, `pipx install`, `uv pip install`, `gem install`, `composer require`,

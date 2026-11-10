@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "_comment": "Route policy read by the kit's hooks/route.mjs on every prompt and hooks/subagent.mjs at every subagent start (DES-13). Tunables only. groups: law group id -> words that activate it (whole-word, case-insensitive, matched against the prompt); the group ids must exist as '## GROUP - Title' sections in LAW.md, so an overlay group an adopter adds gets a line here. folders: top-level folder under root -> groups active whenever the session works there. alwaysForSubagents: groups every subagent receives even when nothing routed yet. alwaysForSessions: groups every session receives on its first prompt and again after a compaction or a clear, whatever the words and the folder (OWN-10); OWN carries how every decision is asked and researched, which no topic word routes. maxChars: cap per injection, under the host's 10,000-character limit. A route sticks for the session; entry.mjs clears it on a compaction or a clear. writerSkip: { groups, clauses } is law a writer session does not receive (owner ruling 29, 2026-10-20: work sessions answer their master tersely, so law about how to talk to the owner stays out of them). A writer session is one whose first prompt holds 'Role: writer' at the start of a line (0.3.0), or 'Reports to:' at the start of a line (a brief) when no 'Role:' line is there; the role is decided again when its mark is gone; a subagent is always a writer. groups: law group ids dropped whole. clauses: clause ids dropped one row at a time, the rest of the group still arrives (for example an owner-voice clause of OWN, or a whole VOICE group an adopter's overlay adds). Empty, as shipped, or absent: nothing is dropped. The mark is kept in <session>.role; a clear deletes it (a new conversation decides again), a compaction keeps it.",
+  "groups": {
+    "DES":  ["build", "design", "decision", "decisions", "architecture", "scaffold", "new project", "feature", "implement", "refactor", "chunk", "change request", "manifest"],
+    "GATE": ["interview", "add", "addition", "approve", "verdict", "spec", "review", "gate", "dependency", "package", "delete", "remove"],
+    "AUTO": ["loop", "harness", "autonomous", "unattended", "story", "stories", "overnight", "builder", "reviewer", "verify gate"],
+    "VCS":  ["commit", "push", "repo", "repos", "repository", "branch", "merge", "git", "clone", "backup", "archive", "worktree", "remote", "secret", "token", ".env"],
+    "OBS":  ["server", "dashboard", "log", "logs", "desk", "bot", "feed", "alert", "launch", "run it", "start it", "port", "probe", "health", "watchdog"],
+    "STACK": ["stack", "runtime", "toolchain", "lockfile", "node", "npm", "python", "uv", "cargo", "rust", "tauri", "godot", "pwsh", "powershell"],
+    "CTRL":  ["control", "master", "intake", "roster", "card", "session", "sessions", "report-back"]
+  },
+  "folders": {},
+  "_stateCard": "GAME-13, read by hooks/entry.mjs at session start. A session that starts inside a repository whose top-level folder is mapped (in folders) to one of stateCard.groups gets a state card built from that repository's DECISIONS.md, HANDOFF.md and git. Map your games folder to GAME in folders to switch it on, for example \"games\": [\"GAME\", \"DES\"]. staleCommits: a hand-off further behind HEAD than this is flagged. lineChars, maxChars: size caps. closedWords (optional): the status words that mean a timeline row is closed. groups empty: no card. anyRepoWithHandoff (DES-14, default false): true also gives a card to any repository under root that holds HANDOFF.md or docs\\HANDOFF.md, whatever its folder; the card then prints the hand-off's '## Next session' section as the next prompt.",
+  "stateCard": {
+    "groups": ["GAME"],
+    "anyRepoWithHandoff": false,
+    "staleCommits": 10,
+    "lineChars": 220,
+    "maxChars": 2400
+  },
+  "writerSkip": { "groups": [], "clauses": [] },
+  "alwaysForSubagents": ["SAFE"],
+  "alwaysForSessions": ["OWN"],
+  "maxChars": 9500
+}

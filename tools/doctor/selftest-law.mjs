@@ -11,6 +11,9 @@
 //      HOOK or ADVISE over a script that never runs. validate.mjs now fails that clause. It compares
 //      the path under hooks/, not the file name: hooks/lib/reg.mjs is not hooks/reg.mjs, and a
 //      script registered in a subfolder of hooks/ is found.
+//      With no hooks.json beside the law (a vendored copy, 0.3.0), hooks/registry.json is the record:
+//      a registry row for the script keeps the grade, a missing row fails, neither file names both;
+//      beside .claude-plugin/plugin.json (a checkout or plugin install) the registry never stands in.
 //   3. The docs build threw "unknown grade" on a DENY clause, so KIT-DOCS-01 would have gone
 //      COULD-NOT-LOOK on the first one. It now accepts DENY and counts it as stopped (D6), and
 //      page.css gives the DENY chip a background; without one the chip is white on the page.
@@ -86,6 +89,60 @@ export function lawRuns(t) {
     r = node(lkBuild, ['-Source', path.join(lk, 'law-ok.json'), '-Out', path.join(T, 'law-nohooks.md')]);
     exitIs('L: no hooks.json fails a hook clause instead of passing it', r.code, 1);
     has('L: the failure says hooks.json is missing', r.out, 'hooks/hooks.json does not exist');
+    has('L: with no registry.json either, the failure names hooks/registry.json too (the record a vendored copy carries)', r.out, 'hooks/registry.json does not exist');
+
+    // L4b (0.3.0, registry-readers): a vendored copy carries hooks/registry.json and never
+    // hooks/hooks.json (tools/vendor.json leaves the plugin form out), so with no hooks.json beside
+    // the law the registry is the record of what is registered: one row per registration, field
+    // script, read by path under hooks/ as hooks.json is. The scratch registry lists the same three
+    // scripts the deleted hooks.json registered, in the registry's own shape.
+    const lkRegistry = jp(lk, 'hooks', 'registry.json');
+    const regRow = (id, script) => ({ id, event: 'PreToolUse', matcher: 'Bash', script, timeout: 10, host: ['any'], mode: 'deny', vendor: true });
+    const lkRows = [regRow('reg', 'hooks/reg.mjs'), regRow('argsreg', 'hooks/argsreg.mjs'), regRow('deep', 'hooks/sub/deep.mjs')];
+    WJ(lkRegistry, { schema: 1, hooks: lkRows });
+    const lkRegOut = path.join(T, 'law-registry.md');
+    r = node(lkBuild, ['-Source', path.join(lk, 'law-ok.json'), '-Out', lkRegOut]);
+    exitIs('L: with no hooks.json, a registry.json that lists the scripts lets the hook clauses build', r.code, 0);
+    const lkRegText = fs.existsSync(lkRegOut) ? fs.readFileSync(lkRegOut, 'utf8') : '';
+    has('L: a clause on a registry-listed script keeps its HOOK grade', lkRegText, '| TST-01 | HOOK |');
+    has('L: a clause on a registry-listed advise hook keeps ADVISE', lkRegText, '| TST-02 | ADVISE |');
+    has('L: a registry row naming a script in a subfolder of hooks keeps that grade too', lkRegText, '| TST-05 | HOOK |');
+    // A checkout or a plugin install carries .claude-plugin/plugin.json beside the law and registers
+    // through hooks.json; there the registry never stands in, or a deleted hooks.json would print HOOK
+    // for a kit that registers nothing (the CR-2026-10-15-GAPS silence again, in the plugin form).
+    const lkPluginJson = jp(lk, '.claude-plugin', 'plugin.json');
+    WJ(lkPluginJson, { name: 'scratch', version: '0.0.0' });
+    r = node(lkBuild, ['-Source', path.join(lk, 'law-ok.json'), '-Out', path.join(T, 'law-registry-checkout.md')]);
+    exitIs('L: beside .claude-plugin/plugin.json (a checkout) the registry does not stand in for a missing hooks.json', r.code, 1);
+    has('L: that failure names the missing hooks.json', r.out, 'FAIL TST-01: hooks/hooks.json does not exist');
+    has('L: and says why the registry does not stand in there', r.out, 'beside .claude-plugin/plugin.json the registry does not stand in for it');
+    fs.rmSync(lkPluginJson, { force: true });
+    // A script the registry does not list is not registered: the failure names the registry and says
+    // why it is the record; a row for that script makes the same clause build.
+    r = node(lkBuild, ['-Source', path.join(lk, 'law-unreg.json'), '-Out', path.join(T, 'law-registry-unreg.md')]);
+    exitIs('L: a clause on a script the registry does not list fails the build', r.code, 1);
+    has('L: the failure names the registry as the record', r.out, "FAIL TST-03: hook script 'unreg.mjs' is not registered in hooks/registry.json (hooks/hooks.json is absent, so the registry is the record)");
+    WJ(lkRegistry, { schema: 1, hooks: [...lkRows, regRow('unreg', 'hooks/unreg.mjs')] });
+    r = node(lkBuild, ['-Source', path.join(lk, 'law-unreg.json'), '-Out', path.join(T, 'law-registry-unreg.md')]);
+    exitIs('L: a registry row for that script makes the same HOOK clause build', r.code, 0);
+    has('L: the clause on the newly listed script keeps its HOOK grade', fs.existsSync(path.join(T, 'law-registry-unreg.md')) ? fs.readFileSync(path.join(T, 'law-registry-unreg.md'), 'utf8') : '', '| TST-03 | HOOK |');
+    r = node(lkBuild, ['-Source', path.join(lk, 'law-lib.json'), '-Out', path.join(T, 'law-registry-lib.md')]);
+    exitIs('L: a lib file named like a registry-listed script is still not registered (read by path under hooks)', r.code, 1);
+    has('L: the lib failure names the registry', r.out, "FAIL TST-04: hook script 'lib/reg.mjs' is not registered in hooks/registry.json");
+    // A hooks.json that exists but cannot be read is a broken kit, not a case for the registry: the
+    // failure names hooks.json alone. A registry that cannot be read, with no hooks.json, names both.
+    W(jp(lk, 'hooks', 'hooks.json'), '{ not json');
+    r = node(lkBuild, ['-Source', path.join(lk, 'law-ok.json'), '-Out', path.join(T, 'law-registry-badhooks.md')]);
+    exitIs('L: a hooks.json that is not JSON fails the build even with a registry beside it', r.code, 1);
+    has('L: that failure names hooks.json, not the registry', r.out, 'FAIL TST-01: hooks/hooks.json is not JSON');
+    hasNot('L: that failure does not fall back to the registry', r.out, 'hooks/registry.json');
+    fs.rmSync(jp(lk, 'hooks', 'hooks.json'), { force: true });
+    W(lkRegistry, '{ not json');
+    r = node(lkBuild, ['-Source', path.join(lk, 'law-ok.json'), '-Out', path.join(T, 'law-registry-badreg.md')]);
+    exitIs('L: a registry that is not JSON, with no hooks.json, fails the build', r.code, 1);
+    has('L: that failure names the registry', r.out, 'hooks/registry.json is not JSON');
+    has('L: and the absent hooks.json beside it', r.out, 'hooks/hooks.json does not exist');
+    fs.rmSync(lkRegistry, { force: true });   // back to the L4 state (neither file) for the runs below
 
     // L5 (0.2.7): kind 'survey' grades ADVISE on a Doctor survey anchor that declares advise, with no
     // hooks.json needed (a survey line is not a hook); GATE on it is refused, and so is an ADVISE on a
@@ -105,6 +162,85 @@ export function lawRuns(t) {
     has('L: an ADVISE survey clause needs an advise anchor', r.out, "FAIL TSV-03: anchor 't-fail' declares mode gate but grade ADVISE needs advise");
     has('L: a survey ref names its anchor', r.out, 'FAIL TSV-04: a survey ref needs #<anchor>');
     hasNot('L: the good survey clause is not failed with them', r.out, 'FAIL TSV-01');
+
+    // ================================================================ run L (KIT): the kit's own group (0.3.0, KIT-01 to KIT-03)
+    say('  Run L (KIT): the KIT clauses on the real kit, and the refusals on a scratch kit', 36);
+    // The three KIT clauses are read from the kit's own law.json and built by the kit's own
+    // build-law.mjs, so the anchors resolve against the real scripts (tools/vendor.mjs,
+    // tools/settings.mjs, hooks/guard.mjs through its lib/ siblings), the real hooks/hooks.json and
+    // the real owning file instructions/kit-law.md. Nothing in the real tree is written: the source
+    // is a planted law.json that carries the KIT group alone, the output lands in the sandbox.
+    const realLaw = JSON.parse(fs.readFileSync(path.join(kitRoot, 'law.json'), 'utf8'));
+    const kitGroup = realLaw.groups && Object.prototype.hasOwnProperty.call(realLaw.groups, 'KIT') ? String(realLaw.groups.KIT) : '';
+    const kitClauses = (realLaw.clauses || []).filter((c) => String(c.group) === 'KIT');
+    const kitIds = kitClauses.map((c) => String(c.id)).sort();
+    if (kitGroup && kitIds.join(',') === 'KIT-01,KIT-02,KIT-03') ok('L: law.json carries the KIT group with KIT-01, KIT-02 and KIT-03');
+    else bad('L: law.json carries the KIT group with KIT-01, KIT-02 and KIT-03', `group ${kitGroup ? 'present' : 'missing'}; clauses: ${kitIds.join(', ') || 'none'}`);
+    const kitSrc = path.join(T, 'law-kit.json');
+    WJ(kitSrc, { schema: 1, groups: { KIT: kitGroup || 'planted' }, clauses: kitClauses });
+    const kitOut = path.join(T, 'law-kit.md');
+    r = node(path.join(kitRoot, 'tools', 'law', 'build-law.mjs'), ['-Source', kitSrc, '-Out', kitOut]);
+    exitIs('L: the three KIT anchors resolve: the real build of the KIT clauses exits 0', r.code, 0);
+    if (r.code !== 0) say(`        ${r.out.replace(/\s+/g, ' ').trim().slice(0, 400)}`, 90);
+    hasNot('L: the KIT clauses build with no warning (no value, no count, one sentence each)', r.out, 'WARN KIT-');
+    const kitText = fs.existsSync(kitOut) ? fs.readFileSync(kitOut, 'utf8') : '';
+    has('L: KIT-01 grades GATE from the vendor-sha anchor (mode gate), never typed', kitText, '| KIT-01 | GATE |');
+    has("L: KIT-02 grades HOOK from the guard's selfcheck-armed anchor (mode deny, found through lib/)", kitText, '| KIT-02 | HOOK |');
+    has('L: KIT-03 grades GATE from the settings-registry anchor (mode gate)', kitText, '| KIT-03 | GATE |');
+
+    // The refusals that keep the group honest, on a scratch kit so the real tree stays as it is: the
+    // law scripts, a vendor.mjs holding the real anchor line, a guard whose deny anchor sits in its
+    // lib/ as the real one does, a hooks.json that registers the guard, and the owning file.
+    const kk = newDir(path.join(T, 'kitlaw'));
+    for (const rel of ['tools/law/build-law.mjs', 'tools/law/validate.mjs', 'tools/law/render.mjs', 'tools/lib/args.mjs', 'hooks/lib/json.mjs']) copy(kitRoot, rel, kk);
+    W(jp(kk, 'tools', 'vendor.mjs'), '// anchor: vendor-sha  mode: gate  verbs: vendor\n');
+    W(jp(kk, 'hooks', 'guard.mjs'), '// guard.mjs - a planted guard; its rules live in lib/.\n');
+    W(jp(kk, 'hooks', 'lib', 'guard-owner-rules.mjs'), '// anchor: selfcheck-armed  mode: deny  verbs: prove-armed\n');
+    W(jp(kk, 'hooks', 'hooks.json'), '{ "hooks": { "PreToolUse": [ { "matcher": "Bash", "hooks": [ { "type": "command", "command": "node \\"${CLAUDE_PLUGIN_ROOT}/hooks/guard.mjs\\"" } ] } ] } }\n');
+    W(jp(kk, 'instructions', 'kit-law.md'), '# Kit law\n\n### KIT-01\n\nThe vendored tree.\n\n### KIT-02\n\nThe arming proof.\n');
+    const kkBuild = jp(kk, 'tools', 'law', 'build-law.mjs');
+    const kkClause = (id, grade, kind, ref, verb) => ({ id, group: 'KIT', verb, rule: 'A planted rule for the kit group.', owner: 'kit:instructions/kit-law.md', grade, since: '2026-11-10', enforcedBy: { kind, ref } });
+    const kkGroups = { KIT: "The kit's own plumbing" };
+    const kkOk = [kkClause('KIT-01', 'GATE', 'tool', 'tools/vendor.mjs#vendor-sha', 'vendor'), kkClause('KIT-02', 'HOOK', 'hook', 'hooks/guard.mjs#selfcheck-armed', 'prove-armed')];
+    WJ(path.join(kk, 'law-kit-ok.json'), { schema: 1, groups: kkGroups, clauses: kkOk });
+    r = node(kkBuild, ['-Source', path.join(kk, 'law-kit-ok.json'), '-Out', path.join(T, 'law-kit-ok.md')]);
+    exitIs('L: the scratch KIT clauses build (one heading each, each anchor mode matching its grade)', r.code, 0);
+    // A second law file with '### KIT-01' is one subject stated twice: the build fails, names both
+    // files (PRIN-05) and writes nothing.
+    W(jp(kk, 'instructions', 'other-law.md'), '# Other law\n\n### KIT-01\n\nThe same clause stated again.\n');
+    r = node(kkBuild, ['-Source', path.join(kk, 'law-kit-ok.json'), '-Out', path.join(T, 'law-kit-dup.md')]);
+    exitIs('L: a KIT-01 heading in two law files fails the build', r.code, 1);
+    has('L: the failure names both files that carry the heading', r.out, "FAIL KIT-01: '### KIT-01' heading is in more than one law file: kit:instructions/kit-law.md, kit:instructions/other-law.md");
+    if (!fs.existsSync(path.join(T, 'law-kit-dup.md'))) ok('L: the duplicate-heading build writes no LAW.md'); else bad('L: the duplicate-heading build writes no LAW.md', `found ${path.join(T, 'law-kit-dup.md')}`);
+    fs.rmSync(jp(kk, 'instructions', 'other-law.md'), { force: true });
+    // The grade comes from the anchor's mode, never from what was typed: HOOK on the vendor tool's
+    // gate anchor and GATE on the guard's deny anchor both fail.
+    WJ(path.join(kk, 'law-kit-mode.json'), { schema: 1, groups: kkGroups, clauses: [kkClause('KIT-01', 'HOOK', 'hook', 'tools/vendor.mjs#vendor-sha', 'vendor'), kkClause('KIT-02', 'GATE', 'tool', 'hooks/guard.mjs#selfcheck-armed', 'prove-armed')] });
+    r = node(kkBuild, ['-Source', path.join(kk, 'law-kit-mode.json'), '-Out', path.join(T, 'law-kit-mode.md')]);
+    exitIs('L: a KIT clause whose anchor mode does not match its grade fails the build', r.code, 1);
+    has('L: HOOK typed on the vendor gate anchor is refused', r.out, "FAIL KIT-01: anchor 'vendor-sha' declares mode gate but grade HOOK needs deny");
+    has('L: GATE typed on the guard deny anchor is refused', r.out, "FAIL KIT-02: anchor 'selfcheck-armed' declares mode deny but grade GATE needs gate");
+    // A count in a rule text goes stale in silence (SKIN-07, build-law.mjs#no-count): the build refuses
+    // it by the clause and the words, and writes nothing (0.3.0 red-expected map).
+    WJ(path.join(kk, 'law-kit-count.json'), { schema: 1, groups: kkGroups, clauses: [{ ...kkOk[0], rule: 'A repository runs the 3 hooks it carries.' }, kkOk[1]] });
+    r = node(kkBuild, ['-Source', path.join(kk, 'law-kit-count.json'), '-Out', path.join(T, 'law-kit-count.md')]);
+    exitIs('L: a KIT clause whose rule text carries a count fails the build', r.code, 1);
+    has('L: the failure names the clause and the counted words', r.out, "FAIL KIT-01: rule carries a count ('3 hooks')");
+    if (!fs.existsSync(path.join(T, 'law-kit-count.md'))) ok('L: the counted-rule build writes no LAW.md'); else bad('L: the counted-rule build writes no LAW.md', `found ${path.join(T, 'law-kit-count.md')}`);
+    // A KIT clause with no KIT entry in groups fails on the group.
+    WJ(path.join(kk, 'law-kit-nogroup.json'), { schema: 1, groups: { CTRL: 'Control' }, clauses: kkOk });
+    r = node(kkBuild, ['-Source', path.join(kk, 'law-kit-nogroup.json'), '-Out', path.join(T, 'law-kit-nogroup.md')]);
+    exitIs('L: a KIT clause with no KIT entry in groups fails the build', r.code, 1);
+    has('L: the failure names the missing group', r.out, "FAIL KIT-01: group 'KIT' is not in groups");
+    // A KIT clause whose '### ID' heading is in no law file fails on the owner: the scratch kit-law.md
+    // carries KIT-01 and KIT-02 only, so a KIT-03 on a planted settings anchor has its heading nowhere.
+    // The build names the owning file that must carry it and writes nothing.
+    W(jp(kk, 'tools', 'settings.mjs'), '// anchor: settings-registry  mode: gate  verbs: render-settings\n');
+    WJ(path.join(kk, 'law-kit-noheading.json'), { schema: 1, groups: kkGroups, clauses: [...kkOk, kkClause('KIT-03', 'GATE', 'tool', 'tools/settings.mjs#settings-registry', 'render-settings')] });
+    r = node(kkBuild, ['-Source', path.join(kk, 'law-kit-noheading.json'), '-Out', path.join(T, 'law-kit-noheading.md')]);
+    exitIs('L: a KIT clause whose heading is in no law file fails the build', r.code, 1);
+    has('L: the failure names the owning file that must carry the heading', r.out, "FAIL KIT-03: no '### KIT-03' heading in any law file; the owning file kit:instructions/kit-law.md must carry it (PRIN-05)");
+    if (!fs.existsSync(path.join(T, 'law-kit-noheading.md'))) ok('L: the missing-heading build writes no LAW.md'); else bad('L: the missing-heading build writes no LAW.md', `found ${path.join(T, 'law-kit-noheading.md')}`);
 
     // ================================================================ run M: the docs build accepts DENY
     say('  Run M: the docs build with a planted DENY clause', 36);

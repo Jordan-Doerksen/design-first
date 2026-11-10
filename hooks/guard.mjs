@@ -1,4 +1,4 @@
-// guard.mjs - refuses the call that would stage a secret, rewrite git history, touch a frozen path, write source behind an open design gate, leave or push the loop branch, pipe a heredoc into Python, or kill a process by name in a writer session; advises on a write with no manifest or past one Read.
+// guard.mjs - refuses the call that would stage a secret, rewrite git history, touch a frozen path, write source behind an open design gate, leave or push the loop branch, pipe a heredoc into Python, or kill a process by name in a writer session, and refuses the arming probe (selfcheck) with the kit's version so a session can prove this guard loaded; advises on a write with no manifest or past one Read.
 //
 // This one refuses. The deny rules, in this order, every one of them a cost already paid somewhere:
 //   1. stage-secret  - git add / git commit -a of a file that looks like a credential.
@@ -30,10 +30,14 @@
 //  14. no-blanket-kill - in a writer session only, a kill by image name: taskkill /IM, Stop-Process
 //                      or spps -Name (any prefix, or -ProcessName), pkill, killall; a kill by PID
 //                      passes (owner ruling 2026-10-22). The residual is in lib/guard-owner-rules.mjs.
-// Rules 1-3, 7 and 10-14 run with or without a brain. Rule 4 needs the brain's doctor.config.json;
+//  15. selfcheck      - the arming probe, node <path>/selfcheck.mjs, in a Bash or PowerShell call:
+//                      refused with the reason 'ARMED <version> <sha>' of the running kit, so the
+//                      refusal itself proves this guard loaded (KIT-02, 0.3.0). The residual is below
+//                      and in lib/guard-owner-rules.mjs.
+// Rules 1-3, 7 and 10-15 run with or without a brain. Rule 4 needs the brain's doctor.config.json;
 // without one it is skipped and says so once per session. Rules 8 and 9 run only when the brain
-// turns them on (forbidScheduling, contentRules); rule 14 runs unless the brain sets blanketKill false. Rules 5 and 6 advise and never deny. Rules 7-9,
-// 13 and 14 live in lib/guard-owner-rules.mjs, rule 10 in lib/guard-gate-rules.mjs, rules 11 and 12 in
+// turns them on (forbidScheduling, contentRules); rule 14 runs unless the brain sets blanketKill false. Rules 5 and 6 advise and never deny. Rules 7-9
+// and 13-15 live in lib/guard-owner-rules.mjs, rule 10 in lib/guard-gate-rules.mjs, rules 11 and 12 in
 // lib/guard-loop-rules.mjs.
 //
 // What this hook cannot see (the written residual, self-tested as NOT denied so nobody believes
@@ -54,7 +58,11 @@
 // repository's own config plus that one value, so another value that changes what git ignores is
 // not seen); a global option a later git adds; and, for rule 11, a --git-dir that does not end in
 // .git (it reads the call's folder). Rules 4 and 8 read the first word only, so a prefix before rm,
-// Remove-Item or schtasks hides the command from them. Secret files created by cp or echo > are not
+// Remove-Item or schtasks hides the command from them. Rule 15 reads the command word and the one
+// after it, so a selfcheck run through a nested shell (bash -c "node .claude/kit/tools/selfcheck.mjs"),
+// through another runner, or with a node option before the script is not seen: the script then runs
+// and prints UNARMED while this guard is loaded, which is the safe side (a stop, never a false go).
+// Secret files created by cp or echo > are not
 // seen here either; they are caught at staging by rule 1's wildcard probe. Rules 3, 10 and 12 read
 // file-tool calls only: a plain shell write (a redirect, Set-Content, cp) of a .env, of source
 // behind an open design gate, or of the story ledger is not inspected. Rule 4 compares paths after toFullPath, which resolves the symbolic
@@ -72,7 +80,26 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { fileURLToPath } from 'node:url';
 import { readStdin } from './lib/stdin.mjs';
+
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+
+// The kit root rule 15 names in its refusal (0.3.0): common.mjs's getKitRoot when this copy has it
+// (DF_KIT_ROOT, the running copy, the repository's .claude/kit, the pointer), else the running copy,
+// one folder up from hooks/, when it holds law.json, else ${CLAUDE_PROJECT_DIR}/.claude/kit when
+// that holds law.json, else null (the reason then reads ARMED unknown unknown).
+function kitRootHere(C) {
+    if (typeof C.getKitRoot === 'function') return C.getKitRoot(HERE);
+    const running = path.resolve(HERE, '..');
+    if (fs.existsSync(path.join(running, 'law.json'))) return running;
+    const project = process.env.CLAUDE_PROJECT_DIR;
+    if (project) {
+        const vendored = path.join(project, '.claude', 'kit');
+        if (fs.existsSync(path.join(vendored, 'law.json'))) return vendored;
+    }
+    return null;
+}
 
 let raw = '';
 let sessionId = '';
@@ -91,6 +118,8 @@ try {
 
     if (C.isBlank(raw)) throw new Error('empty stdin (no tool call payload)');
     const j = JSON.parse(raw);
+    C.setMarkerDir(j);                                                 // markers and logs under the host's scratchpad_dir when given (0.3.0)
+    if (C.yieldToPlugin('guard', import.meta.url)) process.exit(0);    // the yield rule: a vendored copy steps aside for the plugin (0.3.0)
     const tool = C.str(j.tool_name);
     const ti = j.tool_input;
     sessionId = C.str(j.session_id);
@@ -105,7 +134,9 @@ try {
     try { cfg = C.readBrainConfig(ptr); }
     catch (e) {
         cfg = C.defaultBrainConfig();
-        cfg.reason = `doctor.config.json unreadable: ${e.message}`;
+        // readBrainConfig tags an error of the extract (source 'extract', detail without the prefix) so the
+        // advisory names the file it could not read, not the brain's doctor.config.json, which no clone has.
+        cfg.reason = e.source === 'extract' ? `extract unreadable: ${e.detail || e.message}` : `doctor.config.json unreadable: ${e.message}`;
         C.writeLog('ERROR', 'guard', cfg.reason);
         R.addAdvisory('brain config unreadable, path rules skipped', `${cfg.reason}. Inline rules still ran.`);
     }
@@ -120,7 +151,7 @@ try {
         const fp = tool === 'NotebookEdit' ? C.str(ti.notebook_path) : C.str(ti.file_path);
         full = C.toFullPath(fp, cwd);
         if (!result) result = R.envWriteRule(full, cfg.exceptions, owner);
-        if (!result && cfg.present) result = R.pathRuleFile(full, cfg.protected, owner, cfg.tombstoned);
+        if (!result && cfg.present) result = R.pathRuleFile(full, cfg.protected, owner, cfg.tombstoned, cfg.source);
         if (!result && cfg.forbidScheduling) result = O.scheduleRuleFile(full, owner);
         if (!result && cfg.contentRules.length > 0) result = O.contentRuleFile(tool, ti, full, cfg.contentRules, owner);
         // Brain tunables when present, built-in defaults otherwise (rules 5, 6 and 10 share them).
@@ -141,6 +172,29 @@ try {
         const cmd = C.str(ti.command);
         if (!C.isBlank(cmd)) {
             subs = splitCommand(cmd, tool);
+            // Rule 15 names the running kit's version and tree sha in its refusal. The module that
+            // computes them (lib/kit-version.mjs) loads node:crypto and hashes the kit's tree, about
+            // ten milliseconds, so it is imported only when the command names selfcheck.mjs at all: a
+            // substring test that admits every command the token rule can match and refuses nothing
+            // by itself (a quoted mention, echo "node selfcheck.mjs", reaches the rule and is allowed).
+            const KV = /selfcheck\.mjs/i.test(cmd) ? await import('./lib/kit-version.mjs') : null;
+            // A kit whose tree cannot be read (a manifest include missing, a file unreadable, a VERSION that is
+            // not its shape) still gets the refusal, with the reason ARMED unknown unknown, and one ERROR line
+            // here says why: the unknown is never silent. So does a kit root with neither VERSION nor
+            // plugin.json (kitVersion's source 'none'), a broken copy, and no kit root at all, whose line names
+            // every place the search looked (lib/common.mjs kitRootLookedAt). The rule maps a null to unknown
+            // unknown, and an empty version or an empty sha to unknown in its own place (source 'none' has both
+            // empty; a plugin.json with no version reads ARMED unknown <sha12>).
+            const armedVersion = () => {
+                const why = `rule 15: the kit's version could not be read, the reason says ARMED unknown unknown`;
+                try {
+                    const root = kitRootHere(C);
+                    const v = KV.kitVersion(root);
+                    if (!root) C.writeLog('ERROR', 'guard', `${why}: no kit root; looked at ${typeof C.kitRootLookedAt === 'function' ? C.kitRootLookedAt(HERE) : 'the running copy and CLAUDE_PROJECT_DIR/.claude/kit (this copy of lib/common.mjs cannot say more)'}`);
+                    else if (v.source === 'none') C.writeLog('ERROR', 'guard', `${why}: ${v.why || 'no VERSION and no .claude-plugin/plugin.json'} at ${root}`);
+                    return { version: v.version, sha: KV.shortSha(v.sha) };
+                } catch (e) { C.writeLog('ERROR', 'guard', `${why}: ${e && e.message ? e.message : e}`); return null; }
+            };
             // The folder a sub-command runs in, after any cd before it in the same command line. Every
             // shell rule reads it: rules 1, 2, 4, 7, 11 and the shell content rule (rule 3 has no shell
             // form). Workaround (CR-2026-10-15-GAPS D1): rules 1-4 used to keep the tool call's cwd, so
@@ -168,13 +222,16 @@ try {
                     // symbolic-ref (the full list, and its residual, in lib/guard-loop-rules.mjs).
                     if (!result) result = loopPushRule(call, cfg.loopBranchPrefix, owner);
                 }
-                if (!result && cfg.present) result = R.pathRuleShell(tokens, call, runCwd, cfg.protected, owner);
+                if (!result && cfg.present) result = R.pathRuleShell(tokens, call, runCwd, cfg.protected, owner, cfg.source);
                 if (!result && cfg.forbidScheduling) result = O.scheduleRuleShell(tokens, owner);
                 // Rule 13 denies a heredoc that is Python's code ('python3 - <<EOF', 'python <<EOF',
                 // 'cat <<EOF | python'), always, brain or no brain. It reads the whole pipeline.
                 if (!result) result = O.pythonHeredocRule(subs, k);
                 // Rule 14 denies a kill by image name, in a writer session only (the role route.mjs wrote).
                 if (!result && cfg.blanketKill && isWriterSession(sessionId)) result = O.blanketKillRule(tokens, tool);
+                // Rule 15 denies the arming probe, node <path>/selfcheck.mjs, with the running kit's
+                // version and sha, so the refusal itself proves this guard loaded (KIT-02). Always on.
+                if (!result && KV) result = O.selfcheckRule(tokens, armedVersion);
                 if (result) break;
             }
             if (!result && cfg.contentRules.length > 0) result = O.contentRuleShell(cmd, runCwd, cfg.contentRules, owner);
@@ -251,7 +308,9 @@ try {
         // Stop card reads.
         let sid = sessionId && sessionId.trim() ? sessionId : null;
         if (!sid) { const m = /"session_id"\s*:\s*"([^"]+)"/.exec(raw || ''); sid = m ? m[1] : 'unknown'; }
-        const markerDir = process.env.DF_MARKER_DIR || path.join(os.tmpdir(), 'design-first');
+        let scratch = null;   // the host's scratchpad_dir, as lib/common.mjs getMarkerDir would answer (0.3.0)
+        try { const sd = /"scratchpad_dir"\s*:\s*"((?:[^"\\]|\\.)*)"/.exec(raw || ''); if (sd) scratch = path.join(JSON.parse(`"${sd[1]}"`), 'design-first'); } catch { scratch = null; }
+        const markerDir = process.env.DF_MARKER_DIR || scratch || path.join(os.tmpdir(), 'design-first');
         fs.mkdirSync(markerDir, { recursive: true });
         fs.appendFileSync(path.join(markerDir, sid.replace(/[^A-Za-z0-9_.-]/g, '_') + '.guard-error'), `${iso}\t${flat}\n`, 'utf8');
     } catch { /* never fatal */ }

@@ -1,13 +1,13 @@
 {
   "schema": 1,
-  "_comment": "Subagent policy read by the kit's hooks/agent.mjs on every Agent call (DES-11). Tunables only, no logic. adopt copies this into the brain; edit the brain copy, never this template. brief.required: headings a brief must carry at line start, 'A:|B:' means either. brief.lightTypes: agent types that search rather than build and need only brief.lightRequired. brief.sessionTools: the host's session-start tools by full tool name (CTRL-02); on one of these the hook reads the input's prompt as the brief and checks brief.required, and nothing else; the same name must be in the hook's matcher, so a tool added here is added to the matcher in the brain's settings. routes: model by agent type when the call names none; 'inherit' leaves the session model; 'default' covers any type not listed; a route matches the exact type name, there is no wildcard, so a family of agents (council-spark, council-skeptic, ...) is one line per name in the brain copy. cap.perTurn: spawns per turn (session + prompt) before the hook stops and asks; 0 disables the cap.",
+  "_comment": "Subagent policy read by the kit's hooks/agent.mjs on every Agent call and every session-start call (DES-11, CTRL-02). Tunables only, no logic. adopt copies this into the brain; edit the brain copy, never this template. brief.required: headings a brief must carry at line start, 'A:|B:' means either. brief.lightTypes: agent types that search rather than build and need only brief.lightRequired. brief.sessionTools: the hosts' session-start tools by full tool name (CTRL-02): the desktop app's mcp__ccd_session__start_session and the cloud's mcp__claude-code-remote__create_session; on one of these the hook reads the input's prompt as the brief and checks brief.required, with no count and no route; a call with no prompt carries no brief and is not held to it; the same name must be in the hook's matcher (hooks/hooks.json, rendered from hooks/registry.json), because the brief check reads the tools named here, not the matcher, so a tool named in one place and not the other starts with its brief unchecked (a cloud create_session missing here is still held to session.requireMode and the started marker, and the hook logs a WARN line naming this file). routes: model by agent type when the call names none; 'inherit' leaves the session model; 'default' covers any type not listed; a route matches the exact type name, there is no wildcard, so a family of agents (council-spark, council-skeptic, ...) is one line per name in the brain copy. cap.perTurn: spawns per turn (session + prompt) before the hook stops and asks; 0 disables the cap. session.requireMode: null, or the permission mode every cloud create_session must carry ('auto' is the design's recommendation; a string, compared as typed; any other value is no rule): when set, the hook denies a create_session unless the caller's own mode (the hook input's permission_mode) and the child's requested mode (tool_input.permission_mode) both equal it, naming what it saw and what the policy requires; a child cannot be more permissive than its caller, and a child that hits a permission prompt in a container stops with nobody to click, so equal is the one value that neither widens nor stalls. The desktop start tool carries no mode and is not held to it. The hook also records every allowed create_session title in a per-prompt marker and denies a second start of the same title in one prompt; that rule has no key.",
   "_voice": "Voice: is an optional brief heading, documented and not required (owner ruling 29, 2026-10-20). Template text: 'Voice: terse, for your master, not the owner; no hype, no recap prose.' It tells a work session how to answer its master. It stays out of brief.required because the kit cannot know that every adopter wants a voice line, or has an owner-voice rule to separate from; an adopter who does adds \"Voice:\" to brief.required in the brain copy. The router's writerSkip key (route-policy.json) is what keeps owner-voice law out of a writer session.",
   "_report": "Report rule: an optional brief line, documented and not required (owner ruling 32, 2026-10-20). Template text: 'Report rule: message only for done, blocked, or a question for the owner; no progress, acknowledgement or state lines.'",
   "brief": {
     "required": ["Goal:", "Files:|Area:", "Done when:", "Ruled out:", "Reports to:"],
     "lightTypes": ["Explore", "claude-code-guide"],
     "lightRequired": ["Goal:", "Done when:", "Reports to:"],
-    "sessionTools": ["mcp__ccd_session__start_session"]
+    "sessionTools": ["mcp__ccd_session__start_session", "mcp__claude-code-remote__create_session"]
   },
   "routes": {
     "Explore": "haiku",
@@ -20,5 +20,8 @@
   },
   "cap": {
     "perTurn": 8
+  },
+  "session": {
+    "requireMode": null
   }
 }

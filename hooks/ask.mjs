@@ -88,6 +88,8 @@ try {
     const raw = C.readStdin();
     if (C.isBlank(raw)) throw new Error('empty stdin (no tool call payload)');
     const j = JSON.parse(raw);
+    C.setMarkerDir(j);                                               // markers and logs under the host's scratchpad_dir when given (0.3.0)
+    if (C.yieldToPlugin('ask', import.meta.url)) process.exit(0);    // the yield rule: a vendored copy steps aside for the plugin (0.3.0)
     if (C.str(j.tool_name) === 'AskUserQuestion') {
         const ti = j.tool_input;
         const qs = ti != null && Array.isArray(ti.questions) ? ti.questions.filter((q) => q != null) : [];

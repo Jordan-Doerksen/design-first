@@ -127,7 +127,8 @@ export default function stopGitCases(t) {
     put(cfgPath, cfgSaved);
 
     // 13. stopCard (0.2.11, STOP-1): the card off per session role. The role is what route.mjs wrote
-    // on the first prompt: a brief with a line-start "Reports to:" is a writer, anything else an owner.
+    // on the first prompt: a line-start "Role: writer", or a line-start "Reports to:" (a brief) with no
+    // "Role:" line, is a writer, anything else an owner (0.3.0; decided again when the mark is gone).
     const hooksLog = process.env.DF_LOG_PATH;
     const logTail = () => (exists(hooksLog) ? readText(hooksLog) : '');
     const withCard = (card, fn) => { const o = JSON.parse(cfgSaved); if (card !== undefined) o.stopCard = card; put(cfgPath, JSON.stringify(o, null, 2)); try { return fn(); } finally { put(cfgPath, cfgSaved); } };

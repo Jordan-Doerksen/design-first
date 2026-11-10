@@ -60,6 +60,21 @@ export async function configCases(t, a) {
     const tpl = X.readDoctorConfig(path.join(kitRoot, 'templates', 'doctor.config.json'), ctxT);   // the real kit's template; kit is the fixture kit
     if (tpl.ok && tpl.deadKeys.length === 0) ok('config: the kit template sets no dead key'); else bad('config: the kit template sets no dead key', `ok=${tpl.ok} error='${tpl.error}' dead: ${tpl.deadKeys.join(', ')}`);
 
+    // 0.3.0: boundedFiles is a hook-read key (hooks/card.mjs) like the others above: a config that sets a
+    // row loads it as set and reports nothing dead. Red before the key had a reader: 'dead: boundedFiles'.
+    const bfPath = path.join(dir, 'bounded.json'); WJ(bfPath, { schema: 1, boundedFiles: [{ glob: '${BRAIN}/control/cards/*.md', idPatterns: ['local_[0-9a-f]{8}'] }] });
+    const bf = X.readDoctorConfig(bfPath, ctxT);
+    const bfRows = Array.isArray(bf.cfg.boundedFiles) ? bf.cfg.boundedFiles.length : 'none';
+    if (bf.ok && bf.deadKeys.length === 0 && bfRows === 1) ok('config: a boundedFiles row is read as set, not reported dead (hooks/card.mjs, 0.3.0)'); else bad('config: a boundedFiles row is read as set, not reported dead (hooks/card.mjs, 0.3.0)', `ok=${bf.ok} dead: ${bf.deadKeys.join(', ')} rows=${bfRows}`);
+
+    // 0.3.0: leakWords is read by tools/extract.mjs (words a non-full extract may not carry; a hit refuses
+    // the write), by no hook and not by the Doctor: a config that sets the list loads it as set and reports
+    // nothing dead. Red before the key had a reader row: 'dead: leakWords'.
+    const lwPath = path.join(dir, 'leak-words.json'); WJ(lwPath, { schema: 1, leakWords: ['planted-leak-word'] });
+    const lw = X.readDoctorConfig(lwPath, ctxT);
+    const lwRows = Array.isArray(lw.cfg.leakWords) ? lw.cfg.leakWords.length : 'none';
+    if (lw.ok && lw.deadKeys.length === 0 && lwRows === 1) ok('config: a leakWords row is read as set, not reported dead (tools/extract.mjs, 0.3.0)'); else bad('config: a leakWords row is read as set, not reported dead (tools/extract.mjs, 0.3.0)', `ok=${lw.ok} dead: ${lw.deadKeys.join(', ')} rows=${lwRows}`);
+
     // Planted: a live key with no default. The read must not throw (the comment on readDoctorConfig says so).
     readers.plantedNoDefault = 'selftest-config.mjs (planted: a reader key with no default)';
     try {

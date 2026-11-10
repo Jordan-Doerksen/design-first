@@ -55,16 +55,19 @@ session-start tool. The tunables are in `<brain>/agent-policy.json`, under `brie
 | `required` | the headings every full brief carries | `Goal:`, `Files:` or `Area:`, `Done when:`, `Ruled out:`, `Reports to:` |
 | `lightTypes` | agent types that search rather than build | `Explore`, `claude-code-guide` |
 | `lightRequired` | the headings a light type carries | `Goal:`, `Done when:`, `Reports to:` |
-| `sessionTools` | the host's session-start tools, by full tool name | `mcp__ccd_session__start_session` |
+| `sessionTools` | the host's session-start tools, by full tool name | `mcp__ccd_session__start_session`, `mcp__claude-code-remote__create_session` |
 
 The session-start tool is the host's, not the kit's, so its name is a config value and not a line
 in the hook (`OWN-05`); the matcher in `hooks/hooks.json` names the same tool, because a hook runs
 only on the tools its matcher names, and a brain that adds a tool to `sessionTools` adds it to the
 matcher in its own settings. On a session-start call the hook reads the tool input's `prompt` as
-the brief and checks `required` against it, and nothing else: no spawn count, no model route,
-since a session's model is the host's. A session-start call with no `prompt` carries no brief and
-is passed through: the host's offer card is a title alone, and a proposal is started by its id
-after its brief was checked on the call that carried it.
+the brief and checks `required` against it: no spawn count, no model route, since a session's
+model is the host's. A session-start call with no `prompt` carries no brief and is not held to
+one: the host's offer card is a title alone, and a proposal is started by its id after its brief
+was checked on the call that carried it. The cloud's start tool, `create_session`, is held to two
+more rules of the hook, with or without a `prompt` and whether or not `sessionTools` names it: the
+caller's and the child's `permission_mode` must equal the policy's `session.requireMode` when it
+names one, and a second start of the same title in one prompt is refused.
 
 ## The card and its claim
 

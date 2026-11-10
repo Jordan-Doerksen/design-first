@@ -177,15 +177,23 @@ Every clause has a permanent id (cite the id, never a line number), one sentence
 | CTRL-02 | HOOK | Every brief, for a subagent or for a session, names what it reports to and in what shape; a brief that does not is refused. | `kit:instructions/control-law.md` |
 | CTRL-03 | GATE | Every control card lives in the brain's control folder, exists at its path and names its master. | `kit:instructions/control-law.md` |
 
+## KIT - The kit's own plumbing
+
+| id | grade | rule | owner |
+|---|---|---|---|
+| KIT-01 | GATE | A repository runs only the kit it carries: the vendored tree is the bytes its VERSION names. | `kit:instructions/kit-law.md` |
+| KIT-02 | HOOK | A session proves its hooks loaded before it edits: the arming line at start, the guard's ARMED refusal of the selfcheck command. | `kit:instructions/kit-law.md` |
+| KIT-03 | GATE | Every hook registration is rendered from one registry; a hand-edited registration is RED. | `kit:instructions/kit-law.md` |
+
 ## Summary
 
 | grade | count |
 |---|---|
 | DENY | 0 |
-| HOOK | 14 |
+| HOOK | 15 |
 | ADVISE | 38 |
-| GATE | 15 |
+| GATE | 17 |
 | BUILDABLE | 15 |
 | OWNER | 3 |
 | HONOUR | 5 |
-| total | 90 |
+| total | 93 |

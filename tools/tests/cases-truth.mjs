@@ -26,6 +26,8 @@
 //      line, so a behaviour change that did not touch DECISIONS.md got no GATE-06 at all (second
 //      CR-2026-10-15-GAPS review); with that change put back, cases 9a and 9c fail, and with the
 //      question line taken out, 9a, 9b and 9c fail.
+//   10 a payload that is not JSON is one ERROR line in the hooks log from route, stop, subagent and
+//      entry, which read their payload leniently and left nothing behind (kit 0.3.0 fix pass).
 // Run against the seven hook files of 9409b1c (2026-10-15), 32 of the 38 cases in blocks 1-8 fail. Of the 6 that
 // pass there, 4 hold the other side: a Write that adds a row is flagged, a row added in git is no
 // GATE-06 line, an idle session's markers go, and a skill that printed is marked. 2 hold this
@@ -37,17 +39,27 @@ import path from 'node:path';
 
 export default function truthCases(t) {
     const { T, root, brain, kit, hooks, record, section, like, blank, jp, put, readText, exists, setOld, newRepo, runGit,
-        invokeHook, hookJson, parseOut, classify, route, stop, entry, ledger } = t;
+        invokeHook, hookJson, parseOut, classify, internalErrorReply, route, stop, entry, ledger } = t;
 
+    // The hook's answer as one word. The kit's internal-error reply (internalErrorReply, the recognizer the
+    // Doctor's hook_smoke reads; for stop.mjs a systemMessage alone, 'STOP: internal error, turn allowed to
+    // end (...)') is 'error', never 'notice': a case that expects a notice cannot pass on a hook that crashed
+    // (review finding 18; red first with a throw planted after the stop hook's stdin parse, when the two D5-4
+    // notice cases passed on the error reply).
     const verdict = (r) => {
         if (r.code !== 0) return `exit${r.code}`;
         if (blank(r.out)) return 'silent';
+        if (internalErrorReply(r.out)) return 'error';
         const j = parseOut(r.out);
         if (j == null) return 'bad-output';
         if (j.decision === 'block') return 'block';
         if (j.systemMessage && !j.hookSpecificOutput) return 'notice';
         return classify(r.out);
     };
+    // The answer and its text together: the expected word only when the reply carries the text too, else
+    // '<word>-without-text'. Before, a case read `verdict(r) === w && like(...) ? w : verdict(r)`, whose fallback
+    // was the expected word again, so the text never changed the result.
+    const withText = (r, word, pattern) => { const v = verdict(r); return v !== word ? v : like(r.out, pattern) ? word : `${word}-without-text`; };
     const guard = (session, cwd, tool, ti) => invokeHook('guard.mjs', hookJson({ session_id: session, cwd, hook_event_name: 'PreToolUse', tool_name: tool, tool_input: ti }));
     const marker = (session, ext) => path.join(process.env.DF_MARKER_DIR, session + ext);
     const logSince = (from) => { const s = readText(process.env.DF_LOG_PATH); return s.length > from ? s.slice(from) : ''; };
@@ -128,7 +140,7 @@ export default function truthCases(t) {
     runGit(inDocs, ['add', '-A']); runGit(inDocs, ['commit', '-q', '-m', 'init']);
     put(ledger('tr-docs-under'), jp(inDocs, 'src', 'x.py') + '\t\n');
     r = stop('tr-docs-under', false);
-    record('truth D5-2: a repository below a folder named docs gets its card', 'block', verdict(r) === 'block' && like(r.out, '*repo-tr-indocs: 1 source file(s) changed*') ? 'block' : verdict(r), r.out);
+    record('truth D5-2: a repository below a folder named docs gets its card', 'block', withText(r, 'block', '*repo-tr-indocs: 1 source file(s) changed*'), r.out);
     const docSrc = newRepo('repo-tr-docsrc');
     put(jp(docSrc, 'docs', 'build.mjs'), 'console.log(1);');
     put(jp(docSrc, 'docs', 'guide.md'), '# guide');
@@ -167,7 +179,7 @@ export default function truthCases(t) {
     put(clSrc, 'a = 3');
     logFrom = readText(process.env.DF_LOG_PATH).length;
     r = stop('tr-bud1', false);
-    record('truth D5-4: budget spent, nothing to card -> a notice naming the repository', 'notice', verdict(r) === 'notice' && like(r.out, '*time budget*repo-tr-rows*') ? 'notice' : verdict(r), r.out);
+    record('truth D5-4: budget spent, nothing to card -> a notice naming the repository', 'notice', withText(r, 'notice', '*time budget*repo-tr-rows*'), r.out);
     record('truth D5-4: the spent budget is logged as a WARN line', 'logged', like(logSince(logFrom), '*WARN stop time budget of*repo-tr-rows*') ? 'logged' : 'missing', logSince(logFrom));
     route('edit it', 'tr-bud2', root);
     guard('tr-bud2', clRepo, 'Edit', { file_path: clSrc, old_string: 'a = 3', new_string: 'a = 4' });
@@ -197,7 +209,7 @@ export default function truthCases(t) {
     let gerr = readText(marker('tr-gerr', '.guard-error'));
     record('truth D5-4: a guard internal error is counted in <session>.guard-error', 'counted', gerr.split('\n').filter((l) => l.trim()).length === 1 && like(gerr, '*no tool_input*') ? 'counted' : 'missing', gerr);
     r = stop('tr-gerr', false);
-    record('truth D5-4: guard failed, nothing recorded -> a notice, not a silent pass', 'notice', verdict(r) === 'notice' && like(r.out, '*guard failed on 1 call(s)*') ? 'notice' : verdict(r), r.out);
+    record('truth D5-4: guard failed, nothing recorded -> a notice, not a silent pass', 'notice', withText(r, 'notice', '*guard failed on 1 call(s)*'), r.out);
     guard('tr-gerr', clRepo, 'Edit', { file_path: clSrc, old_string: 'a = 4', new_string: 'a = 5' });
     put(clSrc, 'a = 5');
     r = stop('tr-gerr', false);
@@ -317,4 +329,20 @@ export default function truthCases(t) {
     r = stop('tr-h06-row', false);
     ids = headIds(r);
     record('truth 9c: DECISIONS.md with a row -> no Change Log line, GATE-06 still named and the question asked', 'asked', verdict(r) !== 'block' ? verdict(r) : like(r.out, '*no Change Log row*') ? 'changelog-line' : !ids.includes('GATE-06') ? 'unnamed: ' + ids.join(', ') : !crAsked(r) ? 'not-asked' : 'asked', r.out);
+
+    // ------------------------------------------------------------------ 10. a payload that is not JSON is one ERROR line
+    section('-- truth 10: a payload that is not JSON is one ERROR line, never silence (route, stop, subagent, entry)');
+    // The four hooks that advise read their payload leniently: no payload, nothing to decide, and they answer as
+    // before (entry still prints its arming line first). A payload the host sent in a shape that does not parse
+    // writes one ERROR line with its first 80 characters, as the hooks that refuse already did. Red before: route,
+    // stop and subagent left nothing at all, entry only its usual lines.
+    const notJson = '{nope ' + 'x'.repeat(100);
+    for (const h of ['route', 'stop', 'subagent', 'entry']) {
+        const from = readText(process.env.DF_LOG_PATH).length;
+        r = invokeHook(`${h}.mjs`, notJson);
+        const lines = logSince(from).split(/\r?\n/).filter((l) => l.includes(` ERROR ${h} payload is not JSON: `));
+        record(`truth 10: ${h}.mjs given a payload that is not JSON writes one ERROR line with its first 80 characters`, 'logged',
+            r.code !== 0 ? `exit${r.code}` : lines.length === 1 && lines[0].endsWith(`payload is not JSON: ${notJson.slice(0, 80)}`) ? 'logged' : `${lines.length} line(s)`, `${r.out}\n${logSince(from)}`);
+        if (h === 'entry') record('truth 10: entry.mjs given a payload that is not JSON still prints its arming line first', 'armed', /^kit: armed \S+ [0-9a-f]{12}$/.test(r.out.split('\n')[0]) ? 'armed' : `line1: ${r.out.split('\n')[0]}`, r.out);
+    }
 }

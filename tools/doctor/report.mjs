@@ -1,4 +1,8 @@
 // report.mjs - the verdict, the three bands on screen, -Json, and state/.
+// 0.3.0: a fourth claim status, SKIPPED (a claim not run on this host, the host rule in claims.mjs),
+// prints in its own band after the CLAIMS band, counts apart as claimsSkipped in -Json and
+// last-run.json, is never counted as PASS and never enters the verdict (SAFE-04: "not run here"
+// printed as a pass would be a pass the Doctor did not prove).
 // The only files written anywhere by the Doctor are <stateDir>/*, which are GENERATED.
 // Determinism: repos.generated.md is sorted and carries no timestamp, so a re-run with nothing
 // changed produces a byte-identical file. The timestamp lives in last-run.json alone.
@@ -17,17 +21,27 @@ import { byName } from './util.mjs';
 export function getVerdict(claims, survey, couldNotLook, surveyStrict) {
     const claimFails = claims.filter((c) => c.status === 'FAIL').length;
     const surveyFails = survey.filter((f) => f.severity === 'fail').length;
+    // SKIPPED is outside the verdict: not a pass, not a failure, not could-not-look. The reason names
+    // the count, so a GREEN never reads as if every claim ran.
+    const skipped = claims.filter((c) => c.status === 'SKIPPED').length;
+    const skipNote = skipped > 0 ? `; ${skipped} claim(s) skipped on this host, not counted` : '';
     // anchor: could-not-look  mode: gate  verbs: report-green,look
-    if (couldNotLook.length > 0) return { verdict: 'COULD-NOT-LOOK', code: 2, reason: 'something could not be checked' };
-    if (claimFails > 0) return { verdict: 'RED', code: 1, reason: `${claimFails} false claim(s)` };
-    if (surveyStrict && surveyFails > 0) return { verdict: 'RED', code: 1, reason: `${surveyFails} survey finding(s), surveyStrict is true` };
-    return { verdict: 'GREEN', code: 0, reason: surveyFails > 0 ? `${surveyFails} survey finding(s) REPORTED, not counted (surveyStrict false)` : 'nothing needs action' };
+    if (couldNotLook.length > 0) return { verdict: 'COULD-NOT-LOOK', code: 2, reason: `something could not be checked${skipNote}` };
+    if (claimFails > 0) return { verdict: 'RED', code: 1, reason: `${claimFails} false claim(s)${skipNote}` };
+    if (surveyStrict && surveyFails > 0) return { verdict: 'RED', code: 1, reason: `${surveyFails} survey finding(s), surveyStrict is true${skipNote}` };
+    return { verdict: 'GREEN', code: 0, reason: (surveyFails > 0 ? `${surveyFails} survey finding(s) REPORTED, not counted (surveyStrict false)` : 'nothing needs action') + skipNote };
+}
+
+// The four claim counts, computed one way for last-run.json and -Json: SKIPPED apart, never as PASS.
+export function claimCounts(claims) {
+    const count = (st) => claims.filter((c) => c.status === st).length;
+    return { claimsPass: count('PASS'), claimsFail: count('FAIL'), claimsUnknown: count('UNKNOWN'), claimsSkipped: count('SKIPPED') };
 }
 
 const writeText = (p, text) => fs.writeFileSync(p, text, 'utf8');
 const sortRepos = (repos) => [...repos].sort((a, b) => byName(a.path, b.path));
 
-export function writeState({ stateDir, repos, claims, survey, couldNotLook, verdict, stamp, mode }) {
+export function writeState({ stateDir, repos, claims, survey, couldNotLook, verdict, stamp, mode, scope, host }) {
     fs.mkdirSync(stateDir, { recursive: true });
     const sorted = sortRepos(repos);
     writeText(path.join(stateDir, 'repos.json'), JSON.stringify(sorted, null, 2) + '\n');
@@ -55,12 +69,10 @@ export function writeState({ stateDir, repos, claims, survey, couldNotLook, verd
 
     const count = (list, f) => list.filter(f).length;
     const last = {
-        ranAt: stamp, mode, verdict: verdict.verdict, exitCode: verdict.code,
+        ranAt: stamp, mode, scope: scope || 'pointer', host: host || '', verdict: verdict.verdict, exitCode: verdict.code,
         repoCount: count(repos, (r) => !r.archived && !r.worktree),
         worktreeCount: count(repos, (r) => !r.archived && r.worktree),
-        claimsPass: count(claims, (c) => c.status === 'PASS'),
-        claimsFail: count(claims, (c) => c.status === 'FAIL'),
-        claimsUnknown: count(claims, (c) => c.status === 'UNKNOWN'),
+        ...claimCounts(claims),
         surveyFail: count(survey, (f) => f.severity === 'fail'),
         surveyWarn: count(survey, (f) => f.severity === 'warn'),
         surveyInfo: count(survey, (f) => f.severity === 'info'),
@@ -73,7 +85,8 @@ export function writeState({ stateDir, repos, claims, survey, couldNotLook, verd
 export function jsonReport({ ctx, repos, enforcement, claims, survey, couldNotLook, verdict, stamp, mode }) {
     const e = enforcement || {};
     return JSON.stringify({
-        ranAt: stamp, mode, verdict: verdict.verdict, exitCode: verdict.code, reason: verdict.reason,
+        ranAt: stamp, mode, scope: ctx.scope || 'pointer', host: ctx.host || '', verdict: verdict.verdict, exitCode: verdict.code, reason: verdict.reason,
+        ...claimCounts(claims),
         where: { root: ctx.root, brain: ctx.brain, kit: ctx.kit, pluginRoot: ctx.pluginRoot, pointer: getPointerPath() },
         bands: {
             claims: claims.map((c) => ({ id: c.id, type: c.type, status: c.status, detail: c.detail })),
@@ -109,20 +122,30 @@ export function showReport({ ctx, repos, enforcement, claims, survey, couldNotLo
     say(`  mode ${mode}   root ${ctx.root}`);
     say(`  brain ${ctx.brain || '(none)'}`);
     say(`  kit ${ctx.kit}`);
+    say(`  scope ${ctx.scope || 'pointer'}   host ${ctx.host || '(none given: nothing is skipped by host)'}`);
     say(`  ${live.length} repositories under root (${repos.length - live.length - wtCount} archived, not counted${wtNote})`);
     say();
 
     // --- band 1: CLAIMS
     const cp = claims.filter((c) => c.status === 'PASS'); const cf = claims.filter((c) => c.status === 'FAIL'); const cu = claims.filter((c) => c.status === 'UNKNOWN');
-    say(`  CLAIMS  ${cp.length} pass  ${cf.length} fail  ${cu.length} could not look`, 'Yellow');
+    const cs = claims.filter((c) => c.status === 'SKIPPED');
+    say(`  CLAIMS  ${cp.length} pass  ${cf.length} fail  ${cu.length} could not look  ${cs.length} skipped`, 'Yellow');
     for (const c of cf) {
         say(`    FAIL  ${c.id}  ${c.detail}`, 'Red');
         if (c.why) say(`          why: ${c.why}`, 'DarkGray');
     }
     for (const c of cu) say(`    ????  ${c.id}  ${c.detail}`, 'Magenta');
-    if (cf.length === 0 && cu.length === 0 && cp.length > 0) say('    every claim holds', 'Green');
+    if (cf.length === 0 && cu.length === 0 && cp.length > 0) say(cs.length > 0 ? `    every claim that ran holds (${cs.length} skipped, not counted)` : '    every claim holds', 'Green');
+    if (cf.length === 0 && cu.length === 0 && cp.length === 0 && cs.length > 0) say(`    no claim ran on this host (${cs.length} skipped); nothing was proved`, 'Magenta');
     if (claims.length === 0) say('    no claims to check', 'DarkGray');
     say();
+
+    // --- the SKIPPED band (0.3.0): claims not run on this host. Reported, never counted, never a pass.
+    if (cs.length > 0) {
+        say(`  SKIPPED  ${cs.length}  (not run on this host - reported, not counted, never a pass)`, 'DarkGray');
+        for (const c of cs) say(`    SKIP  ${c.id}  ${c.detail}`, 'DarkGray');
+        say();
+    }
 
     // --- band 2: SURVEY (enforcement facts first, then findings)
     const acted = survey.filter((f) => f.severity === 'fail' || f.severity === 'warn');

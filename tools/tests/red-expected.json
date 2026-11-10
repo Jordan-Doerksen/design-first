@@ -1,0 +1,346 @@
+{
+  "schema": 1,
+  "_comment": "The red-expected map (0.3.0, row 41): every mechanism of the kit, by the id tools/release.mjs reads from the tree (registry:<id> for a row of hooks/registry.json, guard:<n> for a numbered rule in the header of hooks/guard.mjs, claim:<type> for a case of the dispatcher switch in tools/doctor/claims.mjs, anchor:<file>#<name> for an anchor line in a tracked script), to the name of one or more cases that proved it red first: a case whose planted fault the mechanism refuses, reports or prints. The names are the exact record names of tools/tests/run.mjs (its cases-*.mjs and guard-cases.json), tools/doctor/selftest.mjs (and its selftest-*.mjs) and tools/tests/adopt-selftest.mjs; the release gate refuses a bump when a mechanism is missing here, when a name here was not printed by a suite, when its case failed, or when an id here names nothing in the tree. Keep it in tree order: the registry rows, the guard rules, the claim types, then the anchors by file.",
+  "mechanisms": {
+    "registry:guard": [
+      "registry: the -Plugin render is byte-identical to the committed hooks/hooks.json",
+      "registry: -Check with the guard row removed from a copy exits 1",
+      "smoke PreToolUse/Edit|Write|NotebookEdit|Bash|PowerShell -> guard.mjs",
+      "git add of an actual .env"
+    ],
+    "registry:fence": [
+      "registry: the -Plugin render is byte-identical to the committed hooks/hooks.json",
+      "smoke PreToolUse/Edit|Write|Bash|PowerShell -> fence.mjs",
+      "FENCE paren GOODHART: assert( removed -> denies"
+    ],
+    "registry:ask": [
+      "registry: the -Plugin render is byte-identical to the committed hooks/hooks.json",
+      "smoke PreToolUse/AskUserQuestion -> ask.mjs",
+      "ask: two questions in one call -> deny"
+    ],
+    "registry:agent": [
+      "registry: the -Plugin render is byte-identical to the committed hooks/hooks.json",
+      "smoke PreToolUse/Agent|mcp__ccd_session__start_session|mcp__claude-code-remote__create_session|mcp__claude-code-remote__send_message -> agent.mjs",
+      "session: create_session without Done when: -> denied"
+    ],
+    "registry:card": [
+      "registry: the -Plugin render is byte-identical to the committed hooks/hooks.json",
+      "smoke PreToolUse/Edit|Write|NotebookEdit -> card.mjs",
+      "card: an Edit that adds local_0a1b2c3d to a card is denied"
+    ],
+    "registry:route": [
+      "registry: the -Plugin render is byte-identical to the committed hooks/hooks.json",
+      "smoke UserPromptSubmit/ -> route.mjs",
+      "role: a first prompt with \"Role: planning\" and a \"Reports to:\" line is not a writer (OWN-06 arrives)"
+    ],
+    "registry:stop": [
+      "registry: the -Plugin render is byte-identical to the committed hooks/hooks.json",
+      "smoke Stop/ -> stop.mjs",
+      "stop: source changed this turn -> block with the card"
+    ],
+    "registry:subagent": [
+      "registry: the -Plugin render is byte-identical to the committed hooks/hooks.json",
+      "smoke SubagentStart/ -> subagent.mjs",
+      "subagent: gets SAFE plus the session active groups as JSON context"
+    ],
+    "registry:entry-startup": [
+      "registry: the -Plugin render is byte-identical to the committed hooks/hooks.json",
+      "smoke SessionStart/startup -> entry.mjs",
+      "parity: no .claude/kit, no plugin, no pointer: the unarmed line, never silence"
+    ],
+    "registry:entry-resume": [
+      "registry: the -Plugin render is byte-identical to the committed hooks/hooks.json",
+      "smoke SessionStart/resume -> entry.mjs",
+      "parity: plugin form, source resume prints the arming line first"
+    ],
+    "registry:entry-clear": [
+      "registry: the -Plugin render is byte-identical to the committed hooks/hooks.json",
+      "smoke SessionStart/clear -> entry.mjs",
+      "parity: plugin form, source clear prints the arming line first"
+    ],
+    "registry:entry-compact": [
+      "registry: the -Plugin render is byte-identical to the committed hooks/hooks.json",
+      "smoke SessionStart/compact -> entry.mjs",
+      "parity: plugin form, source compact prints the arming line first"
+    ],
+    "guard:1": [
+      "git add of an actual .env",
+      "no pointer: git add .env still denied"
+    ],
+    "guard:2": [
+      "force push",
+      "history destruction: reflog expire"
+    ],
+    "guard:3": [
+      ".env not ignored -> deny with ignore remedy"
+    ],
+    "guard:4": [
+      "Edit inside a frozen reference",
+      "Edit inside a tombstoned path",
+      "parity: a tombstoned {repo, path: \".\"} row of the clone denies an Edit at <clone>/x.py (rule 4)"
+    ],
+    "guard:7": [
+      "dirty tree: git reset --hard -> denied",
+      "git stash drop -> denied even on a clean tree"
+    ],
+    "guard:8": [
+      "schedule: schtasks /create -> denied"
+    ],
+    "guard:9": [
+      "content: Edit adds place_order( in trading -> denied"
+    ],
+    "guard:10": [
+      "gate: source edit in a gated repo with no record -> deny"
+    ],
+    "guard:11": [
+      "loop: git push on a harness/ branch -> deny"
+    ],
+    "guard:12": [
+      "ledger: Edit the story ledger on a harness/ branch -> deny"
+    ],
+    "guard:13": [
+      "py-heredoc: python - <<EOF -> denied"
+    ],
+    "guard:14": [
+      "blanket-kill: writer, taskkill /IM python.exe /F -> denied"
+    ],
+    "guard:15": [
+      "selfcheck: node .claude/kit/tools/selfcheck.mjs -> denied ARMED"
+    ],
+    "claim:path_exists": [
+      "C: F-PATH caught"
+    ],
+    "claim:path_absent": [
+      "C: F-ABSENT caught"
+    ],
+    "claim:file_contains": [
+      "C: F-CONTAINS caught"
+    ],
+    "claim:file_not_contains": [
+      "C: F-NOTCONTAINS caught"
+    ],
+    "claim:line_count": [
+      "C: F-LINES caught"
+    ],
+    "claim:file_fresh": [
+      "C: F-FRESH-STALE caught"
+    ],
+    "claim:config_paths_each": [
+      "C: F-TOMB-THIN caught"
+    ],
+    "claim:log_window_free_of": [
+      "C: F-LOG caught"
+    ],
+    "claim:remote_is": [
+      "C: F-REMOTE caught"
+    ],
+    "claim:json_subset_equal": [
+      "C: F-JSON caught",
+      "red: SETTINGS-BLOCK-01 is FAIL (a settings file written without vendoring carries no hooks block)"
+    ],
+    "claim:json_keyed_match": [
+      "C: F-KEYED caught"
+    ],
+    "claim:generated_matches": [
+      "C: F-GEN caught",
+      "C: generated_matches names the first differing byte",
+      "D: generated_matches args that are not a list of strings is unknown, never dropped",
+      "K: red: a registration typed by hand in .claude/settings.json (the card timeout 10 -> 11) is FAIL on KIT-SETTINGS-01"
+    ],
+    "claim:tree_free_of": [
+      "C: F-TREE caught",
+      "W: red: with .claude/kit dropped from a copy of the shipped exclude, the vendored copy of the word list is a hit"
+    ],
+    "claim:tree_equals": [
+      "C: F-TREEEQ caught"
+    ],
+    "claim:tree_each": [
+      "C: F-SCAN caught"
+    ],
+    "claim:tree_rules": [
+      "C: F-RULES caught"
+    ],
+    "claim:tree_sha": [
+      "C: F-TREESHA caught",
+      "fresh: a one-byte change in the vendored law.json turns KIT-VENDOR-01 FAIL (exit 1)",
+      "D: tree_sha with a VERSION that lists no file is unknown, never a pass",
+      "fresh: a one-byte change in the brain copy turns KIT-VENDOR-02 FAIL under -Scope brain -Host cloud (exit 1)"
+    ],
+    "claim:ratchet": [
+      "C: F-RATCHET-ROSE caught"
+    ],
+    "claim:hook_smoke": [
+      "C: F-SMOKE-PRE caught",
+      "C: F-SMOKE-CRASH caught",
+      "V: hook_smoke on a hook that answers with its internal-error reply is RED, never GREEN",
+      "V: a PreToolUse hook that throws after parsing stdin is a FAIL smoke naming the hook, the event and its reply (guard)",
+      "V: a SessionStart hook that throws after parsing stdin is a FAIL smoke naming the hook, the event and its reply (entry)",
+      "V: a UserPromptSubmit hook that throws after parsing stdin is a FAIL smoke naming the hook, the event and its reply (route)",
+      "V: a SubagentStart hook that throws after parsing stdin is a FAIL smoke naming the hook, the event and its reply (subagent)",
+      "V: a Doctor run leaves no doctor-smoke marker in <os temp>/design-first",
+      "V: the run removes its own smoke marker folder when it ends",
+      "V: a Doctor run that throws after its smokes leaves no smoke marker and no smoke folder in the OS temp folder",
+      "V: a smoke with no marker folder is UNKNOWN and says so, never run elsewhere, never a pass"
+    ],
+    "claim:pointer_valid": [
+      "E: pointer_valid false is RED under -Kit"
+    ],
+    "claim:config_schema": [
+      "C: F-SCHEMA caught"
+    ],
+    "claim:snapshot_diff": [
+      "C: F-SNAP-STRAY caught"
+    ],
+    "anchor:hooks/agent.mjs#agent-brief": [
+      "agent: brief missing Ruled out -> deny names it"
+    ],
+    "anchor:hooks/agent.mjs#agent-route": [
+      "agent: full brief, general-purpose, no model -> routed to sonnet"
+    ],
+    "anchor:hooks/agent.mjs#agent-cap": [
+      "agent: cap, spawn 9 asks the owner"
+    ],
+    "anchor:hooks/agent.mjs#session-mode": [
+      "session: requireMode auto, caller default -> denied naming both"
+    ],
+    "anchor:hooks/agent.mjs#session-started": [
+      "session: a second start of the same title in one prompt -> denied from the marker"
+    ],
+    "anchor:hooks/ask.mjs#ask-shape": [
+      "ask: two questions in one call -> deny"
+    ],
+    "anchor:hooks/card.mjs#card-bounded": [
+      "card: an Edit that adds local_0a1b2c3d to a card is denied"
+    ],
+    "anchor:hooks/entry.mjs#entry-path": [
+      "entry: cwd under root lists entry.json in order"
+    ],
+    "anchor:hooks/fence.mjs#goodhart-paren": [
+      "FENCE paren GOODHART: assert( removed -> denies"
+    ],
+    "anchor:hooks/fence.mjs#goodhart-loose": [
+      "FENCE loose GOODHART: python bare assert removed -> advises"
+    ],
+    "anchor:hooks/fence.mjs#fence-net-deletion": [
+      "FENCE net deletion (3+ lines) -> advises"
+    ],
+    "anchor:hooks/lib/guard-gate-rules.mjs#design-gate": [
+      "gate: source edit in a gated repo with no record -> deny"
+    ],
+    "anchor:hooks/lib/guard-loop-rules.mjs#loop-no-push": [
+      "loop: git push on a harness/ branch -> deny"
+    ],
+    "anchor:hooks/lib/guard-loop-rules.mjs#ledger": [
+      "ledger: Edit the story ledger on a harness/ branch -> deny"
+    ],
+    "anchor:hooks/lib/guard-owner-rules.mjs#dirty-tree": [
+      "dirty tree: git reset --hard -> denied"
+    ],
+    "anchor:hooks/lib/guard-owner-rules.mjs#no-schedule": [
+      "schedule: schtasks /create -> denied"
+    ],
+    "anchor:hooks/lib/guard-owner-rules.mjs#content-rule": [
+      "content: Edit adds place_order( in trading -> denied"
+    ],
+    "anchor:hooks/lib/guard-owner-rules.mjs#no-python-heredoc": [
+      "py-heredoc: python - <<EOF -> denied"
+    ],
+    "anchor:hooks/lib/guard-owner-rules.mjs#selfcheck-armed": [
+      "selfcheck: node .claude/kit/tools/selfcheck.mjs -> denied ARMED"
+    ],
+    "anchor:hooks/lib/guard-rules.mjs#stage-secret": [
+      "git add of an actual .env"
+    ],
+    "anchor:hooks/lib/guard-rules.mjs#git-history": [
+      "force push"
+    ],
+    "anchor:hooks/lib/guard-rules.mjs#env-write": [
+      ".env not ignored -> deny with ignore remedy"
+    ],
+    "anchor:hooks/lib/guard-rules.mjs#frozen-path": [
+      "Edit inside a frozen reference"
+    ],
+    "anchor:hooks/lib/guard-rules.mjs#no-manifest": [
+      "manifest: source edit in a repo with no DECISIONS.md -> advises once"
+    ],
+    "anchor:hooks/lib/guard-rules.mjs#file-size": [
+      "size: a write that grows a .py past the ceiling -> advises the agent only (no systemMessage)"
+    ],
+    "anchor:hooks/lib/state-card.mjs#state-card": [
+      "card: a session that starts in a game repository gets the card"
+    ],
+    "anchor:hooks/route.mjs#route-law": [
+      "route: a build+commit prompt injects DES and VCS rows"
+    ],
+    "anchor:hooks/route.mjs#always-route": [
+      "route: the always group comes before the matched groups"
+    ],
+    "anchor:hooks/route.mjs#skills": [
+      "route: a prompt sharing a word with a skill names it, with its path"
+    ],
+    "anchor:hooks/route.mjs#writer-skip": [
+      "writer: a brief session gets the OWN group without the skipped clause"
+    ],
+    "anchor:hooks/stop.mjs#stop-done": [
+      "stop: source changed this turn -> block with the card"
+    ],
+    "anchor:hooks/stop.mjs#interview": [
+      "stop: a repo created this turn, no question asked -> GATE-01 line"
+    ],
+    "anchor:hooks/subagent.mjs#subagent-law": [
+      "subagent: gets SAFE plus the session active groups as JSON context"
+    ],
+    "anchor:hooks/subagent.mjs#advise-by-role": [
+      "subagent: the Reviewer gets the ADVISE clauses with the report instruction"
+    ],
+    "anchor:tools/doctor/report.mjs#could-not-look": [
+      "D: could-not-look is exit 2"
+    ],
+    "anchor:tools/doctor/survey.mjs#survey-no-remote": [
+      "A: no remote"
+    ],
+    "anchor:tools/doctor/survey.mjs#survey-foreign-remote": [
+      "A: foreign remote accepted, still shown",
+      "B: surveyStrict turns survey fails RED"
+    ],
+    "anchor:tools/doctor/survey.mjs#survey-unpushed": [
+      "A: commits ahead of the upstream are reported as unpushed"
+    ],
+    "anchor:tools/doctor/survey.mjs#survey-shallow": [
+      "A: shallow clone"
+    ],
+    "anchor:tools/doctor/survey.mjs#survey-no-gitattributes": [
+      "A: a repository with commits and no .gitattributes is reported"
+    ],
+    "anchor:tools/doctor/survey.mjs#survey-outside-category": [
+      "A: a new repo outside a category folder is named, with the categories"
+    ],
+    "anchor:tools/law/build-law.mjs#state-once": [
+      "L: a KIT-01 heading in two law files fails the build"
+    ],
+    "anchor:tools/law/build-law.mjs#no-count": [
+      "L: a KIT clause whose rule text carries a count fails the build"
+    ],
+    "anchor:tools/release.mjs#release-gate": [
+      "release: a fixture suite with one failing case: refused, exit 1, the version unchanged",
+      "release: a RED kit Doctor (doctor.mjs -Kit exit 1) is refused naming the verdict and the false claim, the version unchanged"
+    ],
+    "anchor:tools/selfcheck.mjs#selfcheck": [
+      "selfcheck: the bare script exits 2",
+      "selfcheck: the bare script prints the UNARMED line first"
+    ],
+    "anchor:tools/settings.mjs#settings-registry": [
+      "registry: -Check against a hand-edited registration exits 1"
+    ],
+    "anchor:tools/vcs/law-claim.mjs#law-claim": [
+      "law-claim: a law file with no claim and no waiver -> refused"
+    ],
+    "anchor:tools/vcs/law-claim.mjs#commit-message": [
+      "message: a subject over 72 characters -> refused, length named"
+    ],
+    "anchor:tools/vendor.mjs#vendor-sha": [
+      "vendor: a one-byte flip in .claude/kit/hooks/guard.mjs makes -Check exit 1",
+      "attach: the Doctor is RED on KIT-VENDOR-01 after the edit (the tree is not what its VERSION says)"
+    ]
+  }
+}
